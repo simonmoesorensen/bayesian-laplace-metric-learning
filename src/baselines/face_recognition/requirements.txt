@@ -1,5 +1,11 @@
-numpy==1.16.2
-torch==1.5.1
-torchvision==0.6.1
-albumentations==0.4.5
-catalyst==20.07
+numpy==1.22.4
+albumentations==1.2.0
+catalyst==22.4
+scikit-learn==1.1.1
+thop==0.1.0
+onnx==1.12.0
+pandas == 1.4.2
+
+--extra-index-url https://download.pytorch.org/whl/cu113
+torch==1.11.0
+torchvision==0.12.0

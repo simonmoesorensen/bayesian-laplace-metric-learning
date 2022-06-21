@@ -3,12 +3,10 @@
 
 import os
 import cv2
-import numpy as np
-import pandas as pd
 from torch.utils import data
 import dataset.auglib as auglib
 
-from IPython import embed
+
 
 class VerifyBase(data.Dataset):
 

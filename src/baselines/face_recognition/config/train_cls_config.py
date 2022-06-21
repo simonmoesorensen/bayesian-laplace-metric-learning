@@ -3,11 +3,12 @@
 
 import argparse
 import os.path as osp
+from pathlib import Path
 
-root_dir = '/data/relu/benchmark_images/faceu'
-test_dir = osp.join(root_dir, 'faces_verification')
-data_dir = osp.join(root_dir, 'ms1m_arcface')
-cp_dir   = '/data/relu/checkpoint/face-recognition/densityEstimate/experiments_dul'
+root_dir = Path(__file__).parent.parent.parent.parent.parent / 'data/face_recognition/'
+data_dir = root_dir / 'datasets'
+test_dir = data_dir / 'validation'
+cp_dir   = root_dir / 'checkpoints'
 
 def cls_args():
 
@@ -52,7 +53,7 @@ def cls_args():
     parser.add_argument('--data_dir',   type=str,  default=data_dir)   # 
     parser.add_argument('--test_dir',   type=str,  default=test_dir)   # TODO
     parser.add_argument('--bmark_list', type=list, default=['lfw'])    # ['lfw', 'agedb30', 'cfp_ff', 'cfp_fp']
-    parser.add_argument('--train_file', type=str,  default=osp.join(data_dir, 'anno_file/ms1m_images.txt')) # 3314259-lines
+    # parser.add_argument('--train_file', type=str,  default=data_dir / 'anno_file/ms1m_images.txt') # 3314259-lines
 
     # -- verification
     parser.add_argument('--n_folds',   type=int,   default=10)
@@ -60,7 +61,7 @@ def cls_args():
 
     # -- save or print
     parser.add_argument('--is_debug',  type=str,   default=False)   # TODO
-    parser.add_argument('--save_to',   type=str,   default=osp.join(cp_dir, 'res18IRSE_arcface_ms1m_dulcls'))
+    parser.add_argument('--save_to',   type=str,   default=cp_dir / 'res18IRSE_arcface_ms1m_dulcls')
     parser.add_argument('--print_freq',type=int,   default=2400)  # (3804846, 512, 7432)
     parser.add_argument('--save_freq', type=int,   default=3)  # TODO
 
