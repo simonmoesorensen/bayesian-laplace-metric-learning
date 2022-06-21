@@ -16,30 +16,6 @@ PYTHON_INTERPRETER = python3
 data: # requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py
 
-	$(PYTHON_INTERPRETER) align/align_dataset.py data/ldmark_lfw_mtcnncaffe.txt \
-		data/lfw_mtcnncaffe_aligned \
-		--prefix /path/to/LFW/images \
-		--transpose_input --image_size 96 112
-	$(PYTHON_INTERPRETER) align/crop_ijba.py proto/IJB-A/metadata.csv \
-		/path/to/IJB-A/images/ \
-		data/ijba_cropped/
-	# wget https://cs.stanford.edu/group/mlgroup/MURA-v1.1.zip
-	# unzip -q MURA-v1.1.zip -d data
-	# rm -f MURA-v1.1.zip
-
-## Make and align data
-casia:
-	$(PYTHON_INTERPRETER) align/align_dataset.py \
-		data/ldmark_casia_mtcnncaffe.txt \
-		data/casia_mtcnncaffe_aligned \
-		--prefix /path/to/CASIA-Webface/images \
-		--transpose_input --image_size 96 112
-	$(PYTHON_INTERPRETER) align/align_dataset.py \
-		data/ldmark_ijba_mtcnncaffe.txt \
-		data/ijba_mtcnncaffe_aligned \
-		--prefix data/ijba_cropped \
-		--transpose_input --image_size 96 112
-
 ## Delete all compiled Python files
 clean:
 	find ./src/ -type f -name "*.py[co]" -delete

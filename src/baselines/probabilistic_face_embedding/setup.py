@@ -4,8 +4,4 @@ setup(
     name="src",
     packages=find_packages(),
     version="0.1.0",
-    description="Research project in Bayesian Machine Learning, supervised by "
-    "Michael Riis Andersen.",
-    author="Silas Brack",
-    license="MIT",
 )
