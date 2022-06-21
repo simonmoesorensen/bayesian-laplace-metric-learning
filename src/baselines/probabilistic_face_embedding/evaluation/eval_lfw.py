@@ -24,7 +24,7 @@
 
 import os
 import sys
-import imp
+import importlib as imp
 import argparse
 import time
 import math

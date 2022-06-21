@@ -3,14 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-import tensorflow as tf
-from tensorflow.compat.v1 import (
-    GraphKeys,
-    variable_scope,
-    get_variable,
-)
-from tensorflow.math import log
-import tf_slim as slim
+import tensorflow.compat.v1 as tf
+import tensorflow.compat.v1.contrib.slim as slim
 
 
 batch_norm_params = {
@@ -19,7 +13,7 @@ batch_norm_params = {
     "center": True,
     "scale": True,
     "updates_collections": None,
-    "variables_collections": [GraphKeys.TRAINABLE_VARIABLES],
+    "variables_collections": [tf.GraphKeys.TRAINABLE_VARIABLES],
 }
 
 batch_norm_params_sigma = {
@@ -28,21 +22,21 @@ batch_norm_params_sigma = {
     "center": False,
     "scale": False,
     "updates_collections": None,
-    "variables_collections": [GraphKeys.TRAINABLE_VARIABLES],
+    "variables_collections": [tf.GraphKeys.TRAINABLE_VARIABLES],
 }
 
 
 def scale_and_shift(x, gamma_init=1.0, beta_init=0.0):
     num_channels = x.shape[-1].value
-    with variable_scope("scale_and_shift"):
-        gamma = get_variable(
+    with tf.variable_scope("scale_and_shift"):
+        gamma = tf.get_variable(
             "alpha",
             (),
             initializer=tf.constant_initializer(gamma_init),
             regularizer=slim.l2_regularizer(0.0),
             dtype=tf.float32,
         )
-        beta = get_variable(
+        beta = tf.get_variable(
             "gamma",
             (),
             initializer=tf.constant_initializer(beta_init),
@@ -66,7 +60,7 @@ def inference(
         weights_regularizer=slim.l2_regularizer(weight_decay),
         activation_fn=tf.nn.relu,
     ):
-        with variable_scope(scope, [inputs], reuse=reuse):
+        with tf.variable_scope(scope, [inputs], reuse=reuse):
             with slim.arg_scope(
                 [slim.batch_norm, slim.dropout], is_training=phase_train
             ):
@@ -99,6 +93,6 @@ def inference(
                 log_sigma_sq = scale_and_shift(log_sigma_sq, 1e-4, -7.0)
 
                 # Add epsilon for sigma_sq for numerical stableness
-                log_sigma_sq = log(1e-6 + tf.exp(log_sigma_sq))
+                log_sigma_sq = tf.log(1e-6 + tf.exp(log_sigma_sq))
 
     return log_sigma_sq

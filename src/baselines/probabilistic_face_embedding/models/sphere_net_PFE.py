@@ -3,13 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-import tensorflow as tf
-from tensorflow.compat.v1 import (
-    GraphKeys,
-    variable_scope,
-    get_variable,
-    truncated_normal_initializer,
-)
+import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
 model_params = {
@@ -26,14 +20,14 @@ batch_norm_params_last = {
     "center": True,
     "scale": False,
     "updates_collections": None,
-    "variables_collections": [GraphKeys.TRAINABLE_VARIABLES],
+    "variables_collections": [tf.GraphKeys.TRAINABLE_VARIABLES],
 }
 
 
 def parametric_relu(x):
     num_channels = x.shape[-1].value
-    with variable_scope("p_re_lu"):
-        alpha = get_variable(
+    with tf.variable_scope("p_re_lu"):
+        alpha = tf.get_variable(
             "alpha",
             (1, 1, num_channels),
             initializer=tf.constant_initializer(0.0),
@@ -43,7 +37,7 @@ def parametric_relu(x):
 
 
 def se_module(input_net, ratio=16, reuse=None, scope=None):
-    with variable_scope(scope, "SE", [input_net], reuse=reuse):
+    with tf.variable_scope(scope, "SE", [input_net], reuse=reuse):
         h, w, c = tuple([dim.value for dim in input_net.shape[1:4]])
         assert c % ratio == 0
         hidden_units = int(c / ratio)
@@ -81,7 +75,7 @@ def conv_module(
     reuse=None,
     scope=None,
 ):
-    with variable_scope(scope, "conv", [net], reuse=reuse):
+    with tf.variable_scope(scope, "conv", [net], reuse=reuse):
         net = slim.conv2d(
             net,
             num_kernels,
@@ -98,7 +92,9 @@ def conv_module(
                 kernel_size=3,
                 stride=1,
                 padding="SAME",
-                weights_initializer=truncated_normal_initializer(stddev=0.01),
+                weights_initializer=tf.truncated_normal_initializer(
+                    stddev=0.01
+                ),
                 biases_initializer=None,
             )
             net = slim.conv2d(
@@ -107,7 +103,9 @@ def conv_module(
                 kernel_size=3,
                 stride=1,
                 padding="SAME",
-                weights_initializer=truncated_normal_initializer(stddev=0.01),
+                weights_initializer=tf.truncated_normal_initializer(
+                    stddev=0.01
+                ),
                 biases_initializer=None,
             )
             print("| ---- block_%d" % i)
@@ -126,7 +124,7 @@ def inference(images, embedding_size=512, reuse=None, scope="SphereNet"):
         normalizer_params=None,
         activation_fn=parametric_relu,
     ):
-        with variable_scope("SphereNet", [images], reuse=reuse):
+        with tf.variable_scope("SphereNet", [images], reuse=reuse):
             # Fix the moving mean and std when training PFE
             with slim.arg_scope(
                 [slim.batch_norm, slim.dropout], is_training=False
