@@ -33,8 +33,10 @@ load_modules:
 ## Set up python interpreter environment
 create_environment:
 	$(PYTHON_INTERPRETER) -m venv venv/
-	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	source venv/bin/activate
+	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir -r requirements.txt
+	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir -e .
 
 ## Test python environment is setup correctly
 test_environment:
