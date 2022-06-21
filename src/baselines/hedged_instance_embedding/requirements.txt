@@ -1,0 +1,5 @@
+numpy
+tensorflow==2.8.0
+tfp-nightly==0.7.0.dev20190529
+matplotlib
+sklearn
