@@ -9,14 +9,44 @@ import shutil
 import numpy as np
 import torchvision
 from torch.utils.data import DataLoader
-from torchvision.datasets import CelebA, LFWPeople
+from torchvision.datasets import CelebA, LFWPeople, LFWPairs
+from torchvision import transforms
 
 import model as mlib
 from config import cls_args
 
 torch.backends.cudnn.bencmark = True
-os.environ["CUDA_VISIBLE_DEVICES"] = "1" # TODO
+os.environ["CUDA_VISIBLE_DEVICES"] = "0" # TODO
 
+class MyLFWPairs(LFWPairs):
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image1, image2, target) where target is `0` for different indentities and `1` for same identities.
+        """
+        img1, img2 = self.data[index]
+        img1, img2 = self._loader(img1), self._loader(img2)
+        target = self.targets[index]
+        pair_info = self.pair_names[index]
+
+        if self.transform is not None:
+            img1, img2 = self.transform(img1), self.transform(img2)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return dict(
+            name1=pair_info[0],
+            name2=pair_info[1],
+            label=target,
+            face1=img1,
+            face2=img2
+        )
+        return img1, img2, target
 
 class DulClsTrainer(mlib.Faster1v1):
 
@@ -94,7 +124,18 @@ class DulClsTrainer(mlib.Faster1v1):
     
     
     def _data_loader(self):
-        dataset = CelebA(self.args.data_dir, split='valid', download=True)
+        # Transform the celebA dataset to tensor
+        transform = transforms.Compose([
+            transforms.Resize((self.args.img_size, self.args.img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
+        
+        dataset = CelebA(self.args.data_dir, 
+                         split='test', 
+                         download=True,
+                         target_type='identity',
+                         transform=transform)
         
         self.data['train'] = DataLoader(
                                  dataset,
@@ -104,7 +145,10 @@ class DulClsTrainer(mlib.Faster1v1):
 
         for bmark in self.args.bmark_list: 
             if bmark == 'lfw':
-                dataset = LFWPeople(self.args.data_dir, split='train', download=True)
+                dataset = MyLFWPairs(self.args.data_dir, 
+                                    split='test', 
+                                    download=True,
+                                    transform=transform)
             else:
                 raise NotImplementedError(f"{bmark=} is not implemented yet")
             
@@ -124,7 +168,8 @@ class DulClsTrainer(mlib.Faster1v1):
         self.model['fc_layer'].train()
 
         loss_recorder, batch_acc = [], []
-        for idx, (img, gty, _) in enumerate(self.data['train']):
+        
+        for idx, (img, gty) in enumerate(self.data['train']):
 
             img.requires_grad = False
             gty.requires_grad = False
@@ -154,8 +199,8 @@ class DulClsTrainer(mlib.Faster1v1):
     def _save_weights(self, testinfo = {}):
         ''' save the weights during the process of training '''
         
-        if not os.path.exists(self.args.save_to):
-            os.mkdir(self.args.save_to)
+        if not self.args.save_to.exists():
+            self.args.save_to.mkdir(parents=True)
             
         freq_flag = self.result['epoch'] % self.args.save_freq == 0
         sota_flag = self.result['sota_acc'] < testinfo['test_acc']

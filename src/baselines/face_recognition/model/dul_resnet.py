@@ -128,7 +128,7 @@ class DULResNet(nn.Module):
             nn.BatchNorm2d(512 * block.expansion, eps=2e-5, affine=False),
             nn.Dropout(p=drop_ratio),
             Flatten(),
-            nn.Linear(512 * block.expansion * 7 * 7, feat_dim),
+            nn.Linear(512 * block.expansion * 4 * 4, feat_dim),
             nn.BatchNorm1d(feat_dim, eps=2e-5))
 
         # use logvar instead of var !!!
@@ -137,7 +137,7 @@ class DULResNet(nn.Module):
                 nn.BatchNorm2d(512 * block.expansion, eps=2e-5, affine=False),
                 nn.Dropout(p=drop_ratio),
                 Flatten(),
-                nn.Linear(512 * block.expansion * 7 * 7, feat_dim),
+                nn.Linear(512 * block.expansion * 4 * 4, feat_dim),
                 nn.BatchNorm1d(feat_dim, eps=2e-5))
 
 

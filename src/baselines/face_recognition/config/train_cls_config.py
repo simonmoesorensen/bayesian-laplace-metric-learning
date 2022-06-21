@@ -5,10 +5,10 @@ import argparse
 import os.path as osp
 from pathlib import Path
 
-root_dir = Path(__file__).parent.parent.parent.parent.parent / 'data/face_recognition/'
-data_dir = root_dir / 'datasets'
+root_dir = Path(__file__).parent.parent.parent.parent.parent
+data_dir = root_dir / 'data/face_recognition/datasets'
 test_dir = data_dir / 'validation'
-cp_dir   = root_dir / 'checkpoints'
+cp_dir   = root_dir / 'models/face_recognition'
 
 def cls_args():
 
@@ -53,6 +53,7 @@ def cls_args():
     parser.add_argument('--data_dir',   type=str,  default=data_dir)   # 
     parser.add_argument('--test_dir',   type=str,  default=test_dir)   # TODO
     parser.add_argument('--bmark_list', type=list, default=['lfw'])    # ['lfw', 'agedb30', 'cfp_ff', 'cfp_fp']
+    parser.add_argument('--img_size',   type=int,  default=64)    
     # parser.add_argument('--train_file', type=str,  default=data_dir / 'anno_file/ms1m_images.txt') # 3314259-lines
 
     # -- verification
