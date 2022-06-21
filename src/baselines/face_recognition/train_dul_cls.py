@@ -6,23 +6,16 @@ import sys
 import time
 import torch
 import shutil
-import random
 import numpy as np
 import torchvision
-import torch.nn as nn
-import torch.optim as optim
-from sklearn import metrics
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torchvision.datasets import CelebA, LFWPeople
 
 import model as mlib
-import dataset as dlib
 from config import cls_args
 
 torch.backends.cudnn.bencmark = True
-os.environ["CUDA_VISIBLE_DEVICES"] = "2" # TODO
-
-from IPython import embed
+os.environ["CUDA_VISIBLE_DEVICES"] = "1" # TODO
 
 
 class DulClsTrainer(mlib.Faster1v1):
@@ -101,20 +94,27 @@ class DulClsTrainer(mlib.Faster1v1):
     
     
     def _data_loader(self):
-
+        dataset = CelebA(self.args.data_dir, split='valid', download=True)
+        
         self.data['train'] = DataLoader(
-                                 dlib.DataBase(self.args),
-                                 batch_size=self.args.batch_size, \
+                                 dataset,
+                                 batch_size=self.args.batch_size,
                                  shuffle=True,
                                  num_workers=self.args.workers)
 
         for bmark in self.args.bmark_list: 
+            if bmark == 'lfw':
+                dataset = LFWPeople(self.args.data_dir, split='train', download=True)
+            else:
+                raise NotImplementedError(f"{bmark=} is not implemented yet")
+            
             self.data[bmark] = DataLoader(
-                dlib.VerifyBase(self.args, benchmark=bmark),
+                dataset,
                 batch_size=self.args.batch_size // 2, \
                 num_workers=self.args.workers,
                 drop_last=False,
                 collate_fn=self.collate_fn_1v1)
+            
         print('Data loading was finished ...')
 
 

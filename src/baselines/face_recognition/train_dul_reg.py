@@ -21,7 +21,7 @@ from config import reg_args
 torch.backends.cudnn.bencmark = True
 # os.environ["CUDA_VISIBLE_DEVICES"] = "6,7" # TODO
 
-from IPython import embed
+
 
 
 class DulRegTrainer(mlib.Faster1v1):

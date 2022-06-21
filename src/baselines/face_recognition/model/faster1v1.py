@@ -4,7 +4,7 @@ import os
 import torch
 import numpy as np
 from sklearn import metrics
-from IPython import embed
+
 
 class Faster1v1(object):
     ''' Speed up the module of the face verification during the training '''
