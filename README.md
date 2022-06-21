@@ -41,3 +41,4 @@ Run your python scripts like this:
 python -m debugpy --wait-for-client --listen 10.66.20.1:<YOUR_PORT> <script.py>
 ```
 
+> Hint: The "host" is the IP address of the node you are debugging. You can view the ip using `ifconfig` in your terminal. It should be the top most print under the "eth0" keyword and then "inet"
