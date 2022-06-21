@@ -33,6 +33,6 @@ Open an interactive terminal using `qrsh` (cpu) or `voltash` (gpu)
 Run your python scripts like this:
 
 ```bash
-python -m debugpy --wait-for-client --connect 10.66.20.1:<YOUR_PORT> <script.py>
+python -m debugpy --wait-for-client --listen 10.66.20.1:<YOUR_PORT> <script.py>
 ```
 
