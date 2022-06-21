@@ -1,0 +1,130 @@
+.PHONY: clean data lint requirements
+
+#################################################################################
+# GLOBALS                                                                       #
+#################################################################################
+
+PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+PROJECT_NAME = special_course
+PYTHON_INTERPRETER = python3
+
+#################################################################################
+# COMMANDS                                                                      #
+#################################################################################
+
+## Make Dataset
+data: # requirements
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+
+	$(PYTHON_INTERPRETER) align/align_dataset.py data/ldmark_lfw_mtcnncaffe.txt \
+		data/lfw_mtcnncaffe_aligned \
+		--prefix /path/to/LFW/images \
+		--transpose_input --image_size 96 112
+	$(PYTHON_INTERPRETER) align/crop_ijba.py proto/IJB-A/metadata.csv \
+		/path/to/IJB-A/images/ \
+		data/ijba_cropped/
+	# wget https://cs.stanford.edu/group/mlgroup/MURA-v1.1.zip
+	# unzip -q MURA-v1.1.zip -d data
+	# rm -f MURA-v1.1.zip
+
+## Make and align data
+casia:
+	$(PYTHON_INTERPRETER) align/align_dataset.py \
+		data/ldmark_casia_mtcnncaffe.txt \
+		data/casia_mtcnncaffe_aligned \
+		--prefix /path/to/CASIA-Webface/images \
+		--transpose_input --image_size 96 112
+	$(PYTHON_INTERPRETER) align/align_dataset.py \
+		data/ldmark_ijba_mtcnncaffe.txt \
+		data/ijba_mtcnncaffe_aligned \
+		--prefix data/ijba_cropped \
+		--transpose_input --image_size 96 112
+
+## Delete all compiled Python files
+clean:
+	find ./src/ -type f -name "*.py[co]" -delete
+	find ./src/ -type d -name "__pycache__" -delete
+
+## Lint using flake8
+lint:
+	flake8 .
+
+## Load modules
+load_modules:
+	module load python3/3.9.11
+	module load cuda/11.3
+
+## Set up python interpreter environment
+create_environment:
+	$(PYTHON_INTERPRETER) -m venv venv/
+	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+
+## Test python environment is setup correctly
+test_environment:
+	$(PYTHON_INTERPRETER) test_environment.py
+
+## Run unit tests
+run_tests:
+	pytest -v tests/
+
+#################################################################################
+# Self Documenting Commands                                                     #
+#################################################################################
+
+.DEFAULT_GOAL := help
+
+# Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>
+# sed script explained:
+# /^##/:
+# 	* save line in hold space
+# 	* purge line
+# 	* Loop:
+# 		* append newline + line to hold space
+# 		* go to next line
+# 		* if line starts with doc comment, strip comment character off and loop
+# 	* remove target prerequisites
+# 	* append hold space (+ newline) to line
+# 	* replace newline plus comments by `---`
+# 	* print line
+# Separate expressions are necessary because labels cannot be delimited by
+# semicolon; see <http://stackoverflow.com/a/11799865/1968>
+.PHONY: help
+help:
+	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
+	@echo
+	@sed -n -e "/^## / { \
+		h; \
+		s/.*//; \
+		:doc" \
+		-e "H; \
+		n; \
+		s/^## //; \
+		t doc" \
+		-e "s/:.*//; \
+		G; \
+		s/\\n## /---/; \
+		s/\\n/ /g; \
+		p; \
+	}" ${MAKEFILE_LIST} \
+	| LC_ALL='C' sort --ignore-case \
+	| awk -F '---' \
+		-v ncol=$$(tput cols) \
+		-v indent=19 \
+		-v col_on="$$(tput setaf 6)" \
+		-v col_off="$$(tput sgr0)" \
+	'{ \
+		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
+		n = split($$2, words, " "); \
+		line_length = ncol - indent; \
+		for (i = 1; i <= n; i++) { \
+			line_length -= length(words[i]) + 1; \
+			if (line_length <= 0) { \
+				line_length = ncol - indent - length(words[i]) - 1; \
+				printf "\n%*s ", -indent, " "; \
+			} \
+			printf "%s ", words[i]; \
+		} \
+		printf "\n"; \
+	}' \
+	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
