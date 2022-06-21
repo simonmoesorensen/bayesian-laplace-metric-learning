@@ -6,3 +6,33 @@
 | `hedged_instance_embedding`     | [MODELING UNCERTAINTY WITH HEDGED INSTANCE EMBEDDING](https://arxiv.org/pdf/1810.00319.pdf)                | [RRoundTable](https://github.com/RRoundTable/hedged_instance_embedding)                                        |
 | `probabilistic_face_embedding`  | [Probabilistic Face Embeddings](https://arxiv.org/pdf/1904.09658.pdf)                                      | [seasonSH](https://github.com/seasonSH/Probabilistic-Face-Embeddings)                                          |
 | `unsupervised_visual_retrieval` | [Unsupervised Data Uncertainty Learning in Visual Retrieval Systems](https://arxiv.org/pdf/1902.02586.pdf) |                                                                                                                |
+
+# Debugging in HPC
+
+First, install the `debugpy` package:
+```bash
+pip install debugpy
+```
+
+Add this configuration to your `.vscode/launch.json` file
+
+```json
+{
+    "name": "Python: Debug",
+    "type": "python",
+    "request": "attach",
+    "connect": {
+        "host": "10.66.20.1",
+        "port": <YOUR_PORT>
+    }
+}
+```
+
+Open an interactive terminal using `qrsh` (cpu) or `voltash` (gpu)
+
+Run your python scripts like this:
+
+```bash
+python -m debugpy --wait-for-client --connect 10.66.20.1:<YOUR_PORT> <script.py>
+```
+
