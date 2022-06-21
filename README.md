@@ -18,13 +18,21 @@ Add this configuration to your `.vscode/launch.json` file
 
 ```json
 {
-    "name": "Python: Debug",
-    "type": "python",
-    "request": "attach",
-    "connect": {
-        "host": "10.66.20.1",
-        "port": <YOUR_PORT>
-    }
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Attach",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "10.66.20.1",
+                "port": 1331
+            }
+        }
+    ]
 }
 ```
 
