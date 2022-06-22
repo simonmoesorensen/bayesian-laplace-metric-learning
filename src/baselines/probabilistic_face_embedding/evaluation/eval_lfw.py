@@ -50,6 +50,8 @@ def main(args):
 
     # Run forward pass to calculate embeddings
     mu, sigma_sq = network.extract_feature(images, args.batch_size, verbose=True)
+    np.save("results/casia_lfw_mu.npy", mu)
+    np.save("results/casia_lfw_sigma_sq.npy", sigma_sq)
     feat_pfe = np.concatenate([mu, sigma_sq], axis=1)
 
     lfwtest = LFWTest(paths)
