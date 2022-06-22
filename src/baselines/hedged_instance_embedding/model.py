@@ -29,6 +29,10 @@ def loss_func(y_true, y_pred):
 
 # Common Layer
 class Get_Logit(Layer):
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
+
     def __init__(self):
         super(Get_Logit, self).__init__()
 
@@ -58,6 +62,10 @@ class Get_Logit(Layer):
         return logit
 
 class Multi_Input_Layer(Layer):
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
+
     def __init__(self, opt):
         self.opt = opt
         super(Multi_Input_Layer, self).__init__()
@@ -97,6 +105,10 @@ class Multi_Input_Layer(Layer):
 
 # Base Model
 class PointEmbedding:
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
+
     def __init__(self, opt):
         self.opt = opt
         self.multi_input_layer = Multi_Input_Layer(opt)
@@ -141,6 +153,10 @@ class PointEmbedding:
 
 # Monte-carlo Sampling
 class Get_Logit_MC(Layer):
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
+
     def __init__(self, opt):
         self.opt = opt
         super(Get_Logit_MC, self).__init__()
@@ -189,6 +205,10 @@ class Get_Logit_MC(Layer):
 
 # Stochastic Layer
 class Stochastic_Layer(Layer):
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
+
     def __init__(self, opt):
         self.opt = opt
         super(Stochastic_Layer, self).__init__()
@@ -206,7 +226,7 @@ class Stochastic_Layer(Layer):
     def call(self, inputs):
         """Multi input Layer
         inputs: Tuple(size2) of examples
-            - example: two different images
+            - example: two different images`
         Return.
             Tuple(size2) of Mu, scale
         """
@@ -230,6 +250,10 @@ class Stochastic_Layer(Layer):
 
 # Hedged Instance Embedding(our model)
 class HedgedInstanceEmbedding:
+
+    def get_config(self):
+        cfg = super().get_config()
+        return cfg    
 
     def __init__(self, opt):
         self.opt = opt

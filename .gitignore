@@ -6,6 +6,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# logs
+hib/
+point/
+
+# images
+result/
+
+# model
+*.h5
+*.tfrecord
+
 # C extensions
 *.so
 

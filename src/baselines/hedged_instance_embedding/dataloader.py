@@ -30,10 +30,11 @@ class Dataloader:
     def __init__(self, opt):
         self.opt = opt
         if not os.path.exists(opt.tfrecordpath):
-            self.train_images, self.train_labels = datasets.mnist.load_data()[0]  # ndarray
+            print('33')
+            (self.train_images, self.train_labels), (self.test_images, self.test_labels) = datasets.mnist.load_data()  # ndarray
             self.train_images = self.train_images.astype('float32')
             self.train_labels = self.train_labels.astype('int64')
-            self.test_images, self.test_labels = datasets.mnist.load_data()[1]
+            # self.test_images, self.test_labels = datasets.mnist.load_data()[1]
 
             self.train_idx = list(range(len(self.train_images)))
             self.test_idx = list(range(len(self.test_images)))
@@ -46,10 +47,11 @@ class Dataloader:
             print("TRRcord exists already!")
 
         if not os.path.exists(opt.testpath):
-            self.train_images, self.train_labels = datasets.mnist.load_data()[0]  # ndarray
+            print('50')
+            (self.train_images, self.train_labels), (self.test_images, self.test_labels) = datasets.mnist.load_data()
             self.train_images = self.train_images.astype('float32')
             self.train_labels = self.train_labels.astype('int64')
-            self.test_images, self.test_labels = datasets.mnist.load_data()[1]
+            # self.test_images, self.test_labels = datasets.mnist.load_data()[1]
 
             self.train_idx = list(range(len(self.train_images)))
             self.test_idx = list(range(len(self.test_images)))
@@ -141,12 +143,18 @@ class Dataloader:
             x3 = np.asarray(x3)
             x4 = np.asarray(x4)
 
-            y1 = np.array(y1)
-            y2 = np.array(y2)
-            y3 = np.array(y3)
-            y4 = np.array(y4)
+            y1 = np.array(y1, dtype=np.int64)
+            y2 = np.array(y2, dtype=np.int64)
+            y3 = np.array(y3, dtype=np.int64)
+            y4 = np.array(y4, dtype=np.int64)
 
-            b = np.array(b)
+            b = np.array(b, dtype=np.int64)
+            print('----')
+            print(type(x1.tostring()))
+            print(type(int(y1)))
+            print(y2)
+            print(y3)
+            print(y4)
 
             feature = {'X1': _bytes_feature(tf.compat.as_bytes(x1.tostring())),
                        'X2': _bytes_feature(tf.compat.as_bytes(x2.tostring())),
@@ -156,7 +164,7 @@ class Dataloader:
                        'Y2': _int64_feature(int(y2)),
                        'Y3': _int64_feature(int(y3)),
                        'Y4': _int64_feature(int(y4)),
-                       "B":_int64_feature(b)}
+                       "B":_int64_feature(int(b))}
 
             example = tf.train.Example(features=tf.train.Features(feature=feature))
             writer.write(example.SerializeToString())
