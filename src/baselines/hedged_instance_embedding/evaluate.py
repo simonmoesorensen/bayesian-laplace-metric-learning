@@ -46,16 +46,21 @@ if __name__ == "__main__":
     
     X, Y  = test
     
-    print(Y.shape)
-    print(X.shape)
+    x = X.numpy()
+    y = Y.numpy()
+    print('1')
+    hib = HedgedInstanceEmbedding(args)
+    print('2')
+    hib_model = hib.build()
+    print('3')
+    hib_model.load_weights(hib_model_path)
+    print('4')
+
+    print(hib_model(X).shape)
 
     print('---------------')
-    print(type(test_dataset))
 
-    hib = HedgedInstanceEmbedding(args)
-    hib_model = hib.build()
-    hib_model.load_weights(hib_model_path)
-
+    
     print("Evaluate on test data")
     # results = model.evaluate(x_test, y_test, batch_size=128)
     # print("test loss, test acc:", results)
