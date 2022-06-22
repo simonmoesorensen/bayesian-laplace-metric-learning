@@ -27,14 +27,14 @@ lint:
 
 ## Load modules
 load_modules:
-	module load python3/3.9.11
-	module load cuda/11.3
+	module load python3/3.6.2
+	module load tensorflow/1.12-gpu-python-3.6.2
 
 ## Set up python interpreter environment
 create_environment:
 	$(PYTHON_INTERPRETER) -m venv venv/
-	source venv/bin/activate
-	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir -U pip
+	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir -r requirements.txt
 	$(PYTHON_INTERPRETER) -m pip install --no-cache-dir -e .
 

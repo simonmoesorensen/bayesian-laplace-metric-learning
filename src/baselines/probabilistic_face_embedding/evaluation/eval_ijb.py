@@ -92,6 +92,8 @@ def main(args):
 
 
     mu, sigma_sq = network.extract_feature(tester.image_paths, args.batch_size, proc_func=proc_func, verbose=True)
+    np.save("results/casia_ijb_mu.npy", mu)
+    np.save("results/casia_ijb_sigma_sq.npy", sigma_sq)
     features = np.concatenate([mu, sigma_sq], axis=1)
 
     print('---- Average pooling')
