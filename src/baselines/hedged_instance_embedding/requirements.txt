@@ -1,5 +1,6 @@
 numpy
-tensorflow==2.8.0
+tensorflow==1.*
 tfp-nightly==0.7.0.dev20190529
-matplotlib
+matplotlib==3.0.3
 sklearn
+protobuf==3.20.*
