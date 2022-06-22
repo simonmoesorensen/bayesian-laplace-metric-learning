@@ -63,7 +63,7 @@ class DUL_Trainer():
             transforms.RandomErasing(scale=(0.02,0.25))
         ])
 
-        dataset_train = datasets.ImageFolder(self.dul_args.data_dir / 'ms1m', train_transform)
+        dataset_train = datasets.ImageFolder(self.dul_args.data_dir / 'ms1m/imgs', train_transform)
         # dataset_train = datasets.CelebA(self.dul_args.data_dir, 
         #                  split='test', 
         #                  download=True,
@@ -75,8 +75,8 @@ class DUL_Trainer():
         weights = torch.DoubleTensor(weights)
         sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
         
-        train_loader = torch.utils.data.DataLoader( sampler=sampler,
-            dataset_train, batch_size=self.dul_args.batch_size,
+        train_loader = torch.utils.data.DataLoader(
+            dataset_train, batch_size=self.dul_args.batch_size, sampler=sampler,
             pin_memory=self.dul_args.pin_memory, num_workers=self.dul_args.num_workers,
             drop_last=self.dul_args.drop_last,
         )

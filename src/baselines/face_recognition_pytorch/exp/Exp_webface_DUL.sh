@@ -1,5 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
-export CUDA_LAUNCH_BLOCKING=1
+export CUDA_VISIBLE_DEVICES=0,1
 
 model_save_folder='./checkpoints/exp_webface_dul/'
 log_tensorboard='./logtensorboard/exp_webface_dul/'
@@ -9,6 +8,7 @@ echo "Waiting for debugger to attach..."
 python -m debugpy --listen 10.66.12.19:1332 ./train_dul.py \
     --model_save_folder $model_save_folder \
     --log_tensorboard $log_tensorboard \
-    --gpu_id 0 \
+    --gpu_id 0 1 \
+    --multi_gpu True \
     --stages 10 18 \
     --kl_scale 0.01 

@@ -1,5 +1,7 @@
-# Project
+# Tensorflow
+events.out.tfevents*
 
+# Project
 data
 
 # IDE
