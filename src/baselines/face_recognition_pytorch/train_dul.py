@@ -143,6 +143,10 @@ class DUL_Trainer():
                     HEAD.load_state_dict(torch.load(self.dul_args.resume_head))
                 except Exception as e:
                     print(e)
+            
+            print('Resuming from checkpoints')
+            return BACKBONE, HEAD, LOSS, OPTIMIZER
+        
         else:
             print("No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".\
                 format(self.dul_args.resume_backbone, self.dul_args.resume_head))
@@ -157,6 +161,7 @@ class DUL_Trainer():
             HEAD = HEAD.cuda()
             LOSS = LOSS.cuda()
 
+        print('No checkpoints loaded')
         return BACKBONE, HEAD, LOSS, OPTIMIZER
 
 
