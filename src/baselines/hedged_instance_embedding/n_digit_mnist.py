@@ -70,7 +70,7 @@ class NDigitMnist(object):
 
       zero, data_type, dims = struct.unpack('>HBB', f.read(4))
       shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
-      return np.fromstring(f.read(), dtype=np.uint8).reshape(shape) 
+      return np.frombuffer(f.read(), dtype=np.uint8).reshape(shape) 
 
 
     elif which_data == 'labels':
@@ -80,7 +80,7 @@ class NDigitMnist(object):
       # return np.frombuffer(f.read(), dtype=np.uint8).reshape(size)
       zero, data_type, dims = struct.unpack('>HBB', f.read(4))
       shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
-      return np.fromstring(f.read(), dtype=np.uint8).reshape(shape) 
+      return np.frombuffer(f.read(), dtype=np.uint8).reshape(shape) 
 
   def _print_mnist_images(self, images, labels, num_print=10):
     shuffle_indices = range(len(labels))
