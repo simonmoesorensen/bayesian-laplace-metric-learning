@@ -177,23 +177,13 @@ class DUL_Trainer():
 
         DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
 
-        NUM_EPOCH_WARM_UP = self.dul_args.warm_up_epoch
-        NUM_BATCH_WARM_UP = int(len(train_loader) * NUM_EPOCH_WARM_UP)
         batch = 0  # batch index
 
         print('=' * 60)
         print("Display Freqency: '{}' ".format(DISP_FREQ))
-        # print("Number of Epoch for Warm Up: '{}' ".format(NUM_EPOCH_WARM_UP))
-        # print("Number of Batch for Warm Up: '{}' ".format(NUM_BATCH_WARM_UP))
         print('Start Training: ')
 
         for epoch in range(self.dul_args.num_epoch):
-            # if epoch == self.dul_args.stages[0]:
-            #     schedule_lr(OPTIMIZER)
-            # elif epoch == self.dul_args.stages[1]:
-            #     schedule_lr(OPTIMIZER)
-            # if epoch < self.dul_args.resume_epoch:
-            #     continue
             
             BACKBONE.train()  # set to training mode
             HEAD.train()
@@ -205,8 +195,7 @@ class DUL_Trainer():
             losses_KL = AverageMeter()
 
             for inputs, labels in tqdm(train_loader):
-                # if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
-                #     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
+                OPTIMIZER.zero_grad()
                 
                 inputs = inputs.cuda()
                 labels = labels.cuda().long()
@@ -235,7 +224,6 @@ class DUL_Trainer():
                 top5.update(prec5.data.item(), inputs.size(0))
 
                 # compute gradient and do SGD step
-                OPTIMIZER.zero_grad()
                 loss.backward()
                 OPTIMIZER.step()
                 SCHEDULER.step()
