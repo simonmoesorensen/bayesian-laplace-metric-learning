@@ -22,6 +22,7 @@ import argparse
 import logging
 import os
 import struct
+from mnist import MNIST
 
 import numpy as np
 
@@ -46,27 +47,40 @@ class NDigitMnist(object):
         },
     }[mnist_split]
 
-    with open(os.path.join(self.args.mnist_dir, mnist_map['images'])) as f:
+    with open(os.path.join(self.args.mnist_dir, mnist_map['images']), 'rb') as f:
       images = self._decode_mnist(f, 'images')
-    with open(os.path.join(self.args.mnist_dir, mnist_map['labels'])) as f:
+    with open(os.path.join(self.args.mnist_dir, mnist_map['labels']), 'rb') as f:
       labels = self._decode_mnist(f, 'labels')
 
     return images, labels
 
   def _decode_mnist(self, f, which_data):
     """Decode raw MNIST dataset into numpy array."""
+    # mndata = MNIST('data')
+
+    # training_images, training_labels = mndata.load_training()
+    # test_images, test_labels = mndata.load_testing()
+    # print(type(training_images))
 
     if which_data == 'images':
-      magic, size, rows, cols = struct.unpack('>IIII', f.read(16))
-      if magic != 2051:
-        raise ValueError('Machic number mismatch.')
-      return np.frombuffer(f.read(), dtype=np.uint8).reshape(size, rows, cols)
+      # magic, size, rows, cols = struct.unpack('>IIII', f.read(16))
+      # if magic != 2051:
+      #   raise ValueError('Machic number mismatch.')
+      # return np.frombuffer(f.read(), dtype=np.uint8).reshape(size, rows, cols)
+
+      zero, data_type, dims = struct.unpack('>HBB', f.read(4))
+      shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
+      return np.fromstring(f.read(), dtype=np.uint8).reshape(shape) 
+
 
     elif which_data == 'labels':
-      magic, size = struct.unpack('>II', f.read(8))
-      if magic != 2049:
-        raise ValueError('Machic number mismatch.')
-      return np.frombuffer(f.read(), dtype=np.uint8).reshape(size)
+      # magic, size = struct.unpack('>II', f.read(8))
+      # if magic != 2049:
+      #   raise ValueError('Machic number mismatch.')
+      # return np.frombuffer(f.read(), dtype=np.uint8).reshape(size)
+      zero, data_type, dims = struct.unpack('>HBB', f.read(4))
+      shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
+      return np.fromstring(f.read(), dtype=np.uint8).reshape(shape) 
 
   def _print_mnist_images(self, images, labels, num_print=10):
     shuffle_indices = range(len(labels))
@@ -249,8 +263,7 @@ class NDigitMnist(object):
 
   def _save_mnist_to_npz(self, dataset_dir, mnist_split, images, labels):
     path = os.path.join(dataset_dir, '%s.npz' % mnist_split)
-    with open(path, 'w') as f:
-      np.savez(f, images=images, labels=labels)
+    np.savez_compressed(path, images=images, labels=labels)
 
   def load_and_write_mnist(self, mnist_split):
     """Loads MNIST onto memory, transforms it, and writes on disk."""
@@ -303,7 +316,7 @@ class NDigitMnist(object):
                            'dataset_mnist_%d_%s_%s.npz'
                            % (self.args.num_digits,
                               self.args.domain_gap, mnist_split)), 'w') as f:
-      np.savez(f, sample_per_number=sample_per_number,
+      np.savez_compressed(f, sample_per_number=sample_per_number,
                chosen_numbers=chosen_numbers, image_ids=image_ids)
 
   def _load_standard_dataset(self, mnist_split):
