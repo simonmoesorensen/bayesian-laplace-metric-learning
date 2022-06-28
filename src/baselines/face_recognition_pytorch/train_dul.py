@@ -16,9 +16,6 @@ from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras
 from tensorboardX import SummaryWriter, writer
 import os
 import time
-import numpy as np
-from PIL import Image
-import random
 
 
 class DUL_Trainer():
@@ -159,7 +156,7 @@ class DUL_Trainer():
         # ----- multi-gpu or single-gpu
         if self.dul_args.multi_gpu:
             BACKBONE = nn.DataParallel(BACKBONE, device_ids=self.dul_args.gpu_id).cuda()
-            HEAD = nn.DataParallel(HEAD, device_ids=self.dul_args.gpu_id).cuda().cuda()
+            HEAD = HEAD.cuda()
             LOSS = LOSS.cuda()
         else:
             BACKBONE = BACKBONE.cuda()
@@ -186,8 +183,8 @@ class DUL_Trainer():
 
         print('=' * 60)
         print("Display Freqency: '{}' ".format(DISP_FREQ))
-        print("Number of Epoch for Warm Up: '{}' ".format(NUM_EPOCH_WARM_UP))
-        print("Number of Batch for Warm Up: '{}' ".format(NUM_BATCH_WARM_UP))
+        # print("Number of Epoch for Warm Up: '{}' ".format(NUM_EPOCH_WARM_UP))
+        # print("Number of Batch for Warm Up: '{}' ".format(NUM_BATCH_WARM_UP))
         print('Start Training: ')
 
         for epoch in range(self.dul_args.num_epoch):
@@ -208,8 +205,8 @@ class DUL_Trainer():
             losses_KL = AverageMeter()
 
             for inputs, labels in tqdm(train_loader):
-                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
-                    warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
+                # if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
+                #     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
                 
                 inputs = inputs.cuda()
                 labels = labels.cuda().long()
@@ -240,7 +237,7 @@ class DUL_Trainer():
                 # compute gradient and do SGD step
                 OPTIMIZER.zero_grad()
                 loss.backward()
-                # OPTIMIZER.step()
+                OPTIMIZER.step()
                 SCHEDULER.step()
 
                 # dispaly training loss & acc every DISP_FREQ
@@ -273,7 +270,7 @@ class DUL_Trainer():
                 print('Saving NO.EPOCH {} trained model'.format(epoch+1), flush=True)
                 if self.dul_args.multi_gpu:
                     torch.save(BACKBONE.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
-                    torch.save(HEAD.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
+                    torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
                 else:
                     torch.save(BACKBONE.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
                     torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
