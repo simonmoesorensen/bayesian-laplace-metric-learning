@@ -8,9 +8,9 @@
 #BSUB -J DUL-dist
 
 ### -- ask for number of cores (default: 1) --
-#BSUB -n 4
+#BSUB -n 8
 
-### -- Select the resources: 2 gpus -- 
+### -- Select the resources: 4 gpus -- 
 #BSUB -gpu "num=4"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
@@ -59,7 +59,8 @@ python3 ./train_dul_dist.py \
     --multi_gpu True \
     --stages 10 18 \
     --kl_scale 0.01 \
-    --lr 0.1
+    --lr 0.1 \
+    --num_workers 8
     
 
 # --num_epoch 60 \

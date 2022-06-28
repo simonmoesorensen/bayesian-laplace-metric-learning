@@ -1,5 +1,5 @@
 # Logs
-**/logs/**
+**/log*/**
 
 # Tensorflow
 events.out.tfevents*

@@ -1,7 +1,7 @@
 export CUDA_VISIBLE_DEVICES=1,3
 
-model_save_folder='./checkpoints/exp_webface_dul/'
-log_tensorboard='./logtensorboard/exp_webface_dul/'
+model_save_folder='./checkpoints/exp_dul_dist/'
+log_tensorboard='./logtensorboard/exp_dul_dist/'
 
 echo "Waiting for debugger to attach..."
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
@@ -11,4 +11,5 @@ python -m debugpy --listen 10.66.20.9:1335 ./train_dul_dist.py \
     --gpu_id 0 1 \
     --multi_gpu True \
     --kl_scale 0.01 \
-    --batch_size 512
+    --batch_size 256 \
+    --num_workers 8
