@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import OP
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -43,6 +42,10 @@ class DUL_Trainer():
 
 
     def _data_loader(self):
+        time_start = time.perf_counter()
+        
+        print("=" * 60)
+        print('Loading Data...')
         if self.dul_args.center_crop:
             train_transform = transforms.Compose([ 
             transforms.Resize([int(128 * self.dul_args.input_size[0] / 112), int(128 * self.dul_args.input_size[0] / 112)]),
@@ -79,7 +82,9 @@ class DUL_Trainer():
 
         # num_class = train_loader.dataset.identity.max().item()
         num_class = len(train_loader.dataset.classes)
-        print('=' * 60)
+
+        print('Data loaded in {:.2f} seconds'.format(time.perf_counter() - time_start))
+        
         print("Number of Training Classes: '{}' ".format(num_class))
 
         return train_loader, num_class
@@ -126,7 +131,7 @@ class DUL_Trainer():
         
         # Use Triangular Learning Rate Policy
         epoch = data_size // self.dul_args.batch_size
-        OPTIMIZER = optim.CyclicLR(OPTIMIZER, 
+        SCHEDULER = optim.lr_scheduler.CyclicLR(OPTIMIZER, 
                                    base_lr=self.dul_args.base_lr, 
                                    max_lr=self.dul_args.max_lr,
                                    step_size_up=epoch * 2, # Recommended by https://ieeexplore.ieee.org/document/7926641
@@ -154,14 +159,14 @@ class DUL_Trainer():
         # ----- multi-gpu or single-gpu
         if self.dul_args.multi_gpu:
             BACKBONE = nn.DataParallel(BACKBONE, device_ids=self.dul_args.gpu_id).cuda()
-            HEAD = HEAD.cuda()
+            HEAD = nn.DataParallel(HEAD, device_ids=self.dul_args.gpu_id).cuda().cuda()
             LOSS = LOSS.cuda()
         else:
             BACKBONE = BACKBONE.cuda()
             HEAD = HEAD.cuda()
             LOSS = LOSS.cuda()
 
-        return BACKBONE, HEAD, LOSS, OPTIMIZER
+        return BACKBONE, HEAD, LOSS, OPTIMIZER, SCHEDULER
 
 
 
@@ -169,8 +174,8 @@ class DUL_Trainer():
         writer = self._report_configurations()
 
         train_loader, num_class = self._data_loader()
-
-        BACKBONE, HEAD, LOSS, OPTIMIZER = self._model_loader(num_class=num_class, 
+       
+        BACKBONE, HEAD, LOSS, OPTIMIZER, SCHEDULER = self._model_loader(num_class=num_class, 
                                                              data_size=len(train_loader))
 
         DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
@@ -235,7 +240,8 @@ class DUL_Trainer():
                 # compute gradient and do SGD step
                 OPTIMIZER.zero_grad()
                 loss.backward()
-                OPTIMIZER.step()
+                # OPTIMIZER.step()
+                SCHEDULER.step()
 
                 # dispaly training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
@@ -267,7 +273,7 @@ class DUL_Trainer():
                 print('Saving NO.EPOCH {} trained model'.format(epoch+1), flush=True)
                 if self.dul_args.multi_gpu:
                     torch.save(BACKBONE.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
-                    torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
+                    torch.save(HEAD.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
                 else:
                     torch.save(BACKBONE.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
                     torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
