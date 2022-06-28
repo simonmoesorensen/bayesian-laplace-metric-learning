@@ -60,7 +60,7 @@ class DUL_Trainer_dist():
     def _data_loader(self):
         time_start = time.perf_counter()
         
-        print(f"[RANK: {self.rank}] ""=" * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] "'Loading Data...')
         if self.dul_args.center_crop:
             train_transform = transforms.Compose([ 
@@ -116,7 +116,7 @@ class DUL_Trainer_dist():
     def _model_loader(self, num_class, data_size):
         # ----- backbone generate
         BACKBONE = Backbone_Dict[self.dul_args.backbone_name]
-        print(f"[RANK: {self.rank}] ""=" * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] ""Backbone Generated: '{}' ".format(self.dul_args.backbone_name))
 
         # ----- head generate
@@ -128,7 +128,7 @@ class DUL_Trainer_dist():
             'Softmax': Softmax(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device)
         }
         HEAD = Head_Dict[self.dul_args.head_name]
-        print(f"[RANK: {self.rank}] ""=" * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] ""Head Generated: '{}' ".format(self.dul_args.head_name))
 
         # ----- loss generate
@@ -137,7 +137,7 @@ class DUL_Trainer_dist():
             'Softmax': nn.CrossEntropyLoss(),
         }
         LOSS = Loss_Dict[self.dul_args.loss_name]
-        print(f"[RANK: {self.rank}] ""=" * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] ""Loss Generated: '{}' ".format(self.dul_args.loss_name))
         # ----- separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE)
@@ -160,13 +160,13 @@ class DUL_Trainer_dist():
                                    step_size_up=epoch * 2, # Recommended by https://ieeexplore.ieee.org/document/7926641
                                    mode='triangular')
         
-        print(f"[RANK: {self.rank}] ""=" * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] ""Optimizer Generated: '{}' ".format(self.dul_args.optimizer))
         print(f"[RANK: {self.rank}]", OPTIMIZER)
 
         # ----- optional resume
         if self.dul_args.resume_backbone or self.dul_args.resume_head:
-            print(f"[RANK: {self.rank}] ""=" * 60)
+            print(f"[RANK: {self.rank}] " + ("=" * 60))
             # Use a barrier() to make sure that process 1 loads the model after process
             # 0 saves it.
             dist.barrier()
