@@ -111,8 +111,8 @@ def separate_resnet_bn_paras(modules):
 def warm_up_lr(batch, num_batch_warm_up, init_lr, optimizer):
     for params in optimizer.param_groups:
         params['lr'] = batch * init_lr / num_batch_warm_up
-    print('Warmup')
-    print(optimizer)
+    # print('Warmup')
+    # print(optimizer)
 
 
 def schedule_lr(optimizer):
