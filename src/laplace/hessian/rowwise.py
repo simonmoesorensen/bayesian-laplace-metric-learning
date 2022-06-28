@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 import torch
 from asdfghjkl import batch_gradient
+
 from laplace.curvature.asdl import _get_batch_grad
 
 

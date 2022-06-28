@@ -1,5 +1,5 @@
 import torch
-from backpack import extend, backpack
+from backpack import backpack, extend
 from backpack.extensions import DiagGGNExact
 from torch import nn
 

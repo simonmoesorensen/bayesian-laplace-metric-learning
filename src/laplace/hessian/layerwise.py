@@ -113,8 +113,10 @@ class RmseHessianCalculator(HessianCalculator):
 
 
 class ContrastiveHessianCalculator(HessianCalculator):
-    margin = 0.2  # Minimum distance between negative pair and positive pair
-    alpha = 1.1
+    def __init__(self, margin=0.2, alpha=1.1) -> None:
+        super().__init__()
+        self.margin = margin
+        self.alpha = alpha
 
     def compute_batch(self, model, output_size, x1, x2, y, *args, **kwargs):
         self.feature_maps = []
@@ -134,7 +136,6 @@ class ContrastiveHessianCalculator(HessianCalculator):
         bs = x1.shape[0]
         feature_maps1 = [x1] + feature_maps1
         feature_maps2 = [x2] + feature_maps2
-        # print(feature_maps1, feature_maps2)
 
         # Saves the product of the Jacobians wrt layer input
         tmp1 = torch.diag_embed(
@@ -225,8 +226,17 @@ class ContrastiveHessianCalculator(HessianCalculator):
         Hs = torch.cat(H, dim=1)
         mask = mask.view(-1, 1).expand(*Hs.shape)
         Hs = Hs.masked_fill_(mask, 0.0)
+        H = Hs.sum(dim=0)
 
-        return Hs.sum(dim=0)
+        # Regularize
+        # H = H + torch.eye(H.shape[0], device=x1.device) * lambda1  # Regularizing ||x1||^2 + ||x2||^2
+        # H = H + torch.eye(H.shape[0], device=x1.device) * lambda2
+        H = (
+            H + torch.tensor([[1, 2], [2, 1]], device=x1.device) * self.lambda1
+        )  # Regularizing ||x1 + x2||^2
+        H = H + torch.tensor([[1, 2], [2, 1]], device=x1.device) * self.lambda2
+
+        return H
 
     def compute_batch_pairs(self, model, embeddings, x, target, hard_pairs):
         ap, p, an, n = hard_pairs

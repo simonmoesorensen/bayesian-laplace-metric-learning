@@ -134,6 +134,6 @@ dmypy.json
 .idea/
 .vscode/
 
-data
+/data/
 pretrained
 log
