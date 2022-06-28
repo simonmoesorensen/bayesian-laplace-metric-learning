@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=1,3
 
 model_save_folder='./checkpoints/exp_webface_dul/'
 log_tensorboard='./logtensorboard/exp_webface_dul/'
@@ -8,7 +8,7 @@ echo "Waiting for debugger to attach..."
 python -m debugpy --listen 10.66.20.9:1335 ./train_dul_dist.py \
     --model_save_folder $model_save_folder \
     --log_tensorboard $log_tensorboard \
-    --gpu_id 0 1 2 3 \
+    --gpu_id 0 1 \
     --multi_gpu True \
     --kl_scale 0.01 \
     --batch_size 512

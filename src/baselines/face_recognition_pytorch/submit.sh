@@ -18,7 +18,7 @@
 
 # Request GPU resources
 #BSUB -R "rusage[mem=32GB]"
-#BSUB -R "select[gpu40gb]"
+#BSUB -R "select[gpu32gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/DUL-face-recognition.out
-#BSUB -e logs/DUL-face-recognition.err
+#BSUB -o logs/DUL-face-recognition-run2.out
+#BSUB -e logs/DUL-face-recognition-run2.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -58,4 +58,12 @@ python3 ./train_dul.py \
     --gpu_id 0 1 \
     --multi_gpu True \
     --stages 10 18 \
-    --kl_scale 0.01 
+    --kl_scale 0.01 \
+    --lr 0.1
+    
+
+# --num_epoch 60 \
+# --resume_backbone checkpoints/exp_webface_dul/Backbone_IR_SE_64_DUL_Epoch_32_Batch_113720_Time_2022-06-26-03-03_checkpoint.pth \
+# --resume_head checkpoints/exp_webface_dul/Head_ArcFace_Epoch_32_Batch_113720_Time_2022-06-26-03-03_checkpoint.pth \
+# --resume_epoch 32
+    
