@@ -8,6 +8,7 @@ from torch.nn.utils import parameters_to_vector
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CIFAR10, CIFAR100
+from torchvision import transforms
 from tqdm import tqdm
 
 from src.models.conv_net import ConvNet
@@ -71,11 +72,11 @@ def run_experiment(
         .cpu()
     )
 
-    np.save("id_laplace_mu.npy", preds.mean(dim=0))
-    np.save("id_laplace_sigma_sq.npy", preds.var(dim=0))
+    np.save("id_laplace_mu.npy", preds.detach().cpu().numpy().mean(axis=0))
+    np.save("id_laplace_sigma_sq.npy", preds.detach().cpu().numpy().var(axis=0))
 
-    np.save("ood_laplace_mu.npy", preds_ood.mean(dim=0))
-    np.save("ood_laplace_sigma_sq.npy", preds_ood.var(dim=0))
+    np.save("ood_laplace_mu.npy", preds_ood.detach().cpu().numpy().mean(axis=0))
+    np.save("ood_laplace_sigma_sq.npy", preds_ood.detach().cpu().numpy().var(axis=0))
 
 
 def train_metric(
@@ -168,17 +169,19 @@ if __name__ == "__main__":
     lr = 3e-4
     batch_size = 128
 
-    train_set = CIFAR10("data/", train=True, download=True)
+    train_set = CIFAR10(
+        "data/", train=True, download=True, transform=transforms.ToTensor()
+    )
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
-    id_set = CIFAR10("data/", train=False, download=True)
-    id_loader = DataLoader(
-        id_set,
-        batch_size,
-        shuffle=False,
+    id_set = CIFAR10(
+        "data/", train=False, download=True, transform=transforms.ToTensor()
     )
+    id_loader = DataLoader(id_set, batch_size, shuffle=False)
 
-    ood_set = CIFAR100("data/", train=False, download=True)
+    ood_set = CIFAR100(
+        "data/", train=False, download=True, transform=transforms.ToTensor()
+    )
     subset_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     mask = torch.tensor([ood_set[i][1] in subset_classes for i in range(len(ood_set))])
     indices = torch.arange(len(ood_set))[mask]
