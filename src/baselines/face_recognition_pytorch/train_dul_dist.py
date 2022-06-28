@@ -44,11 +44,11 @@ class DUL_Trainer_dist():
         self.world_size = world_size
 
     def _report_configurations(self):
-        print(f"[RANK: {self.rank}] "'=' * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] "'Experiment time: ', get_time())
-        print(f"[RANK: {self.rank}] "'=' * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] "'Overall Configurations:')
-        print(f"[RANK: {self.rank}] "'=' * 60)
+        print(f"[RANK: {self.rank}] " + ("=" * 60))
         for k in self.dul_args.__dict__:
             print(f"[RANK: {self.rank}] "" '{}' : '{}' ".format(k, str(self.dul_args.__dict__[k])))
         os.makedirs(self.dul_args.model_save_folder, exist_ok=True)
@@ -218,7 +218,7 @@ class DUL_Trainer_dist():
         # NUM_BATCH_WARM_UP = int(len(train_loader) * NUM_EPOCH_WARM_UP)
         batch = 0  # batch index
 
-        print(f"[RANK: {self.rank}] "'=' * 60)
+        print(f"[RANK: {self.rank}] " + ('=' * 60))
         print(f"[RANK: {self.rank}] ""Display Freqency: '{}' ".format(DISP_FREQ))
         # print(f"[RANK: {self.rank}] ""Number of Epoch for Warm Up: '{}' ".format(NUM_EPOCH_WARM_UP))
         # print(f"[RANK: {self.rank}] ""Number of Batch for Warm Up: '{}' ".format(NUM_BATCH_WARM_UP))
@@ -274,7 +274,7 @@ class DUL_Trainer_dist():
 
                 # dispaly training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
-                    print(f"[RANK: {self.rank}] ""=" * 60, flush=True)
+                    print(f"[RANK: {self.rank}] " + ("=" * 60), flush=True)
                     print(f"[RANK: {self.rank}] "'Epoch {}/{} Batch (Step) {}/{}\t'
                           'Time {}\t'
                           'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -289,7 +289,7 @@ class DUL_Trainer_dist():
             epoch_acc = top1.avg
             writer.add_scalar("Training_Loss", epoch_loss, epoch + 1)
             writer.add_scalar("Training_Accuracy", epoch_acc, epoch + 1)
-            print(f"[RANK: {self.rank}] ""=" * 60, flush=True)
+            print(f"[RANK: {self.rank}] " + ("=" * 60), flush=True)
             print(f"[RANK: {self.rank}] "'Epoch: {}/{}\t'
                   'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
@@ -298,7 +298,7 @@ class DUL_Trainer_dist():
 
             # ----- save model
             if (epoch==4 or epoch==7 or epoch==12 or epoch>17) and self.rank == 0:
-                print(f"[RANK: {self.rank}] ""=" * 60, flush=True)
+                print(f"[RANK: {self.rank}] " + ("=" * 60), flush=True)
                 print(f"[RANK: {self.rank}] "'Saving NO.EPOCH {} trained model'.format(epoch+1), flush=True)
                 
                 backbone_path = os.path.join(
@@ -315,9 +315,9 @@ class DUL_Trainer_dist():
                     torch.save(BACKBONE.state_dict(), backbone_path)
                     torch.save(HEAD.state_dict(), head_path)
                     
-        print(f"[RANK: {self.rank}] "'=' * 60, flush=True)
+        print(f"[RANK: {self.rank}] " + ('=' * 60), flush=True)
         print(f"[RANK: {self.rank}] "'Training process finished!', flush=True)
-        print(f"[RANK: {self.rank}] "'=' * 60, flush=True)
+        print(f"[RANK: {self.rank}] " + ('=' * 60), flush=True)
         cleanup()
 
    
