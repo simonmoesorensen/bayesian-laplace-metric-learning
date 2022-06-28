@@ -71,11 +71,11 @@ def run_experiment(
         .cpu()
     )
 
-    np.save("id_laplace_mu.npy", preds.mean(dim=0))
-    np.save("id_laplace_sigma_sq.npy", preds.var(dim=0))
+    np.save("id_laplace_mu.npy", preds.detach().cpu().numpy().mean(axis=0))
+    np.save("id_laplace_sigma_sq.npy", preds.detach().cpu().numpy().var(axis=0))
 
-    np.save("ood_laplace_mu.npy", preds_ood.mean(dim=0))
-    np.save("ood_laplace_sigma_sq.npy", preds_ood.var(dim=0))
+    np.save("ood_laplace_mu.npy", preds_ood.detach().cpu().numpy().mean(axis=0))
+    np.save("ood_laplace_sigma_sq.npy", preds_ood.detach().cpu().numpy().var(axis=0))
 
 
 def train_metric(
