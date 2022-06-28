@@ -1,11 +1,12 @@
 numpy
-bcolz==1.2.1
+bcolz-zipline
 tqdm==4.62.0
 opencv_python==4.5.3.56
 scipy==1.6.2
 Pillow
 scikit-learn
 tensorboard
+tensorboardx
 matplotlib
 
 --extra-index-url https://download.pytorch.org/whl/cu113
