@@ -3,8 +3,6 @@ from pytorch_metric_learning import testers
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from torch.nn.utils import vector_to_parameters
 
-from src.laplace.utils import test_model
-
 
 def get_all_embeddings(dataset, model, data_device):
     """

@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CIFAR10, CIFAR100
 from tqdm import tqdm
 
-from models.conv_net import ConvNet
+from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.miners import AllPermutationsMiner
 from src.laplace.utils import (
@@ -172,7 +172,11 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
     id_set = CIFAR10("data/", train=False, download=True)
-    id_loader = DataLoader(id_set, batch_size, shuffle=False)
+    id_loader = DataLoader(
+        id_set,
+        batch_size,
+        shuffle=False,
+    )
 
     ood_set = CIFAR100("data/", train=False, download=True)
     subset_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
