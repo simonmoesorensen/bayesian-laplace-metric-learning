@@ -121,11 +121,11 @@ class DUL_Trainer_dist():
 
         # ----- head generate
         Head_Dict = {
-            'ArcFace': ArcFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device, s=self.dul_args.arcface_scale),
-            'CosFace': CosFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device),
-            'SphereFace': SphereFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device),
-            'Am_softmax': Am_softmax(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device),
-            'Softmax': Softmax(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = self.device)
+            'ArcFace': ArcFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = [self.rank], s=self.dul_args.arcface_scale),
+            'CosFace': CosFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = [self.rank]),
+            'SphereFace': SphereFace(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = [self.rank]),
+            'Am_softmax': Am_softmax(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = [self.rank]),
+            'Softmax': Softmax(in_features = self.dul_args.embedding_size, out_features = num_class, device_id = [self.rank])
         }
         HEAD = Head_Dict[self.dul_args.head_name]
         print(f"[RANK: {self.rank}] " + ("=" * 60))
@@ -195,8 +195,8 @@ class DUL_Trainer_dist():
         BACKBONE = BACKBONE.to(device)
         HEAD = HEAD.to(device)
         
-        BACKBONE = DDP(BACKBONE, device_ids=[self.rank])
-        HEAD = DDP(HEAD, device_ids=[self.rank])
+        BACKBONE = DDP(BACKBONE, device_ids=[self.rank], output_device=self.rank)
+        HEAD = DDP(HEAD, device_ids=[self.rank], output_device=self.rank)
         LOSS = LOSS.cuda()
 
 
@@ -236,7 +236,7 @@ class DUL_Trainer_dist():
             top5 = AverageMeter()
             losses_KL = AverageMeter()
 
-            for inputs, labels in tqdm(train_loader):
+            for inputs, labels in tqdm(train_loader, desc=f"[Rank: {self.rank}]"):
                 # if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
                 #     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
                 
@@ -269,7 +269,7 @@ class DUL_Trainer_dist():
                 # compute gradient and do SGD step
                 OPTIMIZER.zero_grad()
                 loss.backward()
-                # OPTIMIZER.step()
+                OPTIMIZER.step()
                 SCHEDULER.step()
 
                 # dispaly training loss & acc every DISP_FREQ
@@ -297,7 +297,7 @@ class DUL_Trainer_dist():
             epoch + 1, self.dul_args.num_epoch, loss = losses, top1 = top1, top5 = top5), flush=True)
 
             # ----- save model
-            if (epoch==4 or epoch==7 or epoch==12 or epoch>17) and self.rank == 0:
+            if (epoch == 0 or epoch==4 or epoch==7 or epoch==12 or epoch>17) and self.rank == 0:
                 print(f"[RANK: {self.rank}] " + ("=" * 60), flush=True)
                 print(f"[RANK: {self.rank}] "'Saving NO.EPOCH {} trained model'.format(epoch+1), flush=True)
                 
@@ -332,7 +332,7 @@ if __name__ == '__main__':
     dul_args = dul_args_func()
     gpus = [int(item) for item in dul_args.gpu_id]
     world_size = len(gpus)
-    
+    print(f'World size: {world_size}')
     mp.spawn(run,
              args=(world_size, dul_args),
              nprocs=world_size,
