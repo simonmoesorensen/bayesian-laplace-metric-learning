@@ -7,12 +7,6 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from tqdm import tqdm 
 
-from config import Backbone_Dict, dul_args_func
-from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax, Softmax
-from loss.focal import FocalLoss
-from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-                       warm_up_lr, schedule_lr, get_time, AverageMeter, accuracy, add_gaussian_noise
-
 from tensorboardX import SummaryWriter, writer
 import os
 import time
@@ -24,13 +18,19 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
+from config import Backbone_Dict, dul_args_func
+from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax, Softmax
+from loss.focal import FocalLoss
+from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
+                       warm_up_lr, schedule_lr, get_time, AverageMeter, accuracy, add_gaussian_noise
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12355'
 
     # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size)
+    # https://pytorch.org/docs/master/distributed.html#backends
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 def cleanup():
     dist.destroy_process_group()
@@ -93,11 +93,12 @@ class DUL_Trainer_dist():
         sampler = torch.utils.data.distributed.DistributedSampler(dataset_train,
                                                                   num_replicas=self.world_size,
                                                                   rank=self.rank,
-                                                                  shuffle=True,
                                                                   seed=self.dul_args.random_seed)
         
+        # In distributed training the batch size should be divided by the number of processes.                                                                  
+        batch_size = self.dul_args.batch_size // self.world_size
         train_loader = torch.utils.data.DataLoader(
-            dataset_train, batch_size=self.dul_args.batch_size, sampler=sampler,
+            dataset_train, batch_size=batch_size, sampler=sampler,
             pin_memory=self.dul_args.pin_memory, num_workers=self.dul_args.num_workers,
             shuffle=False,
             drop_last=self.dul_args.drop_last,
@@ -153,7 +154,7 @@ class DUL_Trainer_dist():
         OPTIMIZER = Optimizer_Dict[self.dul_args.optimizer]
         
         # Use Triangular Learning Rate Policy
-        epoch = data_size // self.dul_args.batch_size
+        epoch = data_size // self.dul_args.batch_size // self.world_size
         SCHEDULER = optim.lr_scheduler.CyclicLR(OPTIMIZER, 
                                    base_lr=self.dul_args.base_lr, 
                                    max_lr=self.dul_args.max_lr,
@@ -190,10 +191,8 @@ class DUL_Trainer_dist():
                 format(self.dul_args.resume_backbone, self.dul_args.resume_head))
 
         # ----- Distributed and multi gpu
-        device = torch.device(self.device)
-        
-        BACKBONE = BACKBONE.to(device)
-        HEAD = HEAD.to(device)
+        BACKBONE = BACKBONE.to(self.rank)
+        HEAD = HEAD.to(self.rank)
         
         BACKBONE = DDP(BACKBONE, device_ids=[self.rank], output_device=self.rank)
         HEAD = DDP(HEAD, device_ids=[self.rank], output_device=self.rank)
@@ -237,8 +236,7 @@ class DUL_Trainer_dist():
             losses_KL = AverageMeter()
 
             for inputs, labels in tqdm(train_loader, desc=f"[Rank: {self.rank}]"):
-                # if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
-                #     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
+                OPTIMIZER.zero_grad()
                 
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device).long()
@@ -267,7 +265,6 @@ class DUL_Trainer_dist():
                 top5.update(prec5.data.item(), inputs.size(0))
 
                 # compute gradient and do SGD step
-                OPTIMIZER.zero_grad()
                 loss.backward()
                 OPTIMIZER.step()
                 SCHEDULER.step()
@@ -284,6 +281,8 @@ class DUL_Trainer_dist():
                         epoch + 1, self.dul_args.num_epoch, batch + 1, len(train_loader) * self.dul_args.num_epoch, time.asctime(time.localtime(time.time())), loss = losses, loss_KL=losses_KL,  top1 = top1, top5 = top5), flush=True)
 
                 batch += 1 # batch index
+                
+                
             # training statistics per epoch (buffer for visualization)
             epoch_loss = losses.avg
             epoch_acc = top1.avg
@@ -318,7 +317,6 @@ class DUL_Trainer_dist():
         print(f"[RANK: {self.rank}] " + ('=' * 60), flush=True)
         print(f"[RANK: {self.rank}] "'Training process finished!', flush=True)
         print(f"[RANK: {self.rank}] " + ('=' * 60), flush=True)
-        cleanup()
 
    
     

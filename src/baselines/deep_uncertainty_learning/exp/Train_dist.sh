@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=1,3
+export CUDA_VISIBLE_DEVICES=0,3
 
 model_save_folder='./checkpoints/exp_dul_dist/'
 log_tensorboard='./logtensorboard/exp_dul_dist/'
@@ -11,5 +11,5 @@ python -m debugpy --listen 10.66.20.9:1335 ./train_dul_dist.py \
     --gpu_id 0 1 \
     --multi_gpu True \
     --kl_scale 0.01 \
-    --batch_size 256 \
-    --num_workers 8
+    --batch_size 128 \
+    --num_workers 0 \
