@@ -44,7 +44,7 @@ def dul_args_func():
     parser.add_argument('--rgb_std', type=list, default=[0.5, 0.5, 0.5])
     parser.add_argument('--embedding_size', type=int, default=512)
     parser.add_argument('--drop_last', type=bool, default=True)
-    parser.add_argument('--weight_decay', type=float, default=5e-4)
+    parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--pin_memory', type=bool, default=True)
     parser.add_argument('--num_workers', type=int, default=8)
@@ -55,6 +55,8 @@ def dul_args_func():
     parser.add_argument('--warm_up_epoch', type=int, default=1)
     parser.add_argument('--image_noise', type=float, default=0)
     parser.add_argument('--lr', type=float, default=0.1)
+    parser.add_argument('--base_lr', type=float, default=0)
+    parser.add_argument('--max_lr', type=float, default=0.1)
     parser.add_argument('--stages', type=str, nargs='+')
     parser.add_argument('--kl_scale', type=float, default=0.01)
 

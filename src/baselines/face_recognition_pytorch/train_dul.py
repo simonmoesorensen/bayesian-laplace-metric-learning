@@ -1,3 +1,4 @@
+from lib2to3.pgen2.token import OP
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -64,11 +65,6 @@ class DUL_Trainer():
         ])
 
         dataset_train = datasets.ImageFolder(self.dul_args.data_dir / 'ms1m/imgs', train_transform)
-        # dataset_train = datasets.CelebA(self.dul_args.data_dir, 
-        #                  split='test', 
-        #                  download=True,
-        #                  target_type='identity',
-        #                  transform=train_transform)
 
         # ----- create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
@@ -89,7 +85,7 @@ class DUL_Trainer():
         return train_loader, num_class
 
 
-    def _model_loader(self, num_class):
+    def _model_loader(self, num_class, data_size):
         # ----- backbone generate
         BACKBONE = Backbone_Dict[self.dul_args.backbone_name]
         print("=" * 60)
@@ -110,7 +106,7 @@ class DUL_Trainer():
         # ----- loss generate
         Loss_Dict = {
             'Focal': FocalLoss(),
-            'Softmax': nn.CrossEntropyLoss()
+            'Softmax': nn.CrossEntropyLoss(),
         }
         LOSS = Loss_Dict[self.dul_args.loss_name]
         print("=" * 60)
@@ -127,6 +123,15 @@ class DUL_Trainer():
                             {'params': backbone_paras_only_bn}], lr=self.dul_args.lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0)
         }
         OPTIMIZER = Optimizer_Dict[self.dul_args.optimizer]
+        
+        # Use Triangular Learning Rate Policy
+        epoch = data_size // self.dul_args.batch_size
+        OPTIMIZER = optim.CyclicLR(OPTIMIZER, 
+                                   base_lr=self.dul_args.base_lr, 
+                                   max_lr=self.dul_args.max_lr,
+                                   step_size_up=epoch * 2, # Recommended by https://ieeexplore.ieee.org/document/7926641
+                                   mode='triangular')
+        
         print("=" * 60)
         print("Optimizer Generated: '{}' ".format(self.dul_args.optimizer))
         print(OPTIMIZER)
@@ -165,7 +170,8 @@ class DUL_Trainer():
 
         train_loader, num_class = self._data_loader()
 
-        BACKBONE, HEAD, LOSS, OPTIMIZER = self._model_loader(num_class=num_class)
+        BACKBONE, HEAD, LOSS, OPTIMIZER = self._model_loader(num_class=num_class, 
+                                                             data_size=len(train_loader))
 
         DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
 
@@ -180,12 +186,12 @@ class DUL_Trainer():
         print('Start Training: ')
 
         for epoch in range(self.dul_args.num_epoch):
-            if epoch == self.dul_args.stages[0]:
-                schedule_lr(OPTIMIZER)
-            elif epoch == self.dul_args.stages[1]:
-                schedule_lr(OPTIMIZER)
-            if epoch < self.dul_args.resume_epoch:
-                continue
+            # if epoch == self.dul_args.stages[0]:
+            #     schedule_lr(OPTIMIZER)
+            # elif epoch == self.dul_args.stages[1]:
+            #     schedule_lr(OPTIMIZER)
+            # if epoch < self.dul_args.resume_epoch:
+            #     continue
             
             BACKBONE.train()  # set to training mode
             HEAD.train()
@@ -234,7 +240,7 @@ class DUL_Trainer():
                 # dispaly training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60, flush=True)
-                    print('Epoch {}/{} Batch {}/{}\t'
+                    print('Epoch {}/{} Batch (Step) {}/{}\t'
                           'Time {}\t'
                           'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                           'Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t'

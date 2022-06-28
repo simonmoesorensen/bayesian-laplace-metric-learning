@@ -20,7 +20,7 @@ class DUL_Backbone(nn.Module):
             resnet.input_layer,
             resnet.body,
             Sequential(BatchNorm2d(512),
-                        Dropout(),
+                        Dropout(p=0.4),
                         Flatten(),
             )
         )
