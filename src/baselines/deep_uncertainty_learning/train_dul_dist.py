@@ -26,7 +26,7 @@ from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_PORT'] = '12354'
 
     # initialize the process group
     # https://pytorch.org/docs/master/distributed.html#backends
@@ -42,7 +42,8 @@ class DUL_Trainer_dist():
         self.device = f"cuda:{rank}"
         self.rank = rank
         self.world_size = world_size
-
+        print(f"[RANK: {self.rank}] device: {self.device}, world_size: {self.world_size}")
+        
     def _report_configurations(self):
         print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] "'Experiment time: ', get_time())
@@ -62,6 +63,7 @@ class DUL_Trainer_dist():
         
         print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] "'Loading Data...')
+        
         if self.dul_args.center_crop:
             train_transform = transforms.Compose([ 
             transforms.Resize([int(128 * self.dul_args.input_size[0] / 112), int(128 * self.dul_args.input_size[0] / 112)]),
@@ -111,6 +113,7 @@ class DUL_Trainer_dist():
         
         print(f"[RANK: {self.rank}] ""Number of Training Classes: '{}' ".format(num_class))
         print(f"[RANK: {self.rank}] ""Number of Training Samples: '{}' ".format(len(train_loader)))
+        print(f"[RANK: {self.rank}] ""GPU Batch size: '{}' ".format(batch_size))
         return train_loader, num_class
 
 
@@ -165,6 +168,15 @@ class DUL_Trainer_dist():
         print(f"[RANK: {self.rank}] ""Optimizer Generated: '{}' ".format(self.dul_args.optimizer))
         print(f"[RANK: {self.rank}]", OPTIMIZER)
 
+
+        # ----- Distributed and multi gpu
+        BACKBONE = BACKBONE.to(self.rank)
+        HEAD = HEAD.to(self.rank)
+        
+        BACKBONE = DDP(BACKBONE, device_ids=[self.rank], output_device=self.rank)
+        # HEAD = DDP(HEAD, device_ids=[self.rank], output_device=self.rank)
+        LOSS = LOSS.cuda()
+        
         # ----- optional resume
         if self.dul_args.resume_backbone or self.dul_args.resume_head:
             print(f"[RANK: {self.rank}] " + ("=" * 60))
@@ -190,15 +202,6 @@ class DUL_Trainer_dist():
             print(f"[RANK: {self.rank}] ""No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".\
                 format(self.dul_args.resume_backbone, self.dul_args.resume_head))
 
-        # ----- Distributed and multi gpu
-        BACKBONE = BACKBONE.to(self.rank)
-        HEAD = HEAD.to(self.rank)
-        
-        BACKBONE = DDP(BACKBONE, device_ids=[self.rank], output_device=self.rank)
-        HEAD = DDP(HEAD, device_ids=[self.rank], output_device=self.rank)
-        LOSS = LOSS.cuda()
-
-
         return BACKBONE, HEAD, LOSS, OPTIMIZER, SCHEDULER
 
 
@@ -213,8 +216,8 @@ class DUL_Trainer_dist():
 
         DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
 
-        # NUM_EPOCH_WARM_UP = self.dul_args.warm_up_epoch
-        # NUM_BATCH_WARM_UP = int(len(train_loader) * NUM_EPOCH_WARM_UP)
+        NUM_EPOCH_WARM_UP = self.dul_args.warm_up_epoch
+        NUM_BATCH_WARM_UP = int(len(train_loader) * NUM_EPOCH_WARM_UP)
         batch = 0  # batch index
 
         print(f"[RANK: {self.rank}] " + ('=' * 60))
@@ -237,9 +240,13 @@ class DUL_Trainer_dist():
 
             for inputs, labels in tqdm(train_loader, desc=f"[Rank: {self.rank}]"):
                 OPTIMIZER.zero_grad()
+                should_warmup = (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP)
                 
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device).long()
+                if should_warmup: # adjust LR for each training batch during warm up
+                    warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
+                
+                inputs = inputs.to(self.device, non_blocking=True)
+                labels = labels.to(self.device, non_blocking=True).long()
                 loss = 0
 
                 mu_dul, std_dul = BACKBONE(inputs) # namely, mean and std
@@ -308,7 +315,7 @@ class DUL_Trainer_dist():
                     "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time()))
 
                 if self.dul_args.multi_gpu:
-                    torch.save(BACKBONE.state_dict(), backbone_path)
+                    torch.save(BACKBONE.module.state_dict(), backbone_path)
                     torch.save(HEAD.state_dict(), head_path)
                 else:
                     torch.save(BACKBONE.state_dict(), backbone_path)
