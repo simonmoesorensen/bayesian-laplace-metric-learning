@@ -176,7 +176,8 @@ class DUL_Trainer():
                                                              data_size=len(train_loader))
 
         DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
-
+        NUM_EPOCH_WARM_UP = self.dul_args.warm_up_epoch
+        NUM_BATCH_WARM_UP = int(len(train_loader) * NUM_EPOCH_WARM_UP)
         batch = 0  # batch index
 
         print('=' * 60)
@@ -196,6 +197,10 @@ class DUL_Trainer():
 
             for inputs, labels in tqdm(train_loader):
                 OPTIMIZER.zero_grad()
+                should_warmup = (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP)
+                
+                if should_warmup: # adjust LR for each training batch during warm up
+                    warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, self.dul_args.lr, OPTIMIZER)
                 
                 inputs = inputs.cuda()
                 labels = labels.cuda().long()
@@ -216,7 +221,7 @@ class DUL_Trainer():
                 loss_head = LOSS(outputs, labels)
 
                 loss += loss_head
-
+                
                 # measure accuracy and record loss
                 prec1, prec5 = accuracy(outputs.data, labels, topk = (1, 5))
                 losses.update(loss_head.data.item(), inputs.size(0))
@@ -226,7 +231,10 @@ class DUL_Trainer():
                 # compute gradient and do SGD step
                 loss.backward()
                 OPTIMIZER.step()
-                SCHEDULER.step()
+                
+                # Adjust LR using Triangular policy when it's not in warmup phase
+                if not (should_warmup):
+                    SCHEDULER.step()
 
                 # dispaly training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
