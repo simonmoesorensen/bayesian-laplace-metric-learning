@@ -185,6 +185,8 @@ class DUL_Trainer():
         print('Start Training: ')
 
         for epoch in range(self.dul_args.num_epoch):
+            if epoch < self.dul_args.resume_epoch:
+                continue
             
             BACKBONE.train()  # set to training mode
             HEAD.train()

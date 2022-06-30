@@ -227,6 +227,8 @@ class DUL_Trainer_dist():
         print(f"[RANK: {self.rank}] "'Start Training: ')
 
         for epoch in range(self.dul_args.num_epoch):
+            if epoch < self.dul_args.resume_epoch:
+                continue
             train_loader.sampler.set_epoch(epoch)
             
             BACKBONE.train()  # set to training mode
