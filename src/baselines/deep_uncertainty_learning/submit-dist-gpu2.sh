@@ -2,23 +2,23 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpuv100
+#BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J DUL-dist
+#BSUB -J DUL-dist-gpu2
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
 
-### -- Select the resources: 4 gpus -- 
-#BSUB -gpu "num=4:mode=exclusive_process"
+### -- Select the resources: 2 gpus -- 
+#BSUB -gpu "num=2"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=32GB]"
-#BSUB -R "select[gpu32gb]"
+#BSUB -R "rusage[mem=40GB]"
+#BSUB -R "select[gpu40gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs_dist/DUL-face-recognition-run1.out
-#BSUB -e logs_dist/DUL-face-recognition-run1.err
+#BSUB -oo logs_dist/DUL-face-recognition-gpu2-run1.out
+#BSUB -eo logs_dist/DUL-face-recognition-gpu2-run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -45,22 +45,21 @@ cd /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncert
 # Load venv
 source venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1
 
-model_save_folder='./checkpoints/exp_dul_dist/'
-log_tensorboard='./logtensorboard/exp_dul_dist/'
-
+model_save_folder='./checkpoints/exp_dul_dist/gpu2/'
+log_tensorboard='./logtensorboard/exp_dul_dist/gpu2/'
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 ./train_dul_dist.py \
     --model_save_folder $model_save_folder \
     --log_tensorboard $log_tensorboard \
     --batch_size 512 \
-    --gpu_id 0 1 2 3 \
+    --gpu_id 0 1 \
     --multi_gpu True \
     --stages 10 18 \
     --kl_scale 0.01 \
     --lr 0.1 \
-    --num_workers 0 \
+    --num_workers 8 \
     --pin_memory True
 
 
