@@ -1,7 +1,9 @@
+import sys
+
 import torch
 from pytorch_metric_learning import testers
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from torch.nn.utils import vector_to_parameters
+from torch.nn.utils.convert_parameters import vector_to_parameters
 
 
 def get_all_embeddings(dataset, model, data_device):
@@ -14,13 +16,11 @@ def get_all_embeddings(dataset, model, data_device):
     return tester.get_all_embeddings(dataset, model)
 
 
-def test_model(train_set, test_set, model, data_device):
+def test_model(train_set, test_set, model, data_device, k=10):
     """
     Compute accuracy using AccuracyCalculator from pytorch-metric-learning
     """
-    accuracy_calculator = AccuracyCalculator(
-        include=("mean_average_precision", "precision_at_1"), k=50
-    )
+    accuracy_calculator = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=k)
 
     train_embeddings, train_labels = get_all_embeddings(train_set, model, data_device)
     test_embeddings, test_labels = get_all_embeddings(test_set, model, data_device)
@@ -35,9 +35,7 @@ def test_model(train_set, test_set, model, data_device):
     return accuracies
 
 
-def generate_predictions_from_samples(
-    loader, weight_samples, full_model, inference_model=None, device="cpu"
-):
+def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
     if inference_model is None:
         inference_model = full_model
 
@@ -53,9 +51,49 @@ def generate_predictions_from_samples(
     return torch.stack(preds, dim=0)
 
 
-def generate_fake_predictions_from_samples(
-    loader, weight_samples, full_model, inference_model=None, device="cpu"
-):
+# def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
+#     if inference_model is None:
+#         inference_model = full_model
+
+#     mean = 0
+#     square_mean = 0
+#     for net_sample in weight_samples:
+#         vector_to_parameters(net_sample, inference_model.parameters())
+#         sample_preds = []
+#         for x, _ in iter(loader):
+#             x = x.to(device)
+#             pred = full_model(x)
+#             sample_preds.append(pred)
+#         sample_preds = torch.cat(sample_preds, dim=0)
+#         mean += sample_preds
+#         square_mean += sample_preds**2
+#     mean = mean / len(weight_samples)
+#     square_mean = square_mean / len(weight_samples)
+#     variance = square_mean - mean**2
+#     return mean, variance
+
+
+# def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
+#     if inference_model is None:
+#         inference_model = full_model
+
+#     means = []
+#     vars = []
+#     for step, (x, _) in enumerate(iter(loader)):
+#         if step == 26:
+#             break
+#         x = x.to(device)
+#         sample_preds = []
+#         for net_sample in weight_samples:
+#             vector_to_parameters(net_sample, inference_model.parameters())
+#             sample_preds.append(full_model(x))
+#         preds = torch.stack(sample_preds, dim=0)
+#         means.append(preds.mean(dim=0))
+#         vars.append(preds.var(dim=0))
+#     return torch.cat(means, dim=0), torch.cat(vars, dim=0)
+
+
+def generate_fake_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
     if inference_model is None:
         inference_model = full_model
 
@@ -63,7 +101,9 @@ def generate_fake_predictions_from_samples(
     for net_sample in weight_samples:
         vector_to_parameters(net_sample, inference_model.parameters())
         sample_preds = []
-        for x, _ in iter(loader):
+        for step, (x, _) in enumerate(iter(loader)):
+            if step == 26:
+                break
             x = torch.randn(x.shape, device=device)
             pred = full_model(x)
             sample_preds.append(pred)
@@ -75,9 +115,7 @@ def get_sample_accuracy(train_set, test_set, model, inference_model, samples, de
     accuracies = []
     for sample in samples:
         vector_to_parameters(sample, inference_model.parameters())
-        accuracies.append(
-            test_model(train_set, test_set, model, device)["precision_at_1"]
-        )
+        accuracies.append(test_model(train_set, test_set, model, device)["precision_at_1"])
     return accuracies
 
 

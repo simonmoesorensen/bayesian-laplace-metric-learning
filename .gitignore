@@ -135,5 +135,8 @@ dmypy.json
 .vscode/
 
 /data/
-pretrained
+/pretrained/
+/results/
 log
+
+*.out

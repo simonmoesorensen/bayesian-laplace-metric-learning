@@ -64,9 +64,7 @@ class ActivationJacobian(ABC):
             Jseq = torch.einsum("bi,bim->bim", J, Jseq)  # diag(J) * Jseq
             # (B)x(in) * (B)x(in)x(M)-> (B)x(in)x(M)
             jac_type = JacType.FULL
-        elif (
-            JseqType is JacType.DIAG
-        ):  # Jseq.dim() is 2: # Jseq is vector (representing a diagonal matrix)
+        elif JseqType is JacType.DIAG:  # Jseq.dim() is 2: # Jseq is vector (representing a diagonal matrix)
             Jseq = J * Jseq  # diag(J) * diag(Jseq)
             # (B)x(in) * (B)x(in) -> (B)x(in)
             jac_type = JacType.DIAG
@@ -88,9 +86,7 @@ def __jac_mul_generic__(J, Jseq, JseqType):
     if JseqType is JacType.FULL:  # Jseq.dim() is 3: # Jseq is matrix
         Jseq = torch.einsum("bki,bim->bkm", J, Jseq)  # J * Jseq
         # (B)x(K)(in) * (B)x(in)x(M)-> (B)x(K)x(M)
-    elif (
-        JseqType is JacType.DIAG
-    ):  # Jseq.dim() is 2: # Jseq is vector (representing a diagonal matrix)
+    elif JseqType is JacType.DIAG:  # Jseq.dim() is 2: # Jseq is vector (representing a diagonal matrix)
         Jseq = torch.einsum("bki,bi->bki", J, Jseq)  # J * diag(Jseq)
         # (B)x(K)(in) * (B)x(in) -> (B)x(K)x(in)
     else:
@@ -171,16 +167,9 @@ class Sequential(nn.Sequential):
     def dimensions(self):
         in_features, out_features = None, None
         for module in self._modules.values():
-            if (
-                in_features is None
-                and hasattr(module, "__constants__")
-                and "in_features" in module.__constants__
-            ):
+            if in_features is None and hasattr(module, "__constants__") and "in_features" in module.__constants__:
                 in_features = module.in_features
-            if (
-                hasattr(module, "__constants__")
-                and "out_features" in module.__constants__
-            ):
+            if hasattr(module, "__constants__") and "out_features" in module.__constants__:
                 out_features = module.out_features
         return in_features, out_features
 
@@ -277,14 +266,7 @@ def fd_jacobian(function, x, h=1e-4):
     try:
         # Disable "training" in the function (relevant eg. for batch normalization)
         orig_state = function.disable_training()
-        Jnum = torch.cat(
-            [
-                ((function(x[b] + E) - function(x[b].unsqueeze(0))).t() / h).unsqueeze(
-                    0
-                )
-                for b in range(B)
-            ]
-        )
+        Jnum = torch.cat([((function(x[b] + E) - function(x[b].unsqueeze(0))).t() / h).unsqueeze(0) for b in range(B)])
     finally:
         function.enable_training(orig_state)  # re-enable training
 

@@ -3,6 +3,8 @@ pytorch_metric_learning==1.1.2
 laplace_torch==0.1a2
 asdfghjkl==0.1a2
 
+faiss-gpu
+
 --extra-index-url https://download.pytorch.org/whl/cu113
 torch
 torchvision
