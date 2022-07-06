@@ -6,7 +6,7 @@ from config import parse_args
 from data_modules.MNISTDataModule import MNISTDataModule
 from models import MNIST_DUL
 
-from util.utils import (
+from utils import (
     separate_batchnorm_params,
 )
 
@@ -54,10 +54,13 @@ def run(dul_args):
         to_visualize=dul_args.to_visualize,
     )
 
-
     trainer.add_data(MNISTDataModule)
 
     trainer.run()
+
+    trainer.test()
+
+    trainer.log_hyperparams()
 
     return trainer
 

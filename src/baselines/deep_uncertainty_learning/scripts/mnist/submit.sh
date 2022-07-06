@@ -5,7 +5,7 @@
 #BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J DUL-dist-gpu2
+#BSUB -J DUL-face-recognition
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs_dist/DUL-face-recognition-gpu2-run1.out
-#BSUB -eo logs_dist/DUL-face-recognition-gpu2-run1.err
+#BSUB -oo logs/DUL-face-recognition-run1.out
+#BSUB -eo logs/DUL-face-recognition-run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -43,28 +43,27 @@ module load cuda/11.3
 cd /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncertainty_learning
 
 # Load venv
-source venv/bin/activate
+source /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncertainty_learning/venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0,1
 
-model_save_folder='./checkpoints/exp_dul_dist/gpu2/'
-log_tensorboard='./logtensorboard/exp_dul_dist/gpu2/'
+model_save_folder='./checkpoints/'
+log_tensorboard='./logtensorboard/'
+
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 ./train_dul_dist.py \
+python3 ./src/train.py \
     --model_save_folder $model_save_folder \
-    --log_tensorboard $log_tensorboard \
+    --log_dir $logs \
+    --dataset MNIST \
+    --name MNIST \
     --batch_size 512 \
-    --gpu_id 0 1 \
-    --multi_gpu True \
-    --stages 10 18 \
-    --kl_scale 0.01 \
-    --lr 0.1 \
-    --num_workers 8 \
-    --pin_memory True \
-    --num_epoch 60 \
-    --resume_backbone checkpoints/exp_dul_dist/Backbone_IR_SE_64_DUL_Epoch_20_Batch_227440_Time_2022-06-30-09-22_checkpoint.pth \
-    --resume_head checkpoints/exp_dul_dist/Head_ArcFace_Epoch_20_Batch_227440_Time_2022-06-30-09-22_checkpoint.pth \
-    --resume_epoch 20
+    --embedding_size 256 \
+    --arcface_scale 15 \
+    --arcface_margin 0.8 \
+    --num_epoch 10 \
+    --save_freq 5 \
+    --gpu_id 0 3\
+    --num_workers 8
 
 
 # --num_epoch 60 \

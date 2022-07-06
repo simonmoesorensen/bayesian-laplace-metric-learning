@@ -1,16 +1,14 @@
 import datetime
 import logging
 from pathlib import Path
-from re import I
 import time
 
-import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from util.utils import AverageMeter, l2_norm, test_model
+from utils import AverageMeter, l2_norm, test_model
 
 plt.switch_backend("agg")
 logging.getLogger().setLevel(logging.INFO)
@@ -218,10 +216,11 @@ class DULTrainer(LightningLite):
                 self.val_loader, self.val_loader.dataset.dataset.class_to_idx
             )
 
-    def test(self, test_loader):
+    def test(self):
         logging.info(f"Testing @ epoch: {self.epoch}")
         accuracy = test_model(
-            self.train_loader.dataset, test_loader.dataset, self.model, self.device
+            self.train_loader.dataset, self.test_loader.dataset, self.model, self.device,
+            self.dul_args.batch_size, self.dul_args.num_workers
         )
 
         self.writer.add_scalar("test_acc", accuracy["precision_at_1"], self.epoch)
@@ -230,7 +229,7 @@ class DULTrainer(LightningLite):
         )
 
         if self.to_visualize:
-            self.visualize(test_loader, test_loader.dataset.class_to_idx)
+            self.visualize(self.test_loader, self.test_loader.dataset.class_to_idx)
 
     def visualize(self, dataloader, class_to_idx):
         raise NotImplementedError()
@@ -246,17 +245,21 @@ class DULTrainer(LightningLite):
             self.train_loader.dataset,
             self.model,
             self.device,
+            self.dul_args.batch_size,
+            self.dul_args.num_workers,
         )
         logging.info(f"{train_accuracy=}")
 
         val_accuracy = test_model(
-            self.train_loader.dataset, self.val_loader.dataset, self.model, self.device
+            self.train_loader.dataset, self.val_loader.dataset, self.model, self.device,
+            self.dul_args.batch_size, self.dul_args.num_workers
         )
         logging.info(f"{val_accuracy=}")
 
         logging.info("Calculating test accuracy")
         test_accuracy = test_model(
-            self.train_loader.dataset, self.test_loader.dataset, self.model, self.device
+            self.train_loader.dataset, self.test_loader.dataset, self.model, self.device,
+            self.dul_args.batch_size, self.dul_args.num_workers
         )
         logging.info(f"{test_accuracy=}")
 
