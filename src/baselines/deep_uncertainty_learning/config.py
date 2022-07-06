@@ -1,5 +1,5 @@
 import argparse
-from backbone.model_irse import *
+from backbone.model_irse import IR_SE_64_DUL, MNIST_DUL
 from pathlib import Path
 
 root_dir = Path(__file__).parent.parent.parent.parent
@@ -22,6 +22,8 @@ def dul_args_func():
     parser.add_argument('--testset_fr_folder', type=str, default=test_dir)
     parser.add_argument('--testset_ood_folder', type=str, default='')
     parser.add_argument('--model_for_test', type=str, default='')
+    parser.add_argument('--dataset', type=str)
+    parser.add_argument('--save_freq', type=int, default=4)
 
     # ----- training env
     parser.add_argument('--multi_gpu', type=bool, default=True)
@@ -33,7 +35,6 @@ def dul_args_func():
     parser.add_argument('--resume_epoch', type=int, default=0)
     
     # ----- model & training details
-    parser.add_argument('--backbone_name', type=str, default='IR_SE_64_DUL')
     parser.add_argument('--head_name', type=str, default='ArcFace')
     parser.add_argument('--loss_name', type=str, default='Softmax')
     parser.add_argument('--optimizer', type=str, default='SGD')
@@ -67,17 +68,14 @@ def dul_args_func():
 dul_args = dul_args_func()
 
 Backbone_Dict = {
-    'IR_50': IR_50(dul_args.input_size),
-    'IR_101': IR_101(dul_args.input_size),
-    'IR_152': IR_152(dul_args.input_size),
-    'IR_SE_50': IR_SE_50(dul_args.input_size),
-    'IR_SE_64_DUL': IR_SE_64_DUL(dul_args.input_size),
-    'IR_SE_101': IR_SE_101(dul_args.input_size),
-    'IR_SE_152': IR_SE_152(dul_args.input_size)
+    'MNIST': MNIST_DUL(dul_args.input_size),
+    # 'CIFAR10': IR_SE_64_DUL(dul_args.input_size),
+    # 'Cassia': IR_SE_64_DUL(dul_args.input_size),
 }
 
 Test_FR_Data_Dict = {
-    'lfw': 'lfw',
+    'MNIST': 'MNIST',
+    'CIFAR10': 'CIFAR10',
     # 'cfp_ff': 'cfp_ff',
     # 'cfp_fp': 'cfp_fp',
     # 'agedb': 'agedb_30',

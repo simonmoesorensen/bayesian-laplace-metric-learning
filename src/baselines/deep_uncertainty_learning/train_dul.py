@@ -22,7 +22,6 @@ class DUL_Trainer():
     def __init__(self, dul_args):
         self.dul_args = dul_args
         self.dul_args.gpu_id = [int(item) for item in self.dul_args.gpu_id]
-        self.dul_args.stages = [int(item) for item in self.dul_args.stages]
 
     def _report_configurations(self):
         print('=' * 60)
@@ -43,45 +42,27 @@ class DUL_Trainer():
         
         print("=" * 60)
         print('Loading Data...')
-        if self.dul_args.center_crop:
-            train_transform = transforms.Compose([ 
-            transforms.Resize([int(128 * self.dul_args.input_size[0] / 112), int(128 * self.dul_args.input_size[0] / 112)]),
-            transforms.RandomCrop([self.dul_args.input_size[0], self.dul_args.input_size[1]]),
-            transforms.RandomHorizontalFlip(),
-            add_gaussian_noise(p=self.dul_args.image_noise),
-            transforms.ToTensor(),
-            transforms.Normalize(mean = self.dul_args.rgb_mean,
-                                 std = self.dul_args.rgb_std),
-            #transforms.RandomErasing(scale=(0.02,0.25))
-        ])
-        else:
-            train_transform = transforms.Compose([ # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more build-in online data augmentation
-            transforms.Resize([112, 112]), # smaller side resized
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean = self.dul_args.rgb_mean,
-                                 std = self.dul_args.rgb_std),
-            transforms.RandomErasing(scale=(0.02,0.25))
-        ])
+        if self.dul_args.dataset == 'MNIST':
+            dataset_train = datasets.MNIST(root=self.dul_args.data_dir,
+                                           train=True,
+                                           transform=transforms.Compose([
+                                               transforms.ToTensor(),
+                                               transforms.Normalize((0.1307,), (0.3081,))
+                                           ]),
+                                           download=True)
 
-        dataset_train = datasets.ImageFolder(self.dul_args.data_dir / 'ms1m/imgs', train_transform)
-
-        # ----- create a weighted random sampler to process imbalanced data
-        weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
-        weights = torch.DoubleTensor(weights)
-        sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
+            num_class = 10
         
+        else:
+            raise NotImplementedError(f'Dataset {self.dul_args.dataset} is not implemented')
+
         train_loader = torch.utils.data.DataLoader(
-            dataset_train, batch_size=self.dul_args.batch_size, sampler=sampler,
+            dataset_train, batch_size=self.dul_args.batch_size,
             pin_memory=self.dul_args.pin_memory, num_workers=self.dul_args.num_workers,
             drop_last=self.dul_args.drop_last,
         )
 
-        # num_class = train_loader.dataset.identity.max().item()
-        num_class = len(train_loader.dataset.classes)
-
         print('Data loaded in {:.2f} seconds'.format(time.perf_counter() - time_start))
-        
         print("Number of Training Classes: '{}' ".format(num_class))
 
         return train_loader, num_class
@@ -89,9 +70,9 @@ class DUL_Trainer():
 
     def _model_loader(self, num_class, data_size):
         # ----- backbone generate
-        BACKBONE = Backbone_Dict[self.dul_args.backbone_name]
+        BACKBONE = Backbone_Dict[self.dul_args.dataset]
         print("=" * 60)
-        print("Backbone Generated: '{}' ".format(self.dul_args.backbone_name))
+        print("Backbone Generated: '{}' ".format(self.dul_args.dataset))
 
         # ----- head generate
         Head_Dict = {
@@ -263,15 +244,16 @@ class DUL_Trainer():
             epoch + 1, self.dul_args.num_epoch, loss = losses, top1 = top1, top5 = top5), flush=True)
 
             # ----- save model
-            if epoch==4 or epoch==7 or epoch==12 or epoch>17:
+            if (epoch == self.dul_args.num_epoch - 1) or epoch % self.dul_args.save_freq == 0:
                 print("=" * 60, flush=True)
                 print('Saving NO.EPOCH {} trained model'.format(epoch+1), flush=True)
                 if self.dul_args.multi_gpu:
-                    torch.save(BACKBONE.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
+                    torch.save(BACKBONE.module.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.dataset, epoch + 1, batch, get_time())))
                     torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
                 else:
-                    torch.save(BACKBONE.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.backbone_name, epoch + 1, batch, get_time())))
+                    torch.save(BACKBONE.state_dict(), os.path.join(self.dul_args.model_save_folder, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.dataset, epoch + 1, batch, get_time())))
                     torch.save(HEAD.state_dict(), os.path.join(self.dul_args.model_save_folder, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(self.dul_args.head_name, epoch + 1, batch, get_time())))
+        
         print('=' * 60, flush=True)
         print('Training process finished!', flush=True)
         print('=' * 60, flush=True)

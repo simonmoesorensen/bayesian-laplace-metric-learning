@@ -7,6 +7,8 @@ from collections import namedtuple
 
 from torch.nn.modules.flatten import Flatten
 
+from torchvision.models import resnet18
+
 
 # Support: ['IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152', \
 #           'IR_SE_64_DUL(for DUL)']
@@ -16,20 +18,23 @@ class DUL_Backbone(nn.Module):
     def __init__(self, resnet):
         super(DUL_Backbone, self).__init__()
 
-        self.features = nn.Sequential(
-            resnet.input_layer,
-            resnet.body,
-            Sequential(BatchNorm2d(512),
-                        Dropout(p=0.4),
-                        Flatten(),
-            )
-        )
+        # self.features = nn.Sequential(
+        #     resnet.input_layer,
+        #     resnet.body,
+        #     Sequential(BatchNorm2d(512),
+        #                 Dropout(p=0.4),
+        #                 Flatten(),
+        #     )
+        # )
+
+        self.features = resnet
+
         self.mu_dul_backbone = nn.Sequential(
-            Linear(512 * 7 * 7, 512),
+            # Linear(512 * 64, 512),
             BatchNorm1d(512),
         )
         self.logvar_dul_backbone = nn.Sequential(
-            Linear(512 * 7 * 7, 512),
+            # Linear(512 * 64, 512),
             BatchNorm1d(512),
         )
 
@@ -170,29 +175,27 @@ def get_blocks(num_layers):
 class Backbone(Module):
     def __init__(self, input_size, num_layers, mode='ir'):
         super(Backbone, self).__init__()
-        assert input_size[0] in [112, 224], "input_size should be [112, 112] or [224, 224]"
-        assert num_layers in [50, 64, 100, 152], "num_layers should be 50, 64, 100 or 152"
+
         assert mode in ['ir', 'ir_se'], "mode should be ir or ir_se"
         blocks = get_blocks(num_layers)
         if mode == 'ir':
             unit_module = bottleneck_IR
         elif mode == 'ir_se':
             unit_module = bottleneck_IR_SE
+
         self.input_layer = Sequential(Conv2d(3, 64, (3, 3), 1, 1, bias=False),
                                       BatchNorm2d(64),
                                       PReLU(64))
-        if input_size[0] == 112:
-            self.output_layer = Sequential(BatchNorm2d(512),
-                                           Dropout(),
-                                           Flatten(),
-                                           Linear(512 * 7 * 7, 512),
-                                           BatchNorm1d(512))
-        else:
-            self.output_layer = Sequential(BatchNorm2d(512),
-                                           Dropout(),
-                                           Flatten(),
-                                           Linear(512 * 14 * 14, 512),
-                                           BatchNorm1d(512))
+        
+        # Found experimentally
+        assert input_size % 16 == 0, 'input_size should be divisible by 16'
+        factor = input_size / 16
+
+        self.output_layer = Sequential(BatchNorm2d(512),
+                                        Dropout(),
+                                        Flatten(),
+                                        Linear(512 * factor * factor, 512),
+                                        BatchNorm1d(512))
 
         modules = []
         for block in blocks:
@@ -230,38 +233,6 @@ class Backbone(Module):
                     m.bias.data.zero_()
 
 
-def IR_50(input_size):
-    """Constructs a ir-50 model.
-    """
-    model = Backbone(input_size, 50, 'ir')
-
-    return model
-
-
-def IR_101(input_size):
-    """Constructs a ir-101 model.
-    """
-    model = Backbone(input_size, 100, 'ir')
-
-    return model
-
-
-def IR_152(input_size):
-    """Constructs a ir-152 model.
-    """
-    model = Backbone(input_size, 152, 'ir')
-
-    return model
-
-
-def IR_SE_50(input_size):
-    """Constructs a ir_se-50 model.
-    """
-    model = Backbone(input_size, 50, 'ir_se')
-
-    return model
-
-
 def IR_SE_64_DUL(input_size):
     """Construct an ir_se_64_dul model for DUL. --> namely, base on resnet_se_64
     """
@@ -271,17 +242,22 @@ def IR_SE_64_DUL(input_size):
     return model_dul
 
 
-def IR_SE_101(input_size):
-    """Constructs a ir_se-101 model.
+def MNIST_DUL(input_size):
     """
-    model = Backbone(input_size, 100, 'ir_se')
-
-    return model
-
-
-def IR_SE_152(input_size):
-    """Constructs a ir_se-152 model.
+    Construct a mnist model for DUL.
     """
-    model = Backbone(input_size, 152, 'ir_se')
+    # model = Backbone(input_size, 2, mode='ir_se')
 
-    return model
+    # Embedding dimension
+    embedding = 512
+
+    model = resnet18(num_classes=embedding)
+    model.conv1 = Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+
+    # Exclude the last fc layer of resnet18
+    # model = torch.nn.Sequential(*(list(model.children())[:-1]))
+
+    # Wrap in DUL framework
+    model_dul = DUL_Backbone(model)
+
+    return model_dul
