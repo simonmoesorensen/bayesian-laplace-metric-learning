@@ -36,7 +36,7 @@ def post_hoc(
     preinference_model: nn.Module = model.conv
     inference_model: nn.Module = model.linear
 
-    images_per_class = 6000
+    images_per_class = 5000
 
     calculator = ContrastiveHessianCalculator()
     calculator.init_model(model.linear)

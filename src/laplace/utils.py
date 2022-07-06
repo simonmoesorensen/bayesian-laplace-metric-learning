@@ -51,7 +51,41 @@ def generate_predictions_from_samples(loader, weight_samples, full_model, infere
     return torch.stack(preds, dim=0)
 
 
-# def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
+def generate_predictions_from_samples_rolling(loader, weight_samples, full_model, inference_model=None, device="cpu"):
+    """
+    Welford's online algorithm for calculating mean and variance.
+    """
+    if inference_model is None:
+        inference_model = full_model
+
+    def get_single_sample_pred(sample) -> torch.Tensor:
+        vector_to_parameters(sample, inference_model.parameters())
+        sample_preds = []
+        for i, (x, _) in enumerate(iter(loader)):
+            # if i == 20:
+            #     break
+            x = x.to(device)
+            pred = full_model(x)
+            sample_preds.append(pred)
+        return torch.cat(sample_preds, dim=0)
+
+    N = len(weight_samples)
+
+    mean = get_single_sample_pred(weight_samples[0, :])
+    msq = 0.0
+    delta = 0.0
+
+    for i, net_sample in enumerate(weight_samples[1:, :]):
+        sample_preds = get_single_sample_pred(net_sample)
+        delta = sample_preds - mean
+        mean += delta / (i + 1)
+        msq += delta * (sample_preds - mean)
+
+    variance = msq / (N - 1)
+    return mean, variance
+
+
+# def generate_predictions_from_samples_rolling(loader, weight_samples, full_model, inference_model=None, device="cpu"):
 #     if inference_model is None:
 #         inference_model = full_model
 

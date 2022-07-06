@@ -1,3 +1,4 @@
+import gc
 import logging
 
 import numpy as np
@@ -9,6 +10,7 @@ from torchvision import transforms
 from src.laplace.utils import (
     generate_fake_predictions_from_samples,
     generate_predictions_from_samples,
+    generate_predictions_from_samples_rolling,
     get_sample_accuracy,
     sample_nn_weights,
 )
@@ -20,8 +22,8 @@ def evaluate_laplace(net, train_loader, id_loader, ood_loader, device="cpu"):
     logging.info("Loading pretrained model.")
     net.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
 
-    accuracy = test_model(train_loader.dataset, id_loader.dataset, net, device)
-    logging.info(f"Accuracy after training is {100*accuracy['precision_at_1']:.2f}%.")
+    # accuracy = test_model(train_loader.dataset, id_loader.dataset, net, device)
+    # logging.info(f"Accuracy after training is {100*accuracy['precision_at_1']:.2f}%.")
 
     mu_q = torch.load("pretrained/laplace/laplace_mu.pt", map_location=device)
     sigma_q = torch.load("pretrained/laplace/laplace_sigma.pt", map_location=device)
