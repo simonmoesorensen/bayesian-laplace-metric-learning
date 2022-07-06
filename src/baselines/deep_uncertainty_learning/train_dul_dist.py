@@ -18,10 +18,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from config import Backbone_Dict, dul_args_func
+from config import Backbone_Dict, parse_args
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax, Softmax
 from loss.focal import FocalLoss
-from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
+from util.utils import make_weights_for_balanced_classes, separate_batchnorm_params, \
                        warm_up_lr, schedule_lr, get_time, AverageMeter, accuracy, add_gaussian_noise
 
 def setup(rank, world_size):
@@ -144,8 +144,8 @@ class DUL_Trainer_dist():
         print(f"[RANK: {self.rank}] " + ("=" * 60))
         print(f"[RANK: {self.rank}] ""Loss Generated: '{}' ".format(self.dul_args.loss_name))
         # ----- separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
-        backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE)
-        _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
+        backbone_paras_only_bn, backbone_paras_wo_bn = separate_batchnorm_params(BACKBONE)
+        _, head_paras_wo_bn = separate_batchnorm_params(HEAD)
 
         # ----- optimizer generate
         Optimizer_Dict = {
@@ -336,7 +336,7 @@ def run(rank, world_size, dul_args):
     cleanup()
     
 if __name__ == '__main__':
-    dul_args = dul_args_func()
+    dul_args = parse_args()
     gpus = [int(item) for item in dul_args.gpu_id]
     world_size = len(gpus)
     print(f'World size: {world_size}')

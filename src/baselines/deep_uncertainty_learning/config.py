@@ -1,15 +1,13 @@
 import argparse
-from backbone.model_irse import IR_SE_64_DUL, MNIST_DUL
 from pathlib import Path
 
 root_dir = Path(__file__).parent.parent.parent.parent
 data_dir = Path('/work3/s174420/datasets')
 test_dir = data_dir / 'validation'
-cp_dir   = root_dir / 'models/face_recognition'
 
-
-def dul_args_func():
-    parser = argparse.ArgumentParser(description='DUL: Data Uncertainty Learning in Face Recognition')
+def parse_args():
+    parser = argparse.ArgumentParser(description='DUL: Data Uncertainty Learning for MNIST')
+    parser.add_argument('--name', type=str, default='MNIST')
 
     # ----- random seed for reproducing
     parser.add_argument('--random_seed', type=int, default=6666)
@@ -17,11 +15,7 @@ def dul_args_func():
     # ----- directory (train & test)
     parser.add_argument('--data_dir', type=str, default=data_dir)
     parser.add_argument('--model_save_folder', type=str, default='./checkpoints/')
-    parser.add_argument('--log_tensorboard', type=str, default='./logtensorboard/')
-    parser.add_argument('--logs', type=str, default='./logs/')
-    parser.add_argument('--testset_fr_folder', type=str, default=test_dir)
-    parser.add_argument('--testset_ood_folder', type=str, default='')
-    parser.add_argument('--model_for_test', type=str, default='')
+    parser.add_argument('--log_dir', type=str, default='./logs/')
     parser.add_argument('--dataset', type=str)
     parser.add_argument('--save_freq', type=int, default=4)
 
@@ -30,56 +24,27 @@ def dul_args_func():
     parser.add_argument('--gpu_id', type=str, nargs='+')
     
     # ----- resume pretrain details
-    parser.add_argument('--resume_backbone', type=str, default='')
-    parser.add_argument('--resume_head', type=str, default='')
     parser.add_argument('--resume_epoch', type=int, default=0)
+    parser.add_argument('--model_path', type=str, default=None)
     
     # ----- model & training details
     parser.add_argument('--head_name', type=str, default='ArcFace')
     parser.add_argument('--loss_name', type=str, default='Softmax')
-    parser.add_argument('--optimizer', type=str, default='SGD')
+    parser.add_argument('--triplet_margin', type=float, default=0.2)
     parser.add_argument('--arcface_scale', type=int, default=64)
-    parser.add_argument('--input_size', type=list, default=[112, 112]) # support: [112, 112] and [224, 224]
-    parser.add_argument('--center_crop', type=bool, default=True)
-    parser.add_argument('--rgb_mean', type=list, default=[0.5, 0.5, 0.5])
-    parser.add_argument('--rgb_std', type=list, default=[0.5, 0.5, 0.5])
+    parser.add_argument('--arcface_margin', type=float, default=0.5)
     parser.add_argument('--embedding_size', type=int, default=512)
-    parser.add_argument('--drop_last', type=bool, default=True)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
-    parser.add_argument('--pin_memory', type=bool, default=True)
     parser.add_argument('--num_workers', type=int, default=8)
+    parser.add_argument('--to_visualize', type=bool, default=False)
     
     # ----- hyperparameters
     parser.add_argument('--batch_size', type=int, default=512)
     parser.add_argument('--num_epoch', type=int, default=22)
-    parser.add_argument('--warm_up_epoch', type=int, default=1)
-    parser.add_argument('--image_noise', type=float, default=0)
-    parser.add_argument('--lr', type=float, default=0.1)
-    parser.add_argument('--base_lr', type=float, default=0)
-    parser.add_argument('--max_lr', type=float, default=0.1)
-    parser.add_argument('--stages', type=str, nargs='+')
+    parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--kl_scale', type=float, default=0.01)
 
     args = parser.parse_args()
 
     return args
-
-dul_args = dul_args_func()
-
-Backbone_Dict = {
-    'MNIST': MNIST_DUL(dul_args.input_size),
-    # 'CIFAR10': IR_SE_64_DUL(dul_args.input_size),
-    # 'Cassia': IR_SE_64_DUL(dul_args.input_size),
-}
-
-Test_FR_Data_Dict = {
-    'MNIST': 'MNIST',
-    'CIFAR10': 'CIFAR10',
-    # 'cfp_ff': 'cfp_ff',
-    # 'cfp_fp': 'cfp_fp',
-    # 'agedb': 'agedb_30',
-    # 'calfw': 'calfw',
-    # 'cplfw': 'cplfw',
-    # 'vgg2_fp': 'vgg2_fp'
-}

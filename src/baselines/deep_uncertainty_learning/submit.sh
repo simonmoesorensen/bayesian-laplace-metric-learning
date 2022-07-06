@@ -43,7 +43,7 @@ module load cuda/11.3
 cd /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncertainty_learning
 
 # Load venv
-source venv/bin/activate
+source /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncertainty_learning/venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0,1
 

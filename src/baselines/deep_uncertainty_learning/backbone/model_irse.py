@@ -242,22 +242,4 @@ def IR_SE_64_DUL(input_size):
     return model_dul
 
 
-def MNIST_DUL(input_size):
-    """
-    Construct a mnist model for DUL.
-    """
-    # model = Backbone(input_size, 2, mode='ir_se')
 
-    # Embedding dimension
-    embedding = 512
-
-    model = resnet18(num_classes=embedding)
-    model.conv1 = Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-
-    # Exclude the last fc layer of resnet18
-    # model = torch.nn.Sequential(*(list(model.children())[:-1]))
-
-    # Wrap in DUL framework
-    model_dul = DUL_Backbone(model)
-
-    return model_dul
