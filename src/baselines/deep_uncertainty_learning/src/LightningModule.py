@@ -48,7 +48,6 @@ class DULTrainer(LightningLite):
 
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
-        self.epoch = dul_args.resume_epoch
 
     def setup_logger(self, name):
         subdir = get_time()
@@ -152,11 +151,11 @@ class DULTrainer(LightningLite):
                 print("=" * 60, flush=True)
 
 
-        logging.info(f"Finished training @ epoch: {self.epoch}")
+        logging.info(f"Finished training @ epoch: {self.epoch + 1}")
         return self.model
 
     def validate(self):
-        logging.info(f"Validating @ epoch: {self.epoch}")
+        logging.info(f"Validating @ epoch: {self.epoch + 1}")
 
         self.model.eval()
 
