@@ -86,22 +86,25 @@ def test_model(train_set, test_set, model, data_device, batch_size, num_workers)
     """
     Compute accuracy using AccuracyCalculator from pytorch-metric-learning
     """
-    accuracy_calculator = AccuracyCalculator(
-        include=("mean_average_precision", "precision_at_1"), k=50
-    )
+    model.eval()
+    with torch.no_grad():
+        accuracy_calculator = AccuracyCalculator(
+            include=("mean_average_precision", "precision_at_1"), k=50
+        )
 
-    train_embeddings, train_labels = get_all_embeddings(
-        train_set, model, data_device, batch_size, num_workers
-    )
-    test_embeddings, test_labels = get_all_embeddings(
-        test_set, model, data_device, batch_size, num_workers
-    )
+        train_embeddings, train_labels = get_all_embeddings(
+            train_set, model, data_device, batch_size, num_workers
+        )
+        test_embeddings, test_labels = get_all_embeddings(
+            test_set, model, data_device, batch_size, num_workers
+        )
 
-    accuracies = accuracy_calculator.get_accuracy(
-        test_embeddings,
-        train_embeddings,
-        test_labels.squeeze(),
-        train_labels.squeeze(),
-        embeddings_come_from_same_source=True,
-    )
+        accuracies = accuracy_calculator.get_accuracy(
+            test_embeddings,
+            train_embeddings,
+            test_labels.squeeze(),
+            train_labels.squeeze(),
+            embeddings_come_from_same_source=True,
+        )
+    model.train()
     return accuracies

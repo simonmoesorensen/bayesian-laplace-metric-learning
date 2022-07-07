@@ -4,17 +4,22 @@ from pytorch_metric_learning import losses, miners
 
 from config import parse_args
 from data_modules.MNISTDataModule import MNISTDataModule
-from models import MNIST_DUL
+from data_modules.CIFAR10DataModule import CIFAR10DataModule
+from models import MNIST_DUL, CIFAR10_DUL
 
 from utils import (
     separate_batchnorm_params,
 )
 
-
 def run(dul_args):
     dul_args.gpu_id = [int(item) for item in dul_args.gpu_id]
 
-    model = MNIST_DUL(embedding_size=dul_args.embedding_size)
+    if dul_args.dataset == 'MNIST':
+        model = MNIST_DUL(embedding_size=dul_args.embedding_size)
+        data_module = MNISTDataModule
+    elif dul_args.dataset == 'CIFAR10':
+        model = CIFAR10_DUL(embedding_size=dul_args.embedding_size)
+        data_module = CIFAR10DataModule
 
     # Don't apply weight decay to batchnorm layers
     params_w_bn, params_no_bn = separate_batchnorm_params(model)
@@ -54,7 +59,7 @@ def run(dul_args):
         to_visualize=dul_args.to_visualize,
     )
 
-    trainer.add_data(MNISTDataModule)
+    trainer.add_data(data_module)
 
     trainer.run()
 

@@ -35,3 +35,16 @@ def MNIST_DUL(embedding_size=128):
     model_dul = DUL_Backbone(model, embedding_size)
 
     return model_dul
+
+def CIFAR10_DUL(embedding_size=128):
+    """
+    Construct a cifar10 model for DUL.
+    """
+    # Embedding dimension
+
+    model = resnet18(num_classes=embedding_size)
+
+    # Wrap in DUL framework
+    model_dul = DUL_Backbone(model, embedding_size)
+
+    return model_dul

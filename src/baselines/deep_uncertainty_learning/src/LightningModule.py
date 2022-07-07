@@ -67,12 +67,14 @@ class DULTrainer(LightningLite):
 
         losses = AverageMeter()
         losses_KL = AverageMeter()
-        DISP_FREQ = len(self.train_loader) // 25  # frequency to display training loss
+        DISP_FREQ = len(self.train_loader) // 5  # frequency to display training loss
         batch = 0
 
         for epoch in range(self.dul_args.num_epoch):
             if epoch < self.dul_args.resume_epoch:
                 continue
+
+            self.epoch = epoch
 
             for i, (image, target) in enumerate(tqdm(self.train_loader)):
                 self.optimizer.zero_grad()
@@ -157,26 +159,29 @@ class DULTrainer(LightningLite):
         logging.info(f"Validating @ epoch: {self.epoch}")
 
         self.model.eval()
+
         val_loss = AverageMeter()
         val_loss_KL = AverageMeter()
-        for i, (image, target) in enumerate(self.val_loader):
-            mu_dul, std_dul = self.model(image)
 
-            epsilon = torch.randn_like(std_dul)
-            samples = mu_dul + epsilon * std_dul
-            variance_dul = std_dul**2
+        with torch.no_grad():
+            for i, (image, target) in enumerate(self.val_loader):
+                mu_dul, std_dul = self.model(image)
 
-            hard_pairs = self.miner(samples, target)
-            loss = self.loss_fn(samples, target, hard_pairs)
+                epsilon = torch.randn_like(std_dul)
+                samples = mu_dul + epsilon * std_dul
+                variance_dul = std_dul**2
 
-            loss_kl = (
-                ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
-                .sum(dim=-1)
-                .mean()
-            )
+                hard_pairs = self.miner(samples, target)
+                loss = self.loss_fn(samples, target, hard_pairs)
 
-            val_loss.update(loss.item(), image.size(0))
-            val_loss_KL.update(loss_kl.data.item(), image.size(0))
+                loss_kl = (
+                    ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
+                    .sum(dim=-1)
+                    .mean()
+                )
+
+                val_loss.update(loss.item(), image.size(0))
+                val_loss_KL.update(loss_kl.data.item(), image.size(0))
 
         self.writer.add_scalar(
             "val_loss", val_loss.avg, global_step=self.epoch, new_style=True
@@ -215,6 +220,8 @@ class DULTrainer(LightningLite):
             self.visualize(
                 self.val_loader, self.val_loader.dataset.dataset.class_to_idx
             )
+
+        self.model.train()
 
     def test(self):
         logging.info(f"Testing @ epoch: {self.epoch}")
@@ -289,7 +296,9 @@ class DULTrainer(LightningLite):
             self.dul_args.data_dir, self.dul_args.batch_size, self.dul_args.num_workers
         )
 
+        data.prepare_data()
         data.setup()
+        
         self.train_loader, self.val_loader, self.test_loader = self.setup_dataloaders(
             data.train_dataloader(), data.val_dataloader(), data.test_dataloader()
         )
