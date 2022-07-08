@@ -17,6 +17,7 @@ class CasiaDataModule(BaseDataModule):
         self.name = "Cassia"
         self.n_classes = 10575
 
+        # Used to reference the extracted data
         self.img_path = self.data_dir / "CASIA-WebFace"
 
         self.transform = transforms.Compose(
@@ -44,7 +45,8 @@ class CasiaDataModule(BaseDataModule):
             with zipfile.ZipFile(file_path, "r") as zf:
                 for member in tqdm(zf.infolist(), desc="Extracting "):
                     try:
-                        zf.extract(member, self.img_path)
+                        # Creates the 'CASIA-WebFace' directory in self.data_dir
+                        zf.extract(member, self.data_dir)
                     except zipfile.error as e:
                         print(e)
                         pass
