@@ -89,7 +89,8 @@ def test_model(train_set, test_set, model, data_device, batch_size, num_workers)
     model.eval()
     with torch.no_grad():
         accuracy_calculator = AccuracyCalculator(
-            include=("mean_average_precision", "precision_at_1"), k=50
+            include=("mean_average_precision", "precision_at_1"), k=1000,
+            device=torch.device('cpu')
         )
 
         train_embeddings, train_labels = get_all_embeddings(
