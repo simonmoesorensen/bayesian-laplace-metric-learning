@@ -66,7 +66,7 @@ class DULTrainer(LightningLite):
 
         losses = AverageMeter()
         losses_KL = AverageMeter()
-        DISP_FREQ = len(self.train_loader) // 5  # frequency to display training loss
+        DISP_FREQ = len(self.train_loader) // 20  # frequency to display training loss
         batch = 0
 
         for epoch in range(self.dul_args.num_epoch):

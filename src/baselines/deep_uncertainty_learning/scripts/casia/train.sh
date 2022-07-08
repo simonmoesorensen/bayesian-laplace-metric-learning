@@ -8,13 +8,13 @@ echo "Waiting for debugger to attach..."
 python -m debugpy --listen 10.66.12.19:1332 ./src/train.py \
     --model_save_folder $model_save_folder \
     --log_dir $logs \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --batch_size 512 \
-    --embedding_size 256 \
-    --arcface_scale 15 \
-    --arcface_margin 0.8 \
+    --dataset Casia \
+    --name Casia \
+    --batch_size 128 \
+    --embedding_size 512 \
+    --arcface_scale 60 \
+    --arcface_margin 0.5 \
     --num_epoch 20 \
-    --save_freq 5 \
+    --save_freq 1 \
     --gpu_id 0 1\
     --num_workers 12

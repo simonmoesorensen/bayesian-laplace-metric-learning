@@ -5,7 +5,8 @@ from pytorch_metric_learning import losses, miners
 from config import parse_args
 from data_modules.MNISTDataModule import MNISTDataModule
 from data_modules.CIFAR10DataModule import CIFAR10DataModule
-from models import MNIST_DUL, CIFAR10_DUL
+from data_modules.CasiaDataModule import CasiaDataModule
+from models import MNIST_DUL, CIFAR10_DUL, Casia_DUL
 
 from utils import (
     separate_batchnorm_params,
@@ -20,6 +21,9 @@ def run(dul_args):
     elif dul_args.dataset == 'CIFAR10':
         model = CIFAR10_DUL(embedding_size=dul_args.embedding_size)
         data_module = CIFAR10DataModule
+    elif dul_args.dataset == 'Casia':
+        model = Casia_DUL(embedding_size=dul_args.embedding_size)
+        data_module = CasiaDataModule
 
     # Don't apply weight decay to batchnorm layers
     params_w_bn, params_no_bn = separate_batchnorm_params(model)
