@@ -9,26 +9,9 @@ from gdrive import download_file_from_google_drive
 
 from BaseDataModule import BaseDataModule
 
-
-class CasiaDataset(d.ImageFolder):
-    def __init__(self, root, transform=None, target_transform=None):
-        super().__init__(root, transform, target_transform)
-
-    def __getitem__(self, index):
-        path, target = self.samples[index]
-        sample = self.loader(path)
-
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return sample, target
-
-
 class CasiaDataModule(BaseDataModule):
     def __init__(self, data_dir, batch_size, num_workers):
-        super().__init__(CasiaDataset, data_dir, batch_size, num_workers)
+        super().__init__(d.ImageFolder, data_dir, batch_size, num_workers)
 
         self.name = "Cassia"
         self.n_classes = 10575
