@@ -1,7 +1,7 @@
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split
-
+from torch.utils.data import DataLoader, random_split, Subset
+import numpy as np
 
 class BaseDataModule(LightningDataModule):
     def __init__(self, dataset_cls, data_dir, batch_size, num_workers):
@@ -21,26 +21,36 @@ class BaseDataModule(LightningDataModule):
         self.cls(self.data_dir, train=True, download=True)
         self.cls(self.data_dir, train=False, download=True)
 
-    def setup(self, stage=None, val_split=0.2):
+    def setup(self, val_split=0.2, shuffle=True):
         assert self.transform, "transform must be set before setup()"
-
+       
         # Assign train/val datasets for use in dataloaders
-        if stage == "fit" or stage is None:
-            dataset_full = self.cls(self.data_dir, train=True, transform=self.transform)
-            size = len(dataset_full)
+        dataset_full = self.cls(self.data_dir, train=True, transform=self.transform)
+        size = len(dataset_full)
 
-            def get_split_size(frac):
-                return int(size // (1 / frac))
+        def get_split_size(frac):
+            return np.round(size // (1 / frac)).astype(int)
 
-            self.dataset_train, self.dataset_val = random_split(
-                dataset_full, [get_split_size(1 - val_split), get_split_size(val_split)]
+        n_train = get_split_size(1 - val_split)
+        n_val = get_split_size(val_split)
+
+        # Ensure that the splits cover the whole dataset
+        n_train += (size - n_train - n_val)
+
+        if shuffle:
+            # Overlapping classes allowed
+            self.dataset_train, self.dataset_val, self.dataset_test = random_split(
+                dataset_full, [n_train, n_val]
             )
+        else:
+            # Overlapping classes not allowed (zero-shot learning)
+            self.dataset_train = Subset(dataset_full, range(0, n_train))
+            self.dataset_val = Subset(dataset_full, range(n_train, n_train + n_val))
 
         # Assign test dataset for use in dataloader(s)
-        if stage == "test" or stage is None:
-            self.dataset_test = self.cls(
-                self.data_dir, train=False, transform=self.transform
-            )
+        self.dataset_test = self.cls(
+            self.data_dir, train=False, transform=self.transform
+        )
 
     def train_dataloader(self, pin_memory=True):
         return DataLoader(

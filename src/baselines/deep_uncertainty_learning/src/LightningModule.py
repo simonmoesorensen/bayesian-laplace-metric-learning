@@ -292,8 +292,10 @@ class DULTrainer(LightningLite):
 
     def add_data_module(self, data_module):
         data_module.prepare_data()
-        data_module.setup()
+        data_module.setup(shuffle=self.dul_args.shuffle)
         
         self.train_loader, self.val_loader, self.test_loader = self.setup_dataloaders(
-            data_module.train_dataloader(), data_module.val_dataloader(), data_module.test_dataloader()
+            data_module.train_dataloader(), 
+            data_module.val_dataloader(), 
+            data_module.test_dataloader()
         )

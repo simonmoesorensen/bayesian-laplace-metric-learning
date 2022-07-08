@@ -17,4 +17,5 @@ python -m debugpy --listen 10.66.12.19:1332 ./src/train.py \
     --num_epoch 20 \
     --save_freq 5 \
     --gpu_id 0 1\
-    --num_workers 12
+    --num_workers 12 \
+    --shuffle

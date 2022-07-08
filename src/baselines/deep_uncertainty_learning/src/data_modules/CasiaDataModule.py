@@ -51,7 +51,7 @@ class CasiaDataModule(BaseDataModule):
                         print(e)
                         pass
 
-    def setup(self, stage=None, val_split=0.2, test_split=0.2, shuffle=False):
+    def setup(self, val_split=0.2, test_split=0.2, shuffle=True):
         assert self.transform, "transform must be set before setup()"
 
         dataset_full = self.cls(self.img_path, transform=self.transform)
