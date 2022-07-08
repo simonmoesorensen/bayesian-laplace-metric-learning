@@ -39,7 +39,7 @@ class BaseDataModule(LightningDataModule):
 
         if shuffle:
             # Overlapping classes allowed
-            self.dataset_train, self.dataset_val, self.dataset_test = random_split(
+            self.dataset_train, self.dataset_val = random_split(
                 dataset_full, [n_train, n_val]
             )
         else:
