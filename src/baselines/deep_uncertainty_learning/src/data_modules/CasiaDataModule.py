@@ -1,6 +1,7 @@
+import torch
 from torchvision import transforms
 import torchvision.datasets as d
-from torch.utils.data import Subset, random_split
+from torch.utils.data import Subset, random_split, DataLoader
 import zipfile
 import numpy as np
 
@@ -23,7 +24,11 @@ class CasiaDataModule(BaseDataModule):
         self.transform = transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                transforms.Normalize(
+                    # Found from `self._compute_mean_and_std()`
+                    [0.4668, 0.3803, 0.3344], 
+                    [0.2949, 0.2649, 0.2588]
+                ),
                 transforms.Resize((64, 64)),
             ]
         )
@@ -65,7 +70,7 @@ class CasiaDataModule(BaseDataModule):
         n_test = get_split_size(test_split)
 
         # Ensure that the splits cover the whole dataset
-        n_train += (size - n_train - n_val - n_test)
+        n_train += size - n_train - n_val - n_test
 
         if shuffle:
             # Overlapping classes allowed
@@ -76,4 +81,41 @@ class CasiaDataModule(BaseDataModule):
             # Overlapping classes not allowed (zero-shot learning)
             self.dataset_train = Subset(dataset_full, range(0, n_train))
             self.dataset_val = Subset(dataset_full, range(n_train, n_train + n_val))
-            self.dataset_test = Subset(dataset_full, range(n_train + n_val, n_train + n_val + n_test))
+            self.dataset_test = Subset(
+                dataset_full, range(n_train + n_val, n_train + n_val + n_test)
+            )
+
+    def _compute_mean_and_std(self):
+        dataset_full = self.cls(
+            self.img_path, transform=transforms.Compose([transforms.ToTensor()])
+        )
+
+        dataloader = DataLoader(
+            dataset_full, num_workers=self.num_workers, batch_size=self.batch_size
+        )
+
+        mean = []
+        std = []
+        for img, label in tqdm(dataloader):
+            img = img.to('cuda')
+
+            mean.append(img.mean([0, 2, 3]))
+            std.append(img.std([0, 2, 3]))
+
+        mean = torch.stack(mean).mean(0)
+        std = torch.stack(std).mean(0)
+
+        print(f"mean: {mean}")
+        print(f"std: {std}")    
+        return mean, std
+
+
+if __name__ == "__main__":
+    from pathlib import Path
+
+    data = CasiaDataModule(
+        Path("/work3/s174420/datasets"), batch_size=512, num_workers=10
+    )
+    mean, std = data._compute_mean_and_std()
+    print(f"mean: {mean}")
+    print(f"std: {std}")
