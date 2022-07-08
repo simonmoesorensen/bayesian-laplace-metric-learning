@@ -1,8 +1,8 @@
-from pathlib import Path
 from torchvision import transforms
 import torchvision.datasets as d
 from torch.utils.data import Subset, random_split
 import zipfile
+import numpy as np
 
 from tqdm import tqdm
 
@@ -58,17 +58,22 @@ class CasiaDataModule(BaseDataModule):
         size = len(dataset_full)
 
         def get_split_size(frac):
-            return int(size // (1 / frac))
+            return np.round(size // (1 / frac)).astype(int)
 
         n_train = get_split_size(1 - val_split - test_split)
-        n_val = get_split_size(1 - val_split)
-        n_test = get_split_size(1 - test_split)
+        n_val = get_split_size(val_split)
+        n_test = get_split_size(test_split)
+
+        # Ensure that the splits cover the whole dataset
+        n_train += (size - n_train - n_val - n_test)
 
         if shuffle:
+            # Overlapping classes allowed
             self.dataset_train, self.dataset_val, self.dataset_test = random_split(
                 dataset_full, [n_train, n_val, n_test]
             )
         else:
+            # Overlapping classes not allowed (zero-shot learning)
             self.dataset_train = Subset(dataset_full, range(0, n_train))
-            self.dataset_val = Subset(dataset_full, range(n_train, n_val))
-            self.dataset_test = Subset(dataset_full, range(n_val, n_test))
+            self.dataset_val = Subset(dataset_full, range(n_train, n_train + n_val))
+            self.dataset_test = Subset(dataset_full, range(n_train + n_val, n_train + n_val + n_test))
