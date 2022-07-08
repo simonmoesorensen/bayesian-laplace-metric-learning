@@ -9,6 +9,7 @@ from tqdm import tqdm
 from data_modules.gdrive import download_file_from_google_drive
 from data_modules.BaseDataModule import BaseDataModule
 
+
 class CasiaDataModule(BaseDataModule):
     def __init__(self, data_dir, batch_size, num_workers):
         super().__init__(d.ImageFolder, data_dir, batch_size, num_workers)
@@ -35,7 +36,6 @@ class CasiaDataModule(BaseDataModule):
         else:
             print(f"Downloading casia file to {file_path}")
             download_file_from_google_drive(file_id, file_path)
-
 
         if self.img_path.exists():
             print(f"Files already extracted in {self.img_path}")
@@ -70,14 +70,3 @@ class CasiaDataModule(BaseDataModule):
             self.dataset_train = Subset(dataset_full, range(0, n_train))
             self.dataset_val = Subset(dataset_full, range(n_train, n_val))
             self.dataset_test = Subset(dataset_full, range(n_val, n_test))
-
-
-if __name__ == "__main__":
-    data_dir = Path("/work3/s174420/datasets")
-
-    data = CasiaDataModule(data_dir, batch_size=64, num_workers=12)
-    data.prepare_data()
-
-    data.setup()
-
-    print(next(iter(data.train_dataloader())))
