@@ -8,10 +8,12 @@ from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+
 from utils import AverageMeter, l2_norm, test_model
 
 plt.switch_backend("agg")
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger(__name__).setLevel(logging.INFO)
 torch.manual_seed(1234)
 
 
@@ -49,6 +51,13 @@ class DULTrainer(LightningLite):
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
 
+        # Metric calculation
+        self.metrics = AccuracyCalculator(
+            include=("mean_average_precision_at_r", "precision_at_1"),
+            k='max_bin_count',
+            device=self.device,
+        )
+
     def setup_logger(self, name):
         subdir = get_time()
         logdir = f"{self.dul_args.log_dir}/{name}/{subdir}"
@@ -58,7 +67,7 @@ class DULTrainer(LightningLite):
     # noinspection PyMethodOverriding
     def run(self):
 
-        logging.info(f"Training")
+        print(f"Training")
         self.model.train()
 
         if not self.name:
@@ -66,6 +75,9 @@ class DULTrainer(LightningLite):
 
         losses = AverageMeter()
         losses_KL = AverageMeter()
+        accuracy = AverageMeter()
+        map_r = AverageMeter()
+
         DISP_FREQ = len(self.train_loader) // 20  # frequency to display training loss
         batch = 0
 
@@ -75,7 +87,7 @@ class DULTrainer(LightningLite):
 
             self.epoch = epoch
 
-            for i, (image, target) in enumerate(tqdm(self.train_loader)):
+            for image, target in tqdm(self.train_loader):
                 self.optimizer.zero_grad()
 
                 mu_dul, std_dul = self.model(image)
@@ -102,15 +114,30 @@ class DULTrainer(LightningLite):
 
                 losses_KL.update(loss_kl.item(), image.size(0))
                 losses.update(loss_backbone.data.item(), image.size(0))
+                
 
                 # dispaly training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
-                    print("=" * 60, flush=True)
-                    print(
+                    # Metrics
+                    metrics = self.metrics.get_accuracy(
+                        query=norm_samples,
+                        reference=norm_samples,
+                        query_labels=target,
+                        reference_labels=target,
+                        embeddings_come_from_same_source=True,
+                    )
+
+                    accuracy.update(metrics["precision_at_1"], image.size(0))
+                    map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
+
+                    tqdm.write("=" * 60)
+                    tqdm.write(
                         "Epoch {}/{} Batch (Step) {}/{}\t"
                         "Time {}\t"
                         "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
-                        "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t)".format(
+                        "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
+                        "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
+                        "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})".format(
                             epoch + 1,
                             self.dul_args.num_epoch,
                             batch + 1,
@@ -118,8 +145,9 @@ class DULTrainer(LightningLite):
                             time.asctime(time.localtime(time.time())),
                             loss=losses,
                             loss_KL=losses_KL,
-                        ),
-                        flush=True,
+                            acc=accuracy,
+                            map_r=map_r,
+                        )
                     )
 
                 batch += 1
@@ -130,57 +158,83 @@ class DULTrainer(LightningLite):
             self.writer.add_scalar(
                 "train_loss_KL", losses_KL.avg, global_step=epoch, new_style=True
             )
+            self.writer.add_scalar(
+                "train_accuracy", accuracy.avg, global_step=epoch, new_style=True
+            )
+            self.writer.add_scalar(
+                "train_map_r", map_r.avg, global_step=epoch, new_style=True
+            )
 
             # Validate @ frequency
             if (epoch + 1) % self.dul_args.save_freq == 0:
                 print("=" * 60, flush=True)
                 self.validate()
 
-                backbone_path = Path(
-                    self.dul_args.model_save_folder
-                ) / self.dul_args.name / "Backbone_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(
-                    epoch + 1, batch, get_time()
+                backbone_path = (
+                    Path(self.dul_args.model_save_folder)
+                    / self.dul_args.name
+                    / "Backbone_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(
+                        epoch + 1, batch, get_time()
+                    )
                 )
 
                 backbone_path.parent.mkdir(parents=True, exist_ok=True)
 
-                logging.info(f"Saving model @ {str(backbone_path)}")
+                print(f"Saving model @ {str(backbone_path)}")
                 self.save(
                     content=self.model.module.state_dict(), filepath=str(backbone_path)
                 )
                 print("=" * 60, flush=True)
 
+            losses.reset()
+            losses_KL.reset()
+            accuracy.reset()
+            map_r.reset()
 
-        logging.info(f"Finished training @ epoch: {self.epoch + 1}")
+        print(f"Finished training @ epoch: {self.epoch + 1}")
         return self.model
 
     def validate(self):
-        logging.info(f"Validating @ epoch: {self.epoch + 1}")
+        print(f"Validating @ epoch: {self.epoch + 1}")
 
         self.model.eval()
 
         val_loss = AverageMeter()
         val_loss_KL = AverageMeter()
+        val_accuracy = AverageMeter()
+        val_map_r = AverageMeter()
 
         with torch.no_grad():
-            for i, (image, target) in enumerate(self.val_loader):
+            for image, target in tqdm(self.val_loader):
                 mu_dul, std_dul = self.model(image)
 
                 epsilon = torch.randn_like(std_dul)
                 samples = mu_dul + epsilon * std_dul
                 variance_dul = std_dul**2
 
-                hard_pairs = self.miner(samples, target)
-                loss = self.loss_fn(samples, target, hard_pairs)
+                norm_samples = l2_norm(samples)
+
+                hard_pairs = self.miner(norm_samples, target)
+                loss = self.loss_fn(norm_samples, target, hard_pairs)
 
                 loss_kl = (
                     ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
                     .sum(dim=-1)
                     .mean()
                 )
+                metrics = self.metrics.get_accuracy(
+                    query=norm_samples,
+                    reference=norm_samples,
+                    query_labels=target,
+                    reference_labels=target,
+                    embeddings_come_from_same_source=True,
+                )
 
                 val_loss.update(loss.item(), image.size(0))
                 val_loss_KL.update(loss_kl.data.item(), image.size(0))
+
+                val_accuracy.update(metrics["precision_at_1"], image.size(0))
+                val_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
 
         self.writer.add_scalar(
             "val_loss", val_loss.avg, global_step=self.epoch, new_style=True
@@ -189,14 +243,22 @@ class DULTrainer(LightningLite):
             "val_loss_KL", val_loss_KL.avg, global_step=self.epoch, new_style=True
         )
 
-        accuracy = test_model(
-            self.train_loader.dataset, self.val_loader.dataset, self.model, self.device,
-            self.dul_args.batch_size, self.dul_args.num_workers
-        )
+        # accuracy = test_model(
+        #     self.train_loader.dataset, self.val_loader.dataset, self.model, self.device,
+        #     self.dul_args.batch_size, self.dul_args.num_workers
+        # )
 
-        self.writer.add_scalar("val_acc", accuracy["precision_at_1"], self.epoch)
         self.writer.add_scalar(
-            "val_map", accuracy["mean_average_precision"], self.epoch
+            "val_accuracy",
+            val_accuracy.avg,
+            global_step=self.epoch,
+            new_style=True,
+        )
+        self.writer.add_scalar(
+            "val_map_r",
+            val_map_r.avg,
+            global_step=self.epoch,
+            new_style=True,
         )
 
         # dispaly training loss & acc every DISP_FREQ
@@ -204,13 +266,13 @@ class DULTrainer(LightningLite):
             "Time {}\t"
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
-            "Validation Prec@1 {top1:.3f}\t"
-            "Validation MAP {MAP:.3f}".format(
+            "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
+            "Validation MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
                 loss=val_loss,
                 loss_KL=val_loss_KL,
-                top1=accuracy["precision_at_1"],
-                MAP=accuracy["mean_average_precision"],
+                acc=val_accuracy,
+                map_r=val_map_r,
             ),
             flush=True,
         )
@@ -223,10 +285,14 @@ class DULTrainer(LightningLite):
         self.model.train()
 
     def test(self):
-        logging.info(f"Testing @ epoch: {self.epoch}")
+        print(f"Testing @ epoch: {self.epoch}")
         accuracy = test_model(
-            self.train_loader.dataset, self.test_loader.dataset, self.model, self.device,
-            self.dul_args.batch_size, self.dul_args.num_workers
+            self.train_loader.dataset,
+            self.test_loader.dataset,
+            self.model,
+            self.device,
+            self.dul_args.batch_size,
+            self.dul_args.num_workers,
         )
 
         self.writer.add_scalar("test_acc", accuracy["precision_at_1"], self.epoch)
@@ -244,7 +310,7 @@ class DULTrainer(LightningLite):
         return self.model(x)
 
     def log_hyperparams(self):
-        logging.info("Logging hyperparameters")
+        print("Logging hyperparameters")
 
         train_accuracy = test_model(
             self.train_loader.dataset,
@@ -254,20 +320,28 @@ class DULTrainer(LightningLite):
             self.dul_args.batch_size,
             self.dul_args.num_workers,
         )
-        logging.info(f"{train_accuracy=}")
+        print(f"{train_accuracy=}")
 
         val_accuracy = test_model(
-            self.train_loader.dataset, self.val_loader.dataset, self.model, self.device,
-            self.dul_args.batch_size, self.dul_args.num_workers
+            self.train_loader.dataset,
+            self.val_loader.dataset,
+            self.model,
+            self.device,
+            self.dul_args.batch_size,
+            self.dul_args.num_workers,
         )
-        logging.info(f"{val_accuracy=}")
+        print(f"{val_accuracy=}")
 
-        logging.info("Calculating test accuracy")
+        print("Calculating test accuracy")
         test_accuracy = test_model(
-            self.train_loader.dataset, self.test_loader.dataset, self.model, self.device,
-            self.dul_args.batch_size, self.dul_args.num_workers
+            self.train_loader.dataset,
+            self.test_loader.dataset,
+            self.model,
+            self.device,
+            self.dul_args.batch_size,
+            self.dul_args.num_workers,
         )
-        logging.info(f"{test_accuracy=}")
+        print(f"{test_accuracy=}")
 
         self.writer.add_hparams(
             hparam_dict={
@@ -293,9 +367,9 @@ class DULTrainer(LightningLite):
     def add_data_module(self, data_module):
         data_module.prepare_data()
         data_module.setup(shuffle=self.dul_args.shuffle)
-        
+
         self.train_loader, self.val_loader, self.test_loader = self.setup_dataloaders(
-            data_module.train_dataloader(), 
-            data_module.val_dataloader(), 
-            data_module.test_dataloader()
+            data_module.train_dataloader(),
+            data_module.val_dataloader(),
+            data_module.test_dataloader(),
         )
