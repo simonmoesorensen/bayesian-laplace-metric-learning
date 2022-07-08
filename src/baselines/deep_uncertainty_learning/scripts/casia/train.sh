@@ -10,7 +10,7 @@ python -m debugpy --listen 10.66.12.19:1332 ./src/train.py \
     --log_dir $logs \
     --dataset Casia \
     --name Casia \
-    --batch_size 128 \
+    --batch_size 512 \
     --embedding_size 512 \
     --arcface_scale 60 \
     --arcface_margin 0.5 \

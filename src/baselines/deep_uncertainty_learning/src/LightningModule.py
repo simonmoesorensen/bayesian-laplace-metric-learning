@@ -290,14 +290,10 @@ class DULTrainer(LightningLite):
             run_name=".",
         )
 
-    def add_data(self, data_module):
-        data = data_module(
-            self.dul_args.data_dir, self.dul_args.batch_size, self.dul_args.num_workers
-        )
-
-        data.prepare_data()
-        data.setup()
+    def add_data_module(self, data_module):
+        data_module.prepare_data()
+        data_module.setup()
         
         self.train_loader, self.val_loader, self.test_loader = self.setup_dataloaders(
-            data.train_dataloader(), data.val_dataloader(), data.test_dataloader()
+            data_module.train_dataloader(), data_module.val_dataloader(), data_module.test_dataloader()
         )

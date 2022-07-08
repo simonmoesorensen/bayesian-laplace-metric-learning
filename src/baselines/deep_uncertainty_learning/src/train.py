@@ -12,18 +12,23 @@ from utils import (
     separate_batchnorm_params,
 )
 
+
 def run(dul_args):
     dul_args.gpu_id = [int(item) for item in dul_args.gpu_id]
 
-    if dul_args.dataset == 'MNIST':
+    if dul_args.dataset == "MNIST":
         model = MNIST_DUL(embedding_size=dul_args.embedding_size)
         data_module = MNISTDataModule
-    elif dul_args.dataset == 'CIFAR10':
+    elif dul_args.dataset == "CIFAR10":
         model = CIFAR10_DUL(embedding_size=dul_args.embedding_size)
         data_module = CIFAR10DataModule
-    elif dul_args.dataset == 'Casia':
+    elif dul_args.dataset == "Casia":
         model = Casia_DUL(embedding_size=dul_args.embedding_size)
         data_module = CasiaDataModule
+
+    data_module = data_module(
+        dul_args.data_dir, dul_args.batch_size, dul_args.num_workers
+    )
 
     # Don't apply weight decay to batchnorm layers
     params_w_bn, params_no_bn = separate_batchnorm_params(model)
@@ -42,7 +47,7 @@ def run(dul_args):
     )
 
     loss = losses.ArcFaceLoss(
-        num_classes=10,
+        num_classes=data_module.n_classes,
         scale=dul_args.arcface_scale,
         margin=dul_args.arcface_margin,
         embedding_size=dul_args.embedding_size,
@@ -63,7 +68,7 @@ def run(dul_args):
         to_visualize=dul_args.to_visualize,
     )
 
-    trainer.add_data(data_module)
+    trainer.add_data_module(data_module)
 
     trainer.run()
 
