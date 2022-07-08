@@ -5,9 +5,9 @@ from torch.utils.data import Subset, random_split
 import zipfile
 
 from tqdm import tqdm
-from gdrive import download_file_from_google_drive
 
-from BaseDataModule import BaseDataModule
+from data_modules.gdrive import download_file_from_google_drive
+from data_modules.BaseDataModule import BaseDataModule
 
 class CasiaDataModule(BaseDataModule):
     def __init__(self, data_dir, batch_size, num_workers):
