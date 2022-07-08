@@ -108,14 +108,3 @@ class CasiaDataModule(BaseDataModule):
         print(f"mean: {mean}")
         print(f"std: {std}")    
         return mean, std
-
-
-if __name__ == "__main__":
-    from pathlib import Path
-
-    data = CasiaDataModule(
-        Path("/work3/s174420/datasets"), batch_size=512, num_workers=10
-    )
-    mean, std = data._compute_mean_and_std()
-    print(f"mean: {mean}")
-    print(f"std: {std}")
