@@ -42,23 +42,26 @@ class BaseDataModule(LightningDataModule):
                 self.data_dir, train=False, transform=self.transform
             )
 
-    def train_dataloader(self):
+    def train_dataloader(self, pin_memory=True):
         return DataLoader(
             self.dataset_train,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
+            pin_memory=pin_memory,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self, pin_memory=True):
         return DataLoader(
             self.dataset_val,
             num_workers=self.num_workers,
             batch_size=self.eval_batch_size,
+            pin_memory=pin_memory,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self, pin_memory=True):
         return DataLoader(
             self.dataset_test,
             num_workers=self.num_workers,
             batch_size=self.eval_batch_size,
+            pin_memory=pin_memory,
         )
