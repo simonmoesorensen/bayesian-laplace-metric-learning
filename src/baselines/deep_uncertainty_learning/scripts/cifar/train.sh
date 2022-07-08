@@ -5,7 +5,7 @@ logs='./logtensorboard/'
 
 echo "Waiting for debugger to attach..."
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python -m debugpy --listen 10.66.12.19:1332 ./src/train.py \
+python -m debugpy --listen 10.66.20.1:1332 ./src/train.py \
     --model_save_folder $model_save_folder \
     --log_dir $logs \
     --dataset CIFAR10 \

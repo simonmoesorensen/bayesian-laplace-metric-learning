@@ -37,7 +37,7 @@
 
 # Load the cuda module
 module load python3/3.8.11
-module load cuda/11.3
+module load cuda/11.7
 
 # Go to directory
 cd /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_uncertainty_learning
