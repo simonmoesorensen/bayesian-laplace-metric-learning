@@ -43,7 +43,7 @@ def parse_args():
     # ----- hyperparameters
     parser.add_argument('--batch_size', type=int, default=512)
     parser.add_argument('--num_epoch', type=int, default=22)
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--kl_scale', type=float, default=0.01)
 
     args = parser.parse_args()
