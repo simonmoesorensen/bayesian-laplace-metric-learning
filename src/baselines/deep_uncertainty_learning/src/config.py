@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--to_visualize', type=bool, default=False)
-    parser.add_argument('--shuffle', type=bool, default=False)
+    parser.add_argument('--shuffle', default=False, action='store_true')
     
     # ----- hyperparameters
     parser.add_argument('--batch_size', type=int, default=512)
