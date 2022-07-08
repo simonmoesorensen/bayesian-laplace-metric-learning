@@ -15,7 +15,7 @@ from utils import (
 
 def run(dul_args):
     dul_args.gpu_id = [int(item) for item in dul_args.gpu_id]
-
+    
     if dul_args.dataset == "MNIST":
         model = MNIST_DUL(embedding_size=dul_args.embedding_size)
         data_module = MNISTDataModule
@@ -57,7 +57,10 @@ def run(dul_args):
         margin=dul_args.triplet_margin,
     )
 
-    trainer = DULTrainer(accelerator="gpu", devices=len(dul_args.gpu_id), strategy="dp")
+    trainer = DULTrainer(
+        accelerator="gpu", 
+        devices=len(dul_args.gpu_id), 
+        strategy="dp")
 
     trainer.init(
         model=model,
