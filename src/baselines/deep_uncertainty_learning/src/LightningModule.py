@@ -9,6 +9,8 @@ from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning.utils.inference import CustomKNN
 
 from utils import AverageMeter, l2_norm, test_model
 
@@ -46,16 +48,24 @@ class DULTrainer(LightningLite):
 
         # Miners and Loss
         self.loss_fn = loss_fn
+
+        # REQUIRED FOR ARCFACE LOSS
+        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
+
         self.miner = miner
 
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
+
+        # Required for ARCFACE loss
+        knn_func = CustomKNN(CosineSimilarity())
 
         # Metric calculation
         self.metrics = AccuracyCalculator(
             include=("mean_average_precision_at_r", "precision_at_1"),
             k='max_bin_count',
             device=self.device,
+            knn_func=knn_func
         )
 
     def setup_logger(self, name):
@@ -111,6 +121,7 @@ class DULTrainer(LightningLite):
 
                 self.backward(loss_backbone)
                 self.optimizer.step()
+                self.loss_optimizer.step()
 
                 losses_KL.update(loss_kl.item(), image.size(0))
                 losses.update(loss_backbone.data.item(), image.size(0))

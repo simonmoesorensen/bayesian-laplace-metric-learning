@@ -12,10 +12,10 @@ python -m debugpy --listen 10.66.20.1:1332 ./src/train.py \
     --name Casia \
     --batch_size 512 \
     --embedding_size 512 \
-    --arcface_scale 60 \
-    --arcface_margin 0.5 \
-    --num_epoch 20 \
-    --save_freq 2 \
+    --arcface_scale 64 \
+    --arcface_margin 28.6 \
+    --num_epoch 50 \
+    --save_freq 5 \
     --gpu_id 0 1\
     --num_workers 12\
     --shuffle
