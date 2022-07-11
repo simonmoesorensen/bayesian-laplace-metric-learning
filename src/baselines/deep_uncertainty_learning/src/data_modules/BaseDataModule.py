@@ -79,6 +79,15 @@ class BaseDataModule(LightningDataModule):
             pin_memory=pin_memory,
         )
 
+    def ood_dataloader(self, pin_memory=True):
+        return DataLoader(
+            self.dataset_ood,
+            num_workers=self.num_workers,
+            batch_size=self.eval_batch_size,
+            pin_memory=pin_memory,
+        )
+
+    
     def _compute_mean_and_std(self, path, data_cls):
         dataset_full = data_cls(
             path, transform=transforms.Compose([transforms.ToTensor()])

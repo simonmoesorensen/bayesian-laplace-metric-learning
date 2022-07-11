@@ -1,9 +1,9 @@
 import argparse
 from pathlib import Path
 
-root_dir = Path(__file__).parent.parent.parent.parent
+root_dir = Path(__file__).parent.parent
 data_dir = Path('/work3/s174420/datasets')
-test_dir = data_dir / 'validation'
+vis_dir = root_dir / 'evaluation'
 
 def parse_args():
     parser = argparse.ArgumentParser(description='DUL: Data Uncertainty Learning for MNIST')
@@ -14,6 +14,7 @@ def parse_args():
 
     # ----- directory (train & test)
     parser.add_argument('--data_dir', type=str, default=data_dir)
+    parser.add_argument('--vis_dir', type=str, default=vis_dir)
     parser.add_argument('--model_save_folder', type=str, default='./checkpoints/')
     parser.add_argument('--log_dir', type=str, default='./logs/')
     parser.add_argument('--dataset', type=str)
@@ -37,7 +38,7 @@ def parse_args():
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--num_workers', type=int, default=8)
-    parser.add_argument('--to_visualize', type=bool, default=False)
+    parser.add_argument('--to_visualize', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
     
     # ----- hyperparameters

@@ -1,7 +1,4 @@
-from pathlib import Path
 import torchvision.datasets as d
-from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
 from data_modules.BaseDataModule import BaseDataModule
@@ -16,4 +13,25 @@ class MNISTDataModule(BaseDataModule):
 
         self.transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
+
+    def prepare_data(self):
+        super().prepare_data()
+        d.FashionMNIST(self.data_dir, train=False, download=True)
+        d.FashionMNIST(self.data_dir, train=True, download=True)
+
+    def setup(self, val_split=0.2, shuffle=True):
+        super().setup(val_split, shuffle)
+
+        # Set FashionMNIST as OOD dataset
+        ood_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                # Found using self._compute_mean_and_std()
+                transforms.Normalize((0.2861), (0.3528)),
+            ]
+        )
+
+        self.dataset_ood = d.FashionMNIST(
+            self.data_dir, train=False, transform=ood_transforms
         )

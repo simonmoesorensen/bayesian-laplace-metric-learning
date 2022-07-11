@@ -11,6 +11,10 @@ from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning.distances import CosineSimilarity
 from pytorch_metric_learning.utils.inference import CustomKNN
+import numpy as np
+import pandas as pd
+import torchmetrics
+import json
 
 from utils import AverageMeter, l2_norm, test_model
 
@@ -97,7 +101,7 @@ class DULTrainer(LightningLite):
 
             self.epoch = epoch
 
-            for image, target in tqdm(self.train_loader):
+            for image, target in tqdm(self.train_loader, desc='Training'):
                 self.optimizer.zero_grad()
 
                 mu_dul, std_dul = self.model(image)
@@ -215,10 +219,15 @@ class DULTrainer(LightningLite):
         val_accuracy = AverageMeter()
         val_map_r = AverageMeter()
 
+        id_sigma = []
         with torch.no_grad():
-            for image, target in tqdm(self.val_loader):
+            for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu_dul, std_dul = self.model(image)
 
+                # Save for visualization
+                id_sigma.append(std_dul)
+
+                # Reparameterization trick
                 epsilon = torch.randn_like(std_dul)
                 samples = mu_dul + epsilon * std_dul
                 variance_dul = std_dul**2
@@ -289,8 +298,19 @@ class DULTrainer(LightningLite):
         )
 
         if self.to_visualize:
+            print("=" * 60, flush=True)
+            print("Visualizing...")
+
+            ood_sigma = []
+            for img, label in tqdm(self.ood_loader, desc="OOD"):
+                mu_dul, std_dul = self.model(img)
+                ood_sigma.append(std_dul)
+
+            id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
+            ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
+
             self.visualize(
-                self.val_loader, self.val_loader.dataset.dataset.class_to_idx
+                id_sigma, ood_sigma, prefix='val_'
             )
 
         self.model.train()
@@ -314,8 +334,92 @@ class DULTrainer(LightningLite):
         if self.to_visualize:
             self.visualize(self.test_loader, self.test_loader.dataset.class_to_idx)
 
-    def visualize(self, dataloader, class_to_idx):
-        raise NotImplementedError()
+    def visualize(self, id_sigma, ood_sigma, prefix):
+        if not prefix.endswith('_'):
+            prefix += '_'
+
+        # Set path
+        vis_path = self.dul_args.vis_dir / self.name / f"epoch_{self.epoch + 1}"
+        vis_path.mkdir(parents=True, exist_ok=True)
+
+        id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
+        ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
+
+        id_sigma, ood_sigma = id_sigma.sum(axis=1), ood_sigma.sum(axis=1)
+
+        pred = np.concatenate([id_sigma, ood_sigma])
+        target = np.concatenate([[0] * len(id_sigma), [1] * len(ood_sigma)])
+
+        # plot roc curve
+        roc = torchmetrics.ROC(num_classes=1)
+        fpr, tpr, thresholds = roc(
+            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+        )
+
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+        plt.plot(fpr, tpr)
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.title('OOD ROC Curve')
+        plt.legend()
+        fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
+        plt.cla()
+        plt.close()
+
+        # save data
+        data = pd.DataFrame(
+            np.concatenate([pred[:, None], target[:, None]], axis=1),
+            columns=["sigma", "labels"],
+        )
+        data.to_csv(vis_path / f"{prefix}ood_roc_curve_data.csv")
+
+        # plot precision recall curve
+        pr_curve = torchmetrics.PrecisionRecallCurve(pos_label=1)
+        precision, recall, thresholds = pr_curve(
+            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+        )
+
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+        plt.plot(recall, precision)
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title('OOD Precision-Recall Curve')
+        plt.legend()
+        fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
+        plt.cla()
+        plt.close()
+
+        metrics = {}
+
+        # compute auprc (area under precission recall curve)
+        auc = torchmetrics.AUC(reorder=True)
+        auprc_score = auc(recall, precision)
+        metrics["auprc"] = float(auprc_score.numpy())
+
+        # compute false positive rate at 80
+        num_id = len(id_sigma)
+
+        for p in range(0, 100, 10):
+            # if there is no difference in variance
+            try:
+                metrics[f"fpr{p}"] = float(fpr[int(p / 100.0 * num_id)].numpy())
+            except:
+                metrics[f"fpr{p}"] = "none"
+            else:
+                continue
+
+        # compute auroc
+        auroc = torchmetrics.AUROC(num_classes=1)
+        auroc_score = auroc(
+            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+        )
+        metrics["auroc"] = float(auroc_score.numpy())
+        print(f"Metrics: {metrics}")
+        
+        # save metrics
+        with open(vis_path / "ood_metrics.json", "w") as outfile:
+            json.dump(metrics, outfile)
+
 
     def forward(self, x):
         return self.model(x)
@@ -379,8 +483,9 @@ class DULTrainer(LightningLite):
         data_module.prepare_data()
         data_module.setup(shuffle=self.dul_args.shuffle)
 
-        self.train_loader, self.val_loader, self.test_loader = self.setup_dataloaders(
+        self.train_loader, self.val_loader, self.test_loader, self.ood_loader = self.setup_dataloaders(
             data_module.train_dataloader(),
             data_module.val_dataloader(),
             data_module.test_dataloader(),
+            data_module.ood_dataloader()
         )
