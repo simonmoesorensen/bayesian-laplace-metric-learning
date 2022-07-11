@@ -2,6 +2,9 @@ from pytorch_lightning import LightningDataModule
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split, Subset
 import numpy as np
+from tqdm import tqdm
+from torchvision import transforms
+import torch
 
 class BaseDataModule(LightningDataModule):
     def __init__(self, dataset_cls, data_dir, batch_size, num_workers):
@@ -75,3 +78,27 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.eval_batch_size,
             pin_memory=pin_memory,
         )
+
+    def _compute_mean_and_std(self, path, data_cls):
+        dataset_full = data_cls(
+            path, transform=transforms.Compose([transforms.ToTensor()])
+        )
+
+        dataloader = DataLoader(
+            dataset_full, num_workers=self.num_workers, batch_size=self.batch_size
+        )
+
+        mean = []
+        std = []
+        for img, _ in tqdm(dataloader):
+            img = img.to('cuda')
+
+            mean.append(img.mean([0, 2, 3]))
+            std.append(img.std([0, 2, 3]))
+
+        mean = torch.stack(mean).mean(0)
+        std = torch.stack(std).mean(0)
+
+        print(f"mean: {mean}")
+        print(f"std: {std}")    
+        return mean, std
