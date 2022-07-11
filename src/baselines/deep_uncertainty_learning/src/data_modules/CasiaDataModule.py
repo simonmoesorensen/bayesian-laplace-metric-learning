@@ -1,6 +1,6 @@
 from torchvision import transforms
 import torchvision.datasets as d
-from torch.utils.data import Subset, random_split
+from torch.utils.data import Subset, random_split, DataLoader
 import zipfile
 import numpy as np
 
@@ -54,6 +54,9 @@ class CasiaDataModule(BaseDataModule):
                     except zipfile.error as e:
                         print(e)
                         pass
+        
+        # OOD dataset
+        d.CIFAR10(self.data_dir, train=False, download=True)
 
     def setup(self, val_split=0.2, test_split=0.2, shuffle=True):
         assert self.transform, "transform must be set before setup()"
@@ -83,3 +86,27 @@ class CasiaDataModule(BaseDataModule):
             self.dataset_test = Subset(
                 dataset_full, range(n_train + n_val, n_train + n_val + n_test)
             )
+
+        # Set OOD dataset
+        ood_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    # Found from `self._compute_mean_and_std()`
+                    (0.49139968, 0.48215841, 0.44653091),
+                    (0.24703223, 0.24348513, 0.26158784),
+                ),
+                transforms.Resize((32, 32)),
+            ]
+        )
+
+        self.dataset_ood = d.CIFAR10(self.data_dir, train=False, transform=ood_transforms)
+
+
+    def ood_dataloader(self, pin_memory=True):
+        return DataLoader(
+            self.dataset_ood,
+            num_workers=self.num_workers,
+            batch_size=128,
+            pin_memory=pin_memory,
+        )

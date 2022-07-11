@@ -13,7 +13,6 @@ class BaseDataModule(LightningDataModule):
         self.cls = dataset_cls
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.eval_batch_size = batch_size
         self.num_workers = num_workers
 
         self.df_train = None
@@ -67,7 +66,7 @@ class BaseDataModule(LightningDataModule):
         return DataLoader(
             self.dataset_val,
             num_workers=self.num_workers,
-            batch_size=self.eval_batch_size,
+            batch_size=self.batch_size,
             pin_memory=pin_memory,
         )
 
@@ -75,7 +74,7 @@ class BaseDataModule(LightningDataModule):
         return DataLoader(
             self.dataset_test,
             num_workers=self.num_workers,
-            batch_size=self.eval_batch_size,
+            batch_size=self.batch_size,
             pin_memory=pin_memory,
         )
 
@@ -83,7 +82,7 @@ class BaseDataModule(LightningDataModule):
         return DataLoader(
             self.dataset_ood,
             num_workers=self.num_workers,
-            batch_size=self.eval_batch_size,
+            batch_size=self.batch_size,
             pin_memory=pin_memory,
         )
 

@@ -15,7 +15,9 @@ python -m debugpy --listen 10.66.20.1:1332 ./src/train.py \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
     --num_epoch 50 \
-    --save_freq 5 \
+    --save_freq 1 \
     --gpu_id 0 1\
     --num_workers 12\
-    --shuffle
+    --shuffle\
+    --model_path checkpoints/Casia/Backbone_Epoch_45_Batch_26100_Time_2022-07-11T125559_checkpoint.pth\
+    --to_visualize
