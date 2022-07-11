@@ -20,3 +20,28 @@ class CIFAR10DataModule(BaseDataModule):
                 ),
             ]
         )
+
+    def prepare_data(self):
+        super().prepare_data()
+        d.DTD(self.data_dir, split='test', download=True)
+
+
+    def setup(self, val_split=0.2, shuffle=True):
+        super().setup(val_split, shuffle)
+
+        # Set DTD (Describable Textures Dataset) as OOD dataset
+        ood_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                # Found using self._compute_mean_and_std()
+                transforms.Normalize(
+                    (0.5287, 0.4742, 0.4236), 
+                    (0.2588, 0.2499, 0.2553)
+                ),
+                transforms.Resize((32, 32)),
+            ]
+        )
+
+        self.dataset_ood = d.DTD(
+            self.data_dir, split='test', transform=ood_transforms
+        )

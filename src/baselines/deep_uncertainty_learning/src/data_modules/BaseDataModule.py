@@ -88,13 +88,9 @@ class BaseDataModule(LightningDataModule):
         )
 
     
-    def _compute_mean_and_std(self, path, data_cls):
-        dataset_full = data_cls(
-            path, transform=transforms.Compose([transforms.ToTensor()])
-        )
-
+    def _compute_mean_and_std(self, dataset):
         dataloader = DataLoader(
-            dataset_full, num_workers=self.num_workers, batch_size=self.batch_size
+            dataset, num_workers=self.num_workers, batch_size=self.batch_size
         )
 
         mean = []

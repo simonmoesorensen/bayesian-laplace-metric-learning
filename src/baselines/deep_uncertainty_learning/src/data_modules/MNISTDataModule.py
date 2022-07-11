@@ -18,7 +18,6 @@ class MNISTDataModule(BaseDataModule):
     def prepare_data(self):
         super().prepare_data()
         d.FashionMNIST(self.data_dir, train=False, download=True)
-        d.FashionMNIST(self.data_dir, train=True, download=True)
 
     def setup(self, val_split=0.2, shuffle=True):
         super().setup(val_split, shuffle)
