@@ -44,13 +44,19 @@ class DULTrainer(LightningLite):
 
         self.to_visualize = to_visualize
 
-        # Data
-        self.batch_size = dul_args.batch_size
-
         # Load model
         if dul_args.model_path:
             state_dict = self.load(dul_args.model_path)
-            model.load_state_dict(state_dict)
+
+            new_state_dict = {}
+            for key in state_dict:
+                if key.startswith("module."):
+                    new_state_dict[key[7:]] = state_dict[key]
+                
+            model.load_state_dict(new_state_dict)
+
+        # Data
+        self.batch_size = dul_args.batch_size
 
         # Miners and Loss
         self.loss_fn = loss_fn
@@ -199,7 +205,7 @@ class DULTrainer(LightningLite):
 
                 print(f"Saving model @ {str(backbone_path)}")
                 self.save(
-                    content=self.model.module.state_dict(), filepath=str(backbone_path)
+                    content=self.model.module.module.state_dict(), filepath=str(backbone_path)
                 )
                 print("=" * 60, flush=True)
 
