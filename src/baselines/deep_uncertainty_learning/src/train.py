@@ -82,6 +82,7 @@ def run(dul_args):
     trainer.test()
 
     trainer.log_hyperparams()
+    trainer.save_model(prefix='Final')
 
     return trainer
 

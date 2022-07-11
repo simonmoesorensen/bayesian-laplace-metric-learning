@@ -1,6 +1,6 @@
 import datetime
 import logging
-from pathlib import Path
+from pathlib import Path, PosixPath
 from re import I
 import time
 
@@ -12,10 +12,6 @@ from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning.distances import CosineSimilarity
 from pytorch_metric_learning.utils.inference import CustomKNN
-import numpy as np
-import pandas as pd
-import torchmetrics
-import json
 from visualize import plot_auc_curves, plot_ood
 
 from utils import AverageMeter, l2_norm, test_model
@@ -97,13 +93,18 @@ class DULTrainer(LightningLite):
 
         losses = AverageMeter()
         losses_KL = AverageMeter()
-        accuracy = AverageMeter()
-        map_r = AverageMeter()
+        self.train_accuracy = AverageMeter()
+        self.train_map_r = AverageMeter()
 
         DISP_FREQ = len(self.train_loader) // 20  # frequency to display training loss
         batch = 0
 
         for epoch in range(self.dul_args.num_epoch):
+            losses.reset()
+            losses_KL.reset()
+            self.train_accuracy.reset()
+            self.train_map_r.reset()
+
             if epoch < self.dul_args.resume_epoch:
                 continue
 
@@ -150,8 +151,8 @@ class DULTrainer(LightningLite):
                         embeddings_come_from_same_source=True,
                     )
 
-                    accuracy.update(metrics["precision_at_1"], image.size(0))
-                    map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
+                    self.train_accuracy.update(metrics["precision_at_1"], image.size(0))
+                    self.train_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
 
                     tqdm.write("=" * 60)
                     tqdm.write(
@@ -168,8 +169,8 @@ class DULTrainer(LightningLite):
                             time.asctime(time.localtime(time.time())),
                             loss=losses,
                             loss_KL=losses_KL,
-                            acc=accuracy,
-                            map_r=map_r,
+                            acc=self.train_accuracy,
+                            map_r=self.train_map_r,
                         )
                     )
 
@@ -182,37 +183,18 @@ class DULTrainer(LightningLite):
                 "train_loss_KL", losses_KL.avg, global_step=epoch, new_style=True
             )
             self.writer.add_scalar(
-                "train_accuracy", accuracy.avg, global_step=epoch, new_style=True
+                "train_accuracy", self.train_accuracy.avg, global_step=epoch, new_style=True
             )
             self.writer.add_scalar(
-                "train_map_r", map_r.avg, global_step=epoch, new_style=True
+                "train_map_r", self.train_map_r.avg, global_step=epoch, new_style=True
             )
 
             # Validate @ frequency
             if (epoch + 1) % self.dul_args.save_freq == 0:
                 print("=" * 60, flush=True)
                 self.validate()
-
-                backbone_path = (
-                    Path(self.dul_args.model_save_folder)
-                    / self.dul_args.name
-                    / "Backbone_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(
-                        epoch + 1, batch, get_time()
-                    )
-                )
-
-                backbone_path.parent.mkdir(parents=True, exist_ok=True)
-
-                print(f"Saving model @ {str(backbone_path)}")
-                self.save(
-                    content=self.model.module.module.state_dict(), filepath=str(backbone_path)
-                )
+                self.save_model()
                 print("=" * 60, flush=True)
-
-            losses.reset()
-            losses_KL.reset()
-            accuracy.reset()
-            map_r.reset()
 
         print(f"Finished training @ epoch: {self.epoch + 1}")
         return self.model
@@ -222,10 +204,10 @@ class DULTrainer(LightningLite):
 
         self.model.eval()
 
-        val_loss = AverageMeter()
-        val_loss_KL = AverageMeter()
-        val_accuracy = AverageMeter()
-        val_map_r = AverageMeter()
+        self.val_loss = AverageMeter()
+        self.val_loss_KL = AverageMeter()
+        self.val_accuracy = AverageMeter()
+        self.val_map_r = AverageMeter()
 
         id_sigma = []
         id_mu = []
@@ -260,17 +242,17 @@ class DULTrainer(LightningLite):
                     embeddings_come_from_same_source=True,
                 )
 
-                val_loss.update(loss.item(), image.size(0))
-                val_loss_KL.update(loss_kl.data.item(), image.size(0))
+                self.val_loss.update(loss.item(), image.size(0))
+                self.val_loss_KL.update(loss_kl.data.item(), image.size(0))
 
-                val_accuracy.update(metrics["precision_at_1"], image.size(0))
-                val_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
+                self.val_accuracy.update(metrics["precision_at_1"], image.size(0))
+                self.val_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
 
         self.writer.add_scalar(
-            "val_loss", val_loss.avg, global_step=self.epoch, new_style=True
+            "val_loss", self.val_loss.avg, global_step=self.epoch, new_style=True
         )
         self.writer.add_scalar(
-            "val_loss_KL", val_loss_KL.avg, global_step=self.epoch, new_style=True
+            "val_loss_KL", self.val_loss_KL.avg, global_step=self.epoch, new_style=True
         )
 
         # accuracy = test_model(
@@ -280,13 +262,13 @@ class DULTrainer(LightningLite):
 
         self.writer.add_scalar(
             "val_accuracy",
-            val_accuracy.avg,
+            self.val_accuracy.avg,
             global_step=self.epoch,
             new_style=True,
         )
         self.writer.add_scalar(
             "val_map_r",
-            val_map_r.avg,
+            self.val_map_r.avg,
             global_step=self.epoch,
             new_style=True,
         )
@@ -299,10 +281,10 @@ class DULTrainer(LightningLite):
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Validation MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
-                loss=val_loss,
-                loss_KL=val_loss_KL,
-                acc=val_accuracy,
-                map_r=val_map_r,
+                loss=self.val_loss,
+                loss_KL=self.val_loss_KL,
+                acc=self.val_accuracy,
+                map_r=self.val_map_r,
             ),
             flush=True,
         )
@@ -333,8 +315,8 @@ class DULTrainer(LightningLite):
         print(f"Testing @ epoch: {self.epoch}")
         self.model.eval()
 
-        test_accuracy = AverageMeter()
-        test_map_r = AverageMeter()
+        self.test_accuracy = AverageMeter()
+        self.test_map_r = AverageMeter()
 
         id_sigma = []
         id_mu = []
@@ -360,18 +342,18 @@ class DULTrainer(LightningLite):
                     embeddings_come_from_same_source=True,
                 )
 
-                test_accuracy.update(metrics["precision_at_1"], image.size(0))
-                test_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
+                self.test_accuracy.update(metrics["precision_at_1"], image.size(0))
+                self.test_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
 
         self.writer.add_scalar(
             "test_accuracy",
-            test_accuracy.avg,
+            self.test_accuracy.avg,
             global_step=self.epoch,
             new_style=True,
         )
         self.writer.add_scalar(
             "test_map_r",
-            test_map_r.avg,
+            self.test_map_r.avg,
             global_step=self.epoch,
             new_style=True,
         )
@@ -381,8 +363,8 @@ class DULTrainer(LightningLite):
             "Testing Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Testing MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
-                acc=test_accuracy,
-                map_r=test_map_r,
+                acc=self.test_accuracy,
+                map_r=self.test_map_r,
             ),
             flush=True,
         )
@@ -428,16 +410,30 @@ class DULTrainer(LightningLite):
     def log_hyperparams(self):
         print("Logging hyperparameters")
 
-        hparams = self.dul_args
+        hparams = vars(self.dul_args)
         hparams['name'] = self.name
         hparams['epoch'] = self.epoch
         hparams['miner'] = self.miner.__class__.__name__
-        hparams['model'] = self.model.__class__.__name__
+        hparams['model'] = self.model.module.module.__class__.__name__
         hparams['optimizer'] = self.optimizer.__class__.__name__
         hparams['loss_fn'] = self.loss_fn.__class__.__name__
 
+        for key, val in hparams.items():
+            if isinstance(val, PosixPath):
+                hparams[key] = str(val)
+            elif isinstance(val, list):
+                hparams[key] = str(val)
+
         self.writer.add_hparams(
             hparam_dict=hparams,
+            metric_dict={
+                "train_accuracy": self.train_accuracy.avg,
+                "train_map_r": self.train_map_r.avg,
+                "val_accuracy": self.val_accuracy.avg,
+                "val_map_r": self.val_map_r.avg,
+                "test_accuracy": self.test_accuracy.avg,
+                "test_map_r": self.test_map_r.avg,
+            },
             run_name=".",
         )
 
@@ -450,4 +446,25 @@ class DULTrainer(LightningLite):
             data_module.val_dataloader(),
             data_module.test_dataloader(),
             data_module.ood_dataloader()
+        )
+
+    def save_model(self, prefix = None):
+        name = "Model_Epoch_{}_Time_{}_checkpoint.pth".format(
+            self.epoch + 1, get_time()
+        )
+
+        if prefix is not None:
+            name = prefix + "_" + name
+
+        path = (
+            Path(self.dul_args.model_save_folder)
+            / self.dul_args.name
+            / name
+        )
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        print(f"Saving model @ {str(path)}")
+        self.save(
+            content=self.model.module.module.state_dict(), filepath=str(path)
         )
