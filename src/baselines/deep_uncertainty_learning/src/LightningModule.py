@@ -1,6 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
+from re import I
 import time
 
 import torch
@@ -15,6 +16,7 @@ import numpy as np
 import pandas as pd
 import torchmetrics
 import json
+from visualize import plot_auc_curves, plot_ood
 
 from utils import AverageMeter, l2_norm, test_model
 
@@ -220,12 +222,14 @@ class DULTrainer(LightningLite):
         val_map_r = AverageMeter()
 
         id_sigma = []
+        id_mu = []
         with torch.no_grad():
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu_dul, std_dul = self.model(image)
 
                 # Save for visualization
                 id_sigma.append(std_dul)
+                id_mu.append(mu_dul)
 
                 # Reparameterization trick
                 epsilon = torch.randn_like(std_dul)
@@ -302,15 +306,19 @@ class DULTrainer(LightningLite):
             print("Visualizing...")
 
             ood_sigma = []
+            ood_mu = []
             for img, label in tqdm(self.ood_loader, desc="OOD"):
                 mu_dul, std_dul = self.model(img)
                 ood_sigma.append(std_dul)
+                ood_mu.append(mu_dul)
 
             id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
+            id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
             ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
+            ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
 
             self.visualize(
-                id_sigma, ood_sigma, prefix='val_'
+                id_mu, id_sigma, ood_mu, ood_sigma, prefix='val_'
             )
 
         self.model.train()
@@ -334,7 +342,7 @@ class DULTrainer(LightningLite):
         if self.to_visualize:
             self.visualize(self.test_loader, self.test_loader.dataset.class_to_idx)
 
-    def visualize(self, id_sigma, ood_sigma, prefix):
+    def visualize(self, id_mu, id_sigma, ood_mu, ood_sigma, prefix):
         if not prefix.endswith('_'):
             prefix += '_'
 
@@ -342,84 +350,12 @@ class DULTrainer(LightningLite):
         vis_path = self.dul_args.vis_dir / self.name / f"epoch_{self.epoch + 1}"
         vis_path.mkdir(parents=True, exist_ok=True)
 
-        id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
-        ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
+        # Visualize
+        plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
 
-        id_sigma, ood_sigma = id_sigma.sum(axis=1), ood_sigma.sum(axis=1)
-
-        pred = np.concatenate([id_sigma, ood_sigma])
-        target = np.concatenate([[0] * len(id_sigma), [1] * len(ood_sigma)])
-
-        # plot roc curve
-        roc = torchmetrics.ROC(num_classes=1)
-        fpr, tpr, thresholds = roc(
-            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
-        )
-
-        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
-        plt.plot(fpr, tpr)
-        plt.xlabel("FPR")
-        plt.ylabel("TPR")
-        plt.title('OOD ROC Curve')
-        plt.legend()
-        fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
-        plt.cla()
-        plt.close()
-
-        # save data
-        data = pd.DataFrame(
-            np.concatenate([pred[:, None], target[:, None]], axis=1),
-            columns=["sigma", "labels"],
-        )
-        data.to_csv(vis_path / f"{prefix}ood_roc_curve_data.csv")
-
-        # plot precision recall curve
-        pr_curve = torchmetrics.PrecisionRecallCurve(pos_label=1)
-        precision, recall, thresholds = pr_curve(
-            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
-        )
-
-        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
-        plt.plot(recall, precision)
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title('OOD Precision-Recall Curve')
-        plt.legend()
-        fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
-        plt.cla()
-        plt.close()
-
-        metrics = {}
-
-        # compute auprc (area under precission recall curve)
-        auc = torchmetrics.AUC(reorder=True)
-        auprc_score = auc(recall, precision)
-        metrics["auprc"] = float(auprc_score.numpy())
-
-        # compute false positive rate at 80
-        num_id = len(id_sigma)
-
-        for p in range(0, 100, 10):
-            # if there is no difference in variance
-            try:
-                metrics[f"fpr{p}"] = float(fpr[int(p / 100.0 * num_id)].numpy())
-            except:
-                metrics[f"fpr{p}"] = "none"
-            else:
-                continue
-
-        # compute auroc
-        auroc = torchmetrics.AUROC(num_classes=1)
-        auroc_score = auroc(
-            torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
-        )
-        metrics["auroc"] = float(auroc_score.numpy())
-        print(f"Metrics: {metrics}")
-        
-        # save metrics
-        with open(vis_path / "ood_metrics.json", "w") as outfile:
-            json.dump(metrics, outfile)
-
+        id_var = id_sigma**2
+        ood_var = ood_sigma**2
+        plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
 
     def forward(self, x):
         return self.model(x)
