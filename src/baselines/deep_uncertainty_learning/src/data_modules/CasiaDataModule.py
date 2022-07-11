@@ -1,7 +1,6 @@
-import torch
 from torchvision import transforms
 import torchvision.datasets as d
-from torch.utils.data import Subset, random_split, DataLoader
+from torch.utils.data import Subset, random_split
 import zipfile
 import numpy as np
 
@@ -29,7 +28,7 @@ class CasiaDataModule(BaseDataModule):
                     [0.4668, 0.3803, 0.3344], 
                     [0.2949, 0.2649, 0.2588]
                 ),
-                transforms.Resize((64, 64)),
+                transforms.Resize((128, 128)),
             ]
         )
 
@@ -84,27 +83,3 @@ class CasiaDataModule(BaseDataModule):
             self.dataset_test = Subset(
                 dataset_full, range(n_train + n_val, n_train + n_val + n_test)
             )
-
-    def _compute_mean_and_std(self):
-        dataset_full = self.cls(
-            self.img_path, transform=transforms.Compose([transforms.ToTensor()])
-        )
-
-        dataloader = DataLoader(
-            dataset_full, num_workers=self.num_workers, batch_size=self.batch_size
-        )
-
-        mean = []
-        std = []
-        for img, label in tqdm(dataloader):
-            img = img.to('cuda')
-
-            mean.append(img.mean([0, 2, 3]))
-            std.append(img.std([0, 2, 3]))
-
-        mean = torch.stack(mean).mean(0)
-        std = torch.stack(std).mean(0)
-
-        print(f"mean: {mean}")
-        print(f"std: {std}")    
-        return mean, std

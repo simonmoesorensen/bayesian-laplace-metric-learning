@@ -53,8 +53,12 @@ def run(dul_args):
         embedding_size=dul_args.embedding_size,
     )
 
-    miner = miners.TripletMarginMiner(
-        margin=dul_args.triplet_margin,
+    # miner = miners.TripletMarginMiner(
+    #     margin=dul_args.triplet_margin,
+    # )
+
+    miner = miners.MultiSimilarityMiner(
+        epsilon=0.1,
     )
 
     trainer = DULTrainer(
