@@ -5,10 +5,10 @@
 #BSUB -q gpuv100
 
 ### -- set the job Name --
-#BSUB -J DUL-face-recognition
+#BSUB -J DUL-casia-dist
 
 ### -- ask for number of cores (default: 1) --
-#BSUB -n 8
+#BSUB -n 10
 
 ### -- Select the resources: 2 gpus -- 
 #BSUB -gpu "num=4"
@@ -60,10 +60,11 @@ python3 ./src/train.py \
     --embedding_size 512 \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
-    --num_epoch 50 \
+    --num_epoch 100 \
     --save_freq 5 \
     --gpu_id 0 1 2 3\
-    --num_workers 8\
+    --num_workers 10\
     --shuffle\
+    --to_visualize\
     --model_path checkpoints/Casia/Backbone_Epoch_45_Batch_26100_Time_2022-07-11T125559_checkpoint.pth\
-    --to_visualize
+    --resume_epoch 45
