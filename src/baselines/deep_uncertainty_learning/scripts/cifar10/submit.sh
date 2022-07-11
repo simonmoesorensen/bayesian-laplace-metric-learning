@@ -5,7 +5,7 @@
 #BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J DUL-mnist
+#BSUB -J DUL-cifar10
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/mnist/run1.out
-#BSUB -e logs/mnist/run1.err
+#BSUB -o logs/cifar10/run1.out
+#BSUB -e logs/cifar10/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -48,19 +48,21 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/src/baselines/deep_un
 export CUDA_VISIBLE_DEVICES=0,1
 
 model_save_folder='./checkpoints/'
-log_tensorboard='./logtensorboard/'
+logs='./logtensorboard/'
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 ./src/train.py \
     --model_save_folder $model_save_folder \
     --log_dir $logs \
-    --dataset MNIST \
-    --name MNIST \
+    --dataset CIFAR10 \
+    --name CIFAR10 \
     --batch_size 512 \
     --embedding_size 256 \
     --arcface_scale 15 \
     --arcface_margin 0.8 \
-    --num_epoch 10 \
+    --num_epoch 40 \
     --save_freq 5 \
-    --gpu_id 0 3\
-    --num_workers 8
+    --gpu_id 0 1\
+    --num_workers 12 \
+    --shuffle \
+    --to_visualize
