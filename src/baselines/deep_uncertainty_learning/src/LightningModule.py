@@ -331,22 +331,81 @@ class DULTrainer(LightningLite):
 
     def test(self):
         print(f"Testing @ epoch: {self.epoch}")
-        accuracy = test_model(
-            self.train_loader.dataset,
-            self.test_loader.dataset,
-            self.model,
-            self.device,
-            self.dul_args.batch_size,
-            self.dul_args.num_workers,
-        )
+        self.model.eval()
 
-        self.writer.add_scalar("test_acc", accuracy["precision_at_1"], self.epoch)
+        test_accuracy = AverageMeter()
+        test_map_r = AverageMeter()
+
+        id_sigma = []
+        id_mu = []
+        with torch.no_grad():
+            for image, target in tqdm(self.test_loader, desc="Testing"):
+                mu_dul, std_dul = self.model(image)
+
+                # Save for visualization
+                id_sigma.append(std_dul)
+                id_mu.append(mu_dul)
+
+                # Reparameterization trick
+                epsilon = torch.randn_like(std_dul)
+                samples = mu_dul + epsilon * std_dul
+
+                norm_samples = l2_norm(samples)
+
+                metrics = self.metrics.get_accuracy(
+                    query=norm_samples,
+                    reference=norm_samples,
+                    query_labels=target,
+                    reference_labels=target,
+                    embeddings_come_from_same_source=True,
+                )
+
+                test_accuracy.update(metrics["precision_at_1"], image.size(0))
+                test_map_r.update(metrics["mean_average_precision_at_r"], image.size(0))
+
         self.writer.add_scalar(
-            "test_map", accuracy["mean_average_precision"], self.epoch
+            "test_accuracy",
+            test_accuracy.avg,
+            global_step=self.epoch,
+            new_style=True,
+        )
+        self.writer.add_scalar(
+            "test_map_r",
+            test_map_r.avg,
+            global_step=self.epoch,
+            new_style=True,
         )
 
+        print(
+            "Time {}\t"
+            "Testing Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
+            "Testing MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
+                time.asctime(time.localtime(time.time())),
+                acc=test_accuracy,
+                map_r=test_map_r,
+            ),
+            flush=True,
+        )
+        
         if self.to_visualize:
-            self.visualize(self.test_loader, self.test_loader.dataset.class_to_idx)
+            print("=" * 60, flush=True)
+            print("Visualizing...")
+
+            ood_sigma = []
+            ood_mu = []
+            for img, _ in tqdm(self.ood_loader, desc="OOD"):
+                mu_dul, std_dul = self.model(img)
+                ood_sigma.append(std_dul)
+                ood_mu.append(mu_dul)
+
+            id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
+            id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
+            ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
+            ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
+
+            self.visualize(
+                id_mu, id_sigma, ood_mu, ood_sigma, prefix='test_'
+            )
 
     def visualize(self, id_mu, id_sigma, ood_mu, ood_sigma, prefix):
         if not prefix.endswith('_'):
@@ -369,55 +428,16 @@ class DULTrainer(LightningLite):
     def log_hyperparams(self):
         print("Logging hyperparameters")
 
-        train_accuracy = test_model(
-            self.train_loader.dataset,
-            self.train_loader.dataset,
-            self.model,
-            self.device,
-            self.dul_args.batch_size,
-            self.dul_args.num_workers,
-        )
-        print(f"{train_accuracy=}")
-
-        val_accuracy = test_model(
-            self.train_loader.dataset,
-            self.val_loader.dataset,
-            self.model,
-            self.device,
-            self.dul_args.batch_size,
-            self.dul_args.num_workers,
-        )
-        print(f"{val_accuracy=}")
-
-        print("Calculating test accuracy")
-        test_accuracy = test_model(
-            self.train_loader.dataset,
-            self.test_loader.dataset,
-            self.model,
-            self.device,
-            self.dul_args.batch_size,
-            self.dul_args.num_workers,
-        )
-        print(f"{test_accuracy=}")
+        hparams = self.dul_args
+        hparams['name'] = self.name
+        hparams['epoch'] = self.epoch
+        hparams['miner'] = self.miner.__class__.__name__
+        hparams['model'] = self.model.__class__.__name__
+        hparams['optimizer'] = self.optimizer.__class__.__name__
+        hparams['loss_fn'] = self.loss_fn.__class__.__name__
 
         self.writer.add_hparams(
-            hparam_dict={
-                "name": self.name,
-                "miner": self.miner.__class__.__name__,
-                "loss_fn": self.loss_fn.__class__.__name__,
-                "epoch": self.epoch + 1,
-                "lr": self.optimizer.defaults["lr"],
-                "batch_size": self.batch_size,
-                "model": self.model.module.__class__.__name__,
-            },
-            metric_dict={
-                "train_acc": train_accuracy["precision_at_1"],
-                "train_map": train_accuracy["mean_average_precision"],
-                "val_acc": val_accuracy["precision_at_1"],
-                "val_map": val_accuracy["mean_average_precision"],
-                "test_acc": test_accuracy["precision_at_1"],
-                "test_map": test_accuracy["mean_average_precision"],
-            },
+            hparam_dict=hparams,
             run_name=".",
         )
 
