@@ -10,11 +10,9 @@ from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from pytorch_metric_learning.distances import CosineSimilarity
-from pytorch_metric_learning.utils.inference import CustomKNN
 from visualize import plot_auc_curves, plot_ood
 
-from utils import AverageMeter, l2_norm, test_model
+from metrics.MetricMeter import MetricMeter, AverageMeter
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -23,28 +21,6 @@ torch.manual_seed(1234)
 
 def get_time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")
-
-
-class MetricMeter:
-    def __init__(self, meters, batch_size):
-        self.meters = meters
-        self.batch_size = batch_size
-
-    def update(self, meter, value):
-        self.meters[meter].update(value, self.batch_size)
-
-    def get(self, meter):
-        return self.meters[meter]
-
-    def reset(self, meters):
-        assert isinstance(meters, list), "meters must be a list"
-
-        for meter in meters:
-            self.meters[meter].reset()
-
-    def add(self, meter):
-        self.meters[meter] = AverageMeter()
-
 
 class BaseLightningModule(LightningLite, MetricMeter):
     """

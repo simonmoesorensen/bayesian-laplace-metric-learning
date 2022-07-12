@@ -8,7 +8,7 @@ from data_modules.CIFAR10DataModule import CIFAR10DataModule
 from data_modules.CasiaDataModule import CasiaDataModule
 from models.DUL_models import MNIST_DUL, CIFAR10_DUL, Casia_DUL
 
-from utils import (
+from baselines.deep_uncertainty_learning.src.utils import (
     separate_batchnorm_params,
 )
 
