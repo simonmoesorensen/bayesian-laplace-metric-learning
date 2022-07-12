@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 echo "Waiting for debugger to attach..."
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/DUL/train.py \
+python3 -m debugpy --listen 10.66.20.1:1332 ./src/baselines/DUL/train.py \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \
