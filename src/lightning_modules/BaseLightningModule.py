@@ -108,6 +108,9 @@ class BaseLightningModule(LightningLite, MetricMeter):
     def test_step(self, X, y):
         raise NotImplementedError()
 
+    def ood_step(self, X, y):
+        raise NotImplementedError()
+
     def epoch_start(self):
         self.metrics.reset(["train_loss", "train_accuracy", "train_map_r"])
 
@@ -294,7 +297,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         ood_sigma = []
         ood_mu = []
         for img, _ in tqdm(self.ood_loader, desc="OOD"):
-            mu_dul, std_dul = self.forward(img)
+            mu_dul, std_dul = self.ood_step(img)
             ood_sigma.append(std_dul)
             ood_mu.append(mu_dul)
 

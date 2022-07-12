@@ -137,6 +137,9 @@ class DULLightningModule(BaseLightningModule):
 
         return mu_dul, std_dul, norm_samples
 
+    def ood_step(self, X, y):
+        return self.forward(X)
+
     def display(self, epoch, batch):
         tqdm.write("=" * 60)
         tqdm.write(
