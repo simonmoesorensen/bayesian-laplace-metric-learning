@@ -1,9 +1,17 @@
-pytorch_metric_learning==1.1.2
-
-laplace_torch==0.1a2
-asdfghjkl==0.1a2
+numpy
+bcolz-zipline
+tqdm==4.62.0
+opencv_python==4.5.3.56
+scipy==1.6.2
+Pillow
+scikit-learn
+tensorboard
+tensorboardx
+matplotlib
+pytorch_lightning
+seaborn
+faiss-gpu
 
 --extra-index-url https://download.pytorch.org/whl/cu113
-torch
-torchvision
-torchaudio
+torch==1.11.0
+torchvision==0.12.0

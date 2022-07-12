@@ -1,3 +1,15 @@
+# Eval
+outputs/
+
+# Logs
+**/log*/**
+
+# Tensorflow
+events.out.tfevents*
+
+# Project
+data
+
 # IDE
 .vscode
 
