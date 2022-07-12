@@ -5,7 +5,7 @@ output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'DUL'
 
 data_dir = Path('/work3/s174420/datasets')
-vis_dir = baseline_dir / 'evaluation'
+vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
 

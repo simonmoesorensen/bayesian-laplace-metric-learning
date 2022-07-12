@@ -13,7 +13,23 @@ sns.set()
 c_id = "b"
 c_ood = "r"
 
+def visualize_all(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix):
+    id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
+    id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
+    ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
+    ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
 
+    if not prefix.endswith("_"):
+        prefix += "_"
+
+    # Visualize
+    plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
+
+    id_var = id_sigma**2
+    ood_var = ood_sigma**2
+    plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
+    
+    
 def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="b", label=None):
     if ax is None:
         _, ax = plt.subplots()

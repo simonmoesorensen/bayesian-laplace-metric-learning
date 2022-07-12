@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
-from src.visualize import plot_auc_curves, plot_ood
+from src.visualize import visualize_all
 from src.metrics.MetricMeter import MetricMeter, AverageMeter
 
 plt.switch_backend("agg")
@@ -294,6 +294,10 @@ class BaseLightningModule(LightningLite, MetricMeter):
         print("=" * 60, flush=True)
         print("Visualizing...")
 
+        # Set path
+        vis_path = Path(self.args.vis_dir) / self.name / f"epoch_{self.epoch + 1}"
+        vis_path.mkdir(parents=True, exist_ok=True)
+
         ood_sigma = []
         ood_mu = []
         for img, _ in tqdm(self.ood_loader, desc="OOD"):
@@ -301,24 +305,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             ood_sigma.append(std_dul)
             ood_mu.append(mu_dul)
 
-        id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
-        id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
-        ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
-        ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
-
-        if not prefix.endswith("_"):
-            prefix += "_"
-
-        # Set path
-        vis_path = Path(self.args.vis_dir) / self.name / f"epoch_{self.epoch + 1}"
-        vis_path.mkdir(parents=True, exist_ok=True)
-
-        # Visualize
-        plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
-
-        id_var = id_sigma**2
-        ood_var = ood_sigma**2
-        plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
+        visualize_all(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix)
 
     def forward(self, x):
         return self.model(x)
