@@ -40,26 +40,11 @@ def evaluate_laplace(net, train_loader, id_loader, ood_loader, device="cpu"):
 
     logging.info("Generating predictions from ID samples.")
     preds = generate_predictions_from_samples(id_loader, samples, net, net.linear, device).detach().cpu()
-    np.save(
-        "results/laplace/id_laplace_mu.npy",
-        preds.numpy().mean(axis=0),
-    )
-    np.save(
-        "results/laplace/id_laplace_sigma_sq.npy",
-        preds.numpy().var(axis=0),
-    )
 
     logging.info("Generating predictions from OOD samples.")
     preds_ood = generate_predictions_from_samples(ood_loader, samples, net, net.linear, device).detach().cpu()
     # preds_ood = generate_fake_predictions_from_samples(id_loader, samples, net, net.linear, device).detach().cpu()
-    np.save(
-        "results/laplace/ood_laplace_mu.npy",
-        preds_ood.numpy().mean(axis=0),
-    )
-    np.save(
-        "results/laplace/ood_laplace_sigma_sq.npy",
-        preds_ood.numpy().var(axis=0),
-    )
+    return preds, preds_ood
 
     # logging.info("Generating predictions from ID samples.")
     # pred_mean, pred_var = generate_predictions_from_samples(id_loader, samples, net, net.linear, device)
@@ -85,10 +70,40 @@ if __name__ == "__main__":
 
     id_set = CIFAR10("data/", train=False, transform=transforms.ToTensor())
     id_loader = DataLoader(id_set, batch_size, shuffle=False)
+    id_label = "cifar10"
 
     ood_set = SVHN("data/", split="test", transform=transforms.ToTensor())
     ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
+    ood_label = "svhn"
+
+    # ood_label = "noise"
+
+    # ood_set = CIFAR100("data/", train=False, transform=transforms.ToTensor())
+    # subset_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    # mask = torch.tensor([ood_set[i][1] in subset_classes for i in range(len(ood_set))])
+    # indices = torch.arange(len(ood_set))[mask]
+    # ood_set = Subset(ood_set, indices)
+    # ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
+    # ood_label = "cifar100"
 
     model = ConvNet(latent_dim).to(device)
 
-    evaluate_laplace(model, train_loader, id_loader, ood_loader, device)
+    preds, preds_ood = evaluate_laplace(model, train_loader, id_loader, ood_loader, device)
+
+    np.save(
+        f"results/laplace/{id_label}/id_laplace_mu.npy",
+        preds.numpy().mean(axis=0),
+    )
+    np.save(
+        f"results/laplace/{id_label}/id_laplace_sigma_sq.npy",
+        preds.numpy().var(axis=0),
+    )
+
+    np.save(
+        f"results/laplace/{id_label}/{ood_label}/ood_laplace_mu.npy",
+        preds_ood.numpy().mean(axis=0),
+    )
+    np.save(
+        f"results/laplace/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy",
+        preds_ood.numpy().var(axis=0),
+    )

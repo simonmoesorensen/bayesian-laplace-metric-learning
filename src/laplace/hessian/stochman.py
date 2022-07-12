@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import gc
 
 import torch
 
@@ -22,11 +23,29 @@ class HessianCalculator:
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     @abstractmethod
-    def compute_batch(self, *args, **kwargs):
+    def __call__(self, net, *args, **kwargs):
         pass
 
-    def compute(self, loader, model, output_size):
-        raise NotImplementedError
+    def init_model(self, model):
+
+        self.feature_maps = []
+        self.handles = []
+
+        def fw_hook_get_latent(module, input, output):
+            self.feature_maps.append(output.detach())
+
+        def fw_hook_get_input(module, input, output):
+            self.feature_maps = [input[0].detach()]
+
+        self.handles.append(model[0].register_forward_hook(fw_hook_get_input))
+        for k in range(len(model)):
+            self.handles.append(model[k].register_forward_hook(fw_hook_get_latent))
+
+    def clean_up(self):
+        for handle in self.handles:
+            handle.remove()
+            del handle
+        gc.collect()
 
 
 class MseHessianCalculator(HessianCalculator):
@@ -35,15 +54,15 @@ class MseHessianCalculator(HessianCalculator):
 
         self.method = method  # block, exact, approx, mix
 
-    def __call__(self, net, feature_maps, x, *args, **kwargs):
+    def __call__(self, net, *args, **kwargs):
+
+        x = self.feature_maps[-1]
 
         if x.ndim == 4:
             bs, c, h, w = x.shape
             output_size = c * h * w
         else:
             bs, output_size = x.shape
-
-        feature_maps = [x] + feature_maps
 
         # if we use diagonal approximation or first layer is flatten
         tmp = torch.ones(output_size, device=x.device)  # [HWC]
@@ -69,11 +88,10 @@ class MseHessianCalculator(HessianCalculator):
                     diag_inp_m, diag_out_m, diag_inp_h, diag_out_h = diag_structure(curr_method)
                     # curr_method, diag_out_h = swap_curr_method(curr_method, diag_out_h, prev_layer, net[k], next_layer)
 
-                # jacobian w.r.t weight
                 t = time.time()
                 h_k = net[k]._jacobian_wrt_weight_sandwich(
-                    feature_maps[k],
-                    feature_maps[k + 1],
+                    self.feature_maps[k],
+                    self.feature_maps[k + 1],
                     tmp,
                     diag_inp_m,
                     diag_out_m,
@@ -81,11 +99,14 @@ class MseHessianCalculator(HessianCalculator):
                 if h_k is not None:
                     H = [h_k.sum(dim=0)] + H
                 t1 += time.time() - t
+
+                if k == 0:
+                    break
+
                 t = time.time()
-                # jacobian w.r.t input
                 tmp = net[k]._jacobian_wrt_input_sandwich(
-                    feature_maps[k],
-                    feature_maps[k + 1],
+                    self.feature_maps[k],
+                    self.feature_maps[k + 1],
                     tmp,
                     diag_inp_h,
                     diag_out_h,

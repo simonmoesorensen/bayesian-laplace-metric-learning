@@ -1,3 +1,4 @@
+import gc
 import copy
 from abc import abstractmethod
 
@@ -15,12 +16,17 @@ class HessianCalculator:
         pass
 
     def init_model(self, model):
+
         self.feature_maps = []
+        self.handles = []
 
         def fw_hook_get_latent(module, input, output):
             self.feature_maps.append(output.detach())
 
-        self.handles = []
+        def fw_hook_get_input(module, input, output):
+            self.feature_maps = [input[0].detach()]
+
+        self.handles.append(model[0].register_forward_hook(fw_hook_get_input))
         for k in range(len(model)):
             self.handles.append(model[k].register_forward_hook(fw_hook_get_latent))
 
@@ -28,6 +34,7 @@ class HessianCalculator:
         for handle in self.handles:
             handle.remove()
             del handle
+        gc.collect()
 
     def compute(self, loader, model, output_size):
         # keep track of running sum
@@ -43,13 +50,10 @@ class HessianCalculator:
         return H_running_sum
 
 
-class RmseHessianCalculator:
-    def compute_batch(self, model, output_size, x, *args, **kwargs):
+class RmseHessianCalculator(HessianCalculator):
+    def compute_batch(self, model, output_size):
+        x = self.feature_maps[0]
         bs = x.shape[0]
-
-        self.feature_maps = []
-        model(x)
-        self.feature_maps = [x] + self.feature_maps
 
         # Saves the product of the Jacobians wrt layer input
         tmp = torch.diag_embed(torch.ones(bs, output_size, device=x.device))
@@ -136,7 +140,7 @@ class RmseHessianCalculator:
 
 
 class ContrastiveHessianCalculator(HessianCalculator):
-    def __init__(self, margin=0.2, alpha=1.01) -> None:
+    def __init__(self, margin=0.2, alpha=0.01) -> None:
         super().__init__()
         self.margin = margin
         self.alpha = alpha
@@ -150,11 +154,16 @@ class ContrastiveHessianCalculator(HessianCalculator):
         feature_maps2 = copy.copy(self.feature_maps)
         self.feature_maps = []
 
-        mask = torch.logical_and((1 - y).bool(), self.margin - torch.einsum("no,no->n", f1 - f2, f1 - f2) < 0)
+        non_match_mask = (1 - y).bool()
+        square_norms = torch.einsum("no,no->n", f1 - f2, f1 - f2)
+        in_margin_mask = square_norms < self.margin
+
+        zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
+        negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
 
         bs = x1.shape[0]
-        feature_maps1 = [x1] + feature_maps1
-        feature_maps2 = [x2] + feature_maps2
+        # feature_maps1 = [x1] + feature_maps1
+        # feature_maps2 = [x2] + feature_maps2
 
         # Saves the product of the Jacobians wrt layer input
         tmp1 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=x1.device))
@@ -194,7 +203,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
                         h2 = torch.cat([h2, diag_elements2], dim=1)
                         h3 = torch.cat([h3, diag_elements3], dim=1)
 
-                    h_k = h1 + h2 - 4 * h3
+                    h_k = h1 + h2 - 2 * h3
                     # h_l = h1 + h2 + torch.where(y.bool(), -1, 1) * 4 * h3  # -4 When match, else 4
 
                     H = [h_k] + H
@@ -225,10 +234,14 @@ class ContrastiveHessianCalculator(HessianCalculator):
                 tmp1 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp1, jacobian_x1)
                 tmp2 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x2, tmp2, jacobian_x2)
                 tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
-
         Hs = torch.cat(H, dim=1)
-        mask = mask.view(-1, 1).expand(*Hs.shape)
-        Hs = Hs.masked_fill_(mask, 0.0)
+
+        # Set to zero for non-matches outside mask
+        Hs = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), Hs)
+
+        # Set to negative for non-matches in mask
+        Hs = torch.einsum("b,bm->bm", torch.where(negative_mask, -1 / 9, 1), Hs)
+
         return Hs.sum(dim=0)
 
     def compute_batch_pairs(self, model, embeddings, x, target, hard_pairs):

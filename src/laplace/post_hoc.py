@@ -41,8 +41,8 @@ def post_hoc(
     calculator = ContrastiveHessianCalculator()
     calculator.init_model(model.linear)
     compute_hessian = calculator.compute_batch_pairs
-    miner = AllPositiveMiner()
-    h = []
+    miner = AllCombinationsMiner()
+    h = 0
     for x, y in tqdm(train_loader):
         x, y = x.to(device), y.to(device)
 
@@ -53,13 +53,12 @@ def post_hoc(
         # output = net(x)
 
         hard_pairs = miner(output, y)
-        assert len(hard_pairs[3]) == 0  # All positive miner, no negative elements
+        # assert len(hard_pairs[3]) == 0  # All positive miner, no negative elements
 
         # Total number of positive pairs / number of positive pairs in our batch
         scaler = images_per_class**2 / len(hard_pairs[0])
-        hessian = compute_hessian(inference_model, output, x_conv, y, hard_pairs) * scaler
-        h.append(hessian)
-    h = torch.stack(h, dim=0).sum(dim=0).to(device)
+        h += compute_hessian(inference_model, output, x_conv, y, hard_pairs) * scaler
+
     if (h < 0).sum():
         logging.warn("Found negative values in Hessian.")
 

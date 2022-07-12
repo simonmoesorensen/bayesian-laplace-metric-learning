@@ -65,11 +65,21 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood):
 
 
 if __name__ == "__main__":
-    mu_id = np.load("results/laplace/id_laplace_mu.npy")
-    var_id = np.load("results/laplace/id_laplace_sigma_sq.npy")
-    mu_ood = np.load("results/laplace/ood_laplace_mu.npy")
-    var_ood = np.load("results/laplace/ood_laplace_sigma_sq.npy")
+    id_label = "cifar10"
+    id_title = "CIFAR-10"
+
+    # ood_label = "cifar100"
+    # ood_title = "CIFAR-100"
+    ood_label = "svhn"
+    ood_title = "SVHN"
+    # ood_label = "noise"
+    # ood_title = "Noise"
+
+    mu_id = np.load(f"results/laplace/{id_label}/id_laplace_mu.npy")
+    var_id = np.load(f"results/laplace/{id_label}/id_laplace_sigma_sq.npy")
+    mu_ood = np.load(f"results/laplace/{id_label}/{ood_label}/ood_laplace_mu.npy")
+    var_ood = np.load(f"results/laplace/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
 
     fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
-    fig.suptitle("Trained on CIFAR-10, OOD SVHN")
-    fig.savefig("figures/ood_plot.png")
+    fig.suptitle(f"Trained on {id_title}, OOD {ood_title}")
+    fig.savefig(f"figures/ood_plot_{id_label}_{ood_label}.png")
