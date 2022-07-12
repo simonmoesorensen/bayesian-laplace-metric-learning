@@ -300,8 +300,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         ood_sigma = []
         ood_mu = []
-        for img, _ in tqdm(self.ood_loader, desc="OOD"):
-            mu_dul, std_dul = self.ood_step(img)
+        for img, y in tqdm(self.ood_loader, desc="OOD"):
+            mu_dul, std_dul = self.ood_step(img, y)
             ood_sigma.append(std_dul)
             ood_mu.append(mu_dul)
 
