@@ -14,7 +14,7 @@ class CasiaDataModule(BaseDataModule):
     def __init__(self, data_dir, batch_size, num_workers):
         super().__init__(d.ImageFolder, data_dir, batch_size, num_workers)
 
-        self.name = "Cassia"
+        self.name = "Casia"
         self.n_classes = 10575
 
         # Used to reference the extracted data

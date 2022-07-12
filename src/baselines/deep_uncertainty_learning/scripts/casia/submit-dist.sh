@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/casia/run2.out
-#BSUB -e logs/casia/run2.err
+#BSUB -o logs/casia/run1.out
+#BSUB -e logs/casia/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -60,11 +60,9 @@ python3 ./src/train.py \
     --embedding_size 512 \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
-    --num_epoch 100 \
-    --save_freq 5 \
+    --num_epoch 150 \
+    --save_freq 15 \
     --gpu_id 0 1 2 3\
     --num_workers 10\
     --shuffle\
-    --to_visualize\
-    --model_path checkpoints/Casia/Backbone_Epoch_45_Batch_26100_Time_2022-07-11T125559_checkpoint.pth\
-    --resume_epoch 45
+    --to_visualize
