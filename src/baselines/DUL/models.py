@@ -27,7 +27,7 @@ def MNIST_DUL(embedding_size=128):
     Construct a mnist model for DUL.
     """
     # Embedding dimension
-    model = resnet18(num_classes=embedding_size)
+    model = resnet50(num_classes=embedding_size)
 
     # Adapt to 1 channel inputs
     model.conv1 = Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
@@ -42,7 +42,7 @@ def CIFAR10_DUL(embedding_size=128):
     Construct a cifar10 model for DUL.
     """
     # Embedding dimension
-    model = resnet34(num_classes=embedding_size)
+    model = resnet50(num_classes=embedding_size)
 
     # Wrap in DUL framework
     model_dul = DUL_Backbone(model, embedding_size)
