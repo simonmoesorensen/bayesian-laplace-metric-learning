@@ -3,6 +3,7 @@ import torch
 from pytorch_metric_learning.reducers import AvgNonZeroReducer
 from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 from pytorch_metric_learning.losses.generic_pair_loss import GenericPairLoss
+from pytorch_metric_learning.distances import LpDistance
 
 
 class SoftContrastiveLoss(GenericPairLoss):
@@ -14,7 +15,11 @@ class SoftContrastiveLoss(GenericPairLoss):
             list_of_names=["pos_margin", "neg_margin"], is_stat=False
         )
 
+
         self.A = torch.nn.Parameter(torch.Tensor([1]))
+        # Constraint A to be positive
+        self.A.data.clamp_(min=0)
+
         self.B = torch.nn.Parameter(torch.Tensor([1]))
 
     def _compute_loss(self, pos_pair_dist, neg_pair_dist, indices_tuple):
@@ -45,23 +50,22 @@ class SoftContrastiveLoss(GenericPairLoss):
         return per_pair_loss
 
     def pos_calc(self, pos_pair_dist, margin):
-        # redefine
-        # is the distance squared or not??
-        # right now assumes it is squared
-        # return torch.nn.functional.relu(self.distance.margin(pos_pair_dist, margin))
-        p = torch.sigmoid(-self.A * torch.sqrt(pos_pair_dist) + self.B)
+        distance = self.distance(pos_pair_dist, margin)
+        p = torch.sigmoid(-self.A * distance + self.B)
+
         return -torch.log(p)
 
     def neg_calc(self, neg_pair_dist, margin):
-        # redefine
-        # is the distance squared or not??
-        # right now assumes it is squared
-        # return torch.nn.functional.relu(self.distance.margin(margin, neg_pair_dist))
-        p = torch.sigmoid(-self.A * torch.sqrt(neg_pair_dist) + self.B)
-        return (-torch.log(1-p))
+        distance = self.distance(neg_pair_dist, margin)
+        p = torch.sigmoid(-self.A * distance + self.B)
+
+        return -torch.log(1 - p)
 
     def get_default_reducer(self):
         return AvgNonZeroReducer()
 
     def _sub_loss_names(self):
         return ["pos_loss", "neg_loss"]
+    
+    def get_default_distance(self):
+        return LpDistance(p=2)
