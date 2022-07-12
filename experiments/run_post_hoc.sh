@@ -13,5 +13,5 @@ source venv/bin/activate
 
 python src/laplace/metric_learning.py
 python src/laplace/post_hoc.py
-# python src/laplace/evaluate.py
-# python src/visualization/plot_ood.py
+python src/laplace/evaluate.py
+python src/visualization/plot_ood.py

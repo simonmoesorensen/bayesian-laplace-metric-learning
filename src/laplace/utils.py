@@ -1,4 +1,4 @@
-import sys
+from typing import Tuple
 
 import torch
 from pytorch_metric_learning import testers
@@ -35,114 +35,41 @@ def test_model(train_set, test_set, model, data_device, k=10):
     return accuracies
 
 
-def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
-    if inference_model is None:
-        inference_model = full_model
-
+def get_single_sample_pred(full_model, loader, device) -> torch.Tensor:
     preds = []
-    for net_sample in weight_samples:
-        vector_to_parameters(net_sample, inference_model.parameters())
-        sample_preds = []
-        for x, _ in iter(loader):
-            x = x.to(device)
-            pred = full_model(x)
-            sample_preds.append(pred)
-        preds.append(torch.cat(sample_preds, dim=0))
-    return torch.stack(preds, dim=0)
+    for x, _ in iter(loader):
+        with torch.inference_mode():
+            pred = full_model(x.to(device))
+        preds.append(pred)
+    preds = torch.cat(preds, dim=0)
+    return preds
 
 
-def generate_predictions_from_samples_rolling(loader, weight_samples, full_model, inference_model=None, device="cpu"):
+def generate_predictions_from_samples_rolling(
+    loader, weight_samples, full_model, inference_model=None, device="cpu"
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Welford's online algorithm for calculating mean and variance.
     """
     if inference_model is None:
         inference_model = full_model
 
-    def get_single_sample_pred(sample) -> torch.Tensor:
-        vector_to_parameters(sample, inference_model.parameters())
-        sample_preds = []
-        for i, (x, _) in enumerate(iter(loader)):
-            # if i == 20:
-            #     break
-            x = x.to(device)
-            pred = full_model(x)
-            sample_preds.append(pred)
-        return torch.cat(sample_preds, dim=0)
-
     N = len(weight_samples)
 
-    mean = get_single_sample_pred(weight_samples[0, :])
+    vector_to_parameters(weight_samples[0, :], inference_model.parameters())
+    mean = get_single_sample_pred(full_model, loader, device)
     msq = 0.0
     delta = 0.0
 
     for i, net_sample in enumerate(weight_samples[1:, :]):
-        sample_preds = get_single_sample_pred(net_sample)
+        vector_to_parameters(net_sample, inference_model.parameters())
+        sample_preds = get_single_sample_pred(full_model, loader, device)
         delta = sample_preds - mean
         mean += delta / (i + 1)
-        msq += delta * (sample_preds - mean)
+        msq += delta * delta
 
     variance = msq / (N - 1)
-    return mean, variance
-
-
-# def generate_predictions_from_samples_rolling(loader, weight_samples, full_model, inference_model=None, device="cpu"):
-#     if inference_model is None:
-#         inference_model = full_model
-
-#     mean = 0
-#     square_mean = 0
-#     for net_sample in weight_samples:
-#         vector_to_parameters(net_sample, inference_model.parameters())
-#         sample_preds = []
-#         for x, _ in iter(loader):
-#             x = x.to(device)
-#             pred = full_model(x)
-#             sample_preds.append(pred)
-#         sample_preds = torch.cat(sample_preds, dim=0)
-#         mean += sample_preds
-#         square_mean += sample_preds**2
-#     mean = mean / len(weight_samples)
-#     square_mean = square_mean / len(weight_samples)
-#     variance = square_mean - mean**2
-#     return mean, variance
-
-
-# def generate_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
-#     if inference_model is None:
-#         inference_model = full_model
-
-#     means = []
-#     vars = []
-#     for step, (x, _) in enumerate(iter(loader)):
-#         if step == 26:
-#             break
-#         x = x.to(device)
-#         sample_preds = []
-#         for net_sample in weight_samples:
-#             vector_to_parameters(net_sample, inference_model.parameters())
-#             sample_preds.append(full_model(x))
-#         preds = torch.stack(sample_preds, dim=0)
-#         means.append(preds.mean(dim=0))
-#         vars.append(preds.var(dim=0))
-#     return torch.cat(means, dim=0), torch.cat(vars, dim=0)
-
-
-def generate_fake_predictions_from_samples(loader, weight_samples, full_model, inference_model=None, device="cpu"):
-    if inference_model is None:
-        inference_model = full_model
-
-    preds = []
-    for net_sample in weight_samples:
-        vector_to_parameters(net_sample, inference_model.parameters())
-        sample_preds = []
-        for step, (x, _) in enumerate(iter(loader)):
-            if step == 26:
-                break
-            x = torch.randn(x.shape, device=device)
-            pred = full_model(x)
-            sample_preds.append(pred)
-        preds.append(torch.cat(sample_preds, dim=0))
-    return torch.stack(preds, dim=0)
+    return torch.tensor(mean), torch.tensor(variance)
 
 
 def get_sample_accuracy(train_set, test_set, model, inference_model, samples, device):
