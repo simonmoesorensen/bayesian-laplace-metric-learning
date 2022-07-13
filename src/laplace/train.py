@@ -4,13 +4,13 @@ import torch
 from tqdm import tqdm
 from pytorch_metric_learning import miners
 from pytorch_metric_learning import losses
-from torch.nn.utils import parameters_to_vector, vector_to_parameters
+from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_parameters
 from torch.optim import Adam
-import fire
+from torchvision.datasets import CIFAR10, CIFAR100, SVHN
+from torchvision import transforms
+from torch.utils.data import DataLoader, Subset
 
-from src.data.cifar import CIFARData
-from src.data.cifar100 import CIFAR100DataModule
-from src.hessian.layerwise import ContrastiveHessianCalculator
+from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.models.conv_net import ConvNet
 
 
@@ -29,7 +29,10 @@ def sample_neural_network_wights(parameters, posterior_scale, n_samples=32):
     return parameters.reshape(1, n_params) + samples
 
 
-def run(epochs=4, freq=3, nn_samples=10):
+def run():
+    epochs = 10
+    freq = 3
+    nn_samples = 10
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     contrastive_loss = losses.ContrastiveLoss()
@@ -37,7 +40,7 @@ def run(epochs=4, freq=3, nn_samples=10):
     hessian_calculator = ContrastiveHessianCalculator()
 
     latent_dim = 15
-    net = ConvNet(latent_dim, n_channels=3)
+    net = ConvNet(latent_dim)
     net_inference = net.linear
     net.to(device)
 
@@ -47,10 +50,9 @@ def run(epochs=4, freq=3, nn_samples=10):
 
     optim = Adam(net.parameters(), lr=3e-4)
 
-    batch_size = 128
-    data = CIFAR100DataModule("data/", batch_size, 4)
-    data.setup()
-    loader = data.train_dataloader()
+    batch_size = 16
+    train_set = CIFAR10("data/", train=True, transform=transforms.ToTensor())
+    train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
     h = 1e10 * torch.ones((num_params,), device=device)
 
@@ -59,10 +61,11 @@ def run(epochs=4, freq=3, nn_samples=10):
     for epoch in range(epochs):
         print(f"{epoch=}")
         epoch_losses = []
-        train_laplace = epoch % freq == 0
+        # train_laplace = epoch % freq == 0
+        train_laplace = False
         print(f"{train_laplace=}")
 
-        for x, y in tqdm(loader):
+        for x, y in tqdm(train_loader):
             x, y = x.to(device), y.to(device)
 
             optim.zero_grad()
@@ -98,7 +101,8 @@ def run(epochs=4, freq=3, nn_samples=10):
                         raise Exception
 
                     # Adjust hessian to the batch size
-                    hessian_batch = hessian_batch / x.shape[0] * len(loader.dataset)
+                    scaler = images_per_class**2 / len(hard_pairs[0])
+                    hessian_batch = hessian_batch * scaler
 
                     h.append(hessian_batch)
 
@@ -107,7 +111,7 @@ def run(epochs=4, freq=3, nn_samples=10):
 
             if train_laplace:
                 h = torch.stack(h).mean(dim=0) if len(h) > 1 else h[0]
-                h += 1
+                # h += 1
 
             con_loss = torch.stack(con_losses).mean(dim=0)
             loss = con_loss + kl.mean() * kl_weight
@@ -126,4 +130,5 @@ def run(epochs=4, freq=3, nn_samples=10):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
-    fire.Fire(run)
+
+    run()

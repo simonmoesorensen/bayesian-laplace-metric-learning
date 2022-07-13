@@ -7,6 +7,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision import transforms
+from torchvision.models import resnet50
 from tqdm import tqdm
 
 from src.models.conv_net import ConvNet
@@ -47,6 +48,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_set, batch_size, shuffle=False)
 
     model = ConvNet(latent_dim).to(device)
+    # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     logging.info("Finding MAP solution.")
     train_metric(model, train_loader, epochs, lr, device)

@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, CIFAR100, SVHN
+from torchvision.models import resnet50
 
 from src.laplace.utils import generate_predictions_from_samples_rolling, sample_nn_weights
 from src.models.conv_net import ConvNet
@@ -51,7 +52,8 @@ if __name__ == "__main__":
     # ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
     # ood_label = "cifar100"
 
-    model = ConvNet(latent_dim).to(device)
+    # model = ConvNet(latent_dim).to(device)
+    model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     t = time.time()
     mean, variance = evaluate_laplace(model, id_loader, device)

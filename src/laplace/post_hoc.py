@@ -1,13 +1,8 @@
-import gc
 import logging
 
-import numpy as np
-import matplotlib.pyplot as plt
 import torch
-from pytorch_metric_learning import losses, miners
 from torch import nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
-from torch.optim import Adam
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision import transforms
@@ -16,13 +11,7 @@ from tqdm import tqdm
 from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.miners import AllPermutationsMiner, AllCombinationsMiner, AllPositiveMiner
-from src.laplace.utils import (
-    generate_fake_predictions_from_samples,
-    generate_predictions_from_samples,
-    get_sample_accuracy,
-    sample_nn_weights,
-)
-from src.utils import test_model
+from torchvision.models import resnet50
 
 
 def post_hoc(
@@ -63,7 +52,6 @@ def post_hoc(
         logging.warn("Found negative values in Hessian.")
 
     mu_q = parameters_to_vector(inference_model.parameters())
-    # mu_q = parameters_to_vector(net.parameters())
     sigma_q = 1 / (h + 1e-6)
 
     return mu_q, sigma_q
@@ -92,7 +80,8 @@ if __name__ == "__main__":
     ood_set = SVHN("data/", split="test", transform=transforms.ToTensor())
     ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
 
-    model = ConvNet(latent_dim).to(device)
+    # model = ConvNet(latent_dim).to(device)
+    model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     model.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
 
     mu_q, sigma_q = post_hoc(model, train_loader, device)

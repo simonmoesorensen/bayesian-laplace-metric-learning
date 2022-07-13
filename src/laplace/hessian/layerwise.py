@@ -140,10 +140,11 @@ class RmseHessianCalculator(HessianCalculator):
 
 
 class ContrastiveHessianCalculator(HessianCalculator):
-    def __init__(self, margin=0.2, alpha=0.01) -> None:
+    def __init__(self, margin=0.2, alpha=0.01, num_classes=10) -> None:
         super().__init__()
         self.margin = margin
         self.alpha = alpha
+        self.num_classes = num_classes
 
     def compute_batch(self, model, output_size, x1, x2, y, *args, **kwargs):
         self.feature_maps = []
@@ -240,7 +241,9 @@ class ContrastiveHessianCalculator(HessianCalculator):
         Hs = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), Hs)
 
         # Set to negative for non-matches in mask
-        Hs = torch.einsum("b,bm->bm", torch.where(negative_mask, -1 / 9, 1), Hs)
+        Hs = torch.einsum("b,bm->bm", torch.where(negative_mask, -1 / (self.num_classes - 1), 1), Hs)
+
+        # Scale by the number of samples
 
         return Hs.sum(dim=0)
 
