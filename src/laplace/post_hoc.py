@@ -80,8 +80,8 @@ if __name__ == "__main__":
     ood_set = SVHN("data/", split="test", transform=transforms.ToTensor())
     ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
 
-    # model = ConvNet(latent_dim).to(device)
-    model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
+    model = ConvNet(latent_dim).to(device)
+    # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     model.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
 
     mu_q, sigma_q = post_hoc(model, train_loader, device)

@@ -72,6 +72,26 @@ def generate_predictions_from_samples_rolling(
     return torch.tensor(mean), torch.tensor(variance)
 
 
+def sample_normal(mean, variance, n_samples=16) -> torch.Tensor:
+    assert variance.shape == mean.shape
+    if len(mean.shape) == 1:
+        n = mean.shape[0]
+        new_shape = (n, n_samples)
+        sample_dim = 1
+        return torch.randn(new_shape, device=mean.device) * torch.sqrt(variance).unsqueeze(sample_dim).expand(
+            new_shape
+        ) + mean.unsqueeze(sample_dim).expand(new_shape)
+    elif len(mean.shape) == 2:
+        n, m = mean.shape
+        new_shape = (n, m, n_samples)
+        sample_dim = 2
+        return torch.randn(new_shape, device=mean.device) * torch.sqrt(variance).unsqueeze(sample_dim).expand(
+            new_shape
+        ) + mean.unsqueeze(sample_dim).expand(new_shape)
+    else:
+        raise ValueError("Only 1D and 2D tensors are supported")
+
+
 def get_sample_accuracy(train_set, test_set, model, inference_model, samples, device):
     accuracies = []
     for sample in samples:

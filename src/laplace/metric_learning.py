@@ -41,6 +41,12 @@ if __name__ == "__main__":
     lr = 3e-4
     batch_size = 16
 
+    # # transforms.Resize((256, 256))
+    # # transforms.RandomCrop((227, 227))
+    # # transforms.RandomCrop(32, padding=4)
+    # transforms.RandomVerticalFlip(p=0.5)
+    # transforms.RandomHorizontalFlip(p=0.5)
+
     train_set = CIFAR10("data/", train=True, transform=transforms.ToTensor())
     train_loader = DataLoader(train_set, batch_size, shuffle=True)
 
