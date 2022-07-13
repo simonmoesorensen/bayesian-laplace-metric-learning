@@ -11,7 +11,7 @@ module load python3/3.9.6
 module load cuda/11.3
 source venv/bin/activate
 
-# python src/laplace/metric_learning.py
+python src/laplace/metric_learning.py
 python src/laplace/post_hoc.py
 python src/laplace/evaluate.py
 python src/visualization/plot_ood.py

@@ -52,8 +52,8 @@ if __name__ == "__main__":
     # ood_loader = DataLoader(ood_set, batch_size, shuffle=False)
     # ood_label = "cifar100"
 
-    # model = ConvNet(latent_dim).to(device)
-    model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
+    model = ConvNet(latent_dim).to(device)
+    # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     t = time.time()
     mean, variance = evaluate_laplace(model, id_loader, device)
