@@ -106,7 +106,7 @@ class HIBLightningModule(BaseLightningModule):
         neg_anc_scaled  = scale_indices(neg_anc)
         neg_scaled  = scale_indices(neg)
 
-        loss_soft_constrastive = self.loss_fn(
+        loss_soft_contrastive = self.loss_fn(
             embeddings=k1_samples,
             labels=y_k1,
             # something like this
@@ -117,9 +117,9 @@ class HIBLightningModule(BaseLightningModule):
 
         loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()
 
-        loss = loss_soft_constrastive + self.args.kl_scale * loss_kl
+        loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
 
-        self.metrics.update("train_loss", loss_soft_constrastive.item())
+        self.metrics.update("train_loss", loss_soft_contrastive.item())
         self.metrics.update("train_loss_kl", loss_kl.item())
 
         return samples[0], loss
@@ -131,9 +131,10 @@ class HIBLightningModule(BaseLightningModule):
         mu, std = self.forward(X)
 
         # Reparameterization trick
-        epsilon = torch.randn_like(std)
-        samples = mu + epsilon * std
-        norm_samples = l2_norm(samples)
+        epsilon = torch.randn(self.K, std.shape[0], std.shape[1], device=self.device)
+        # [K_samples, batch_size, embedding_space]
+        samples = mu + std * epsilon
+        samples = l2_norm(samples)
 
         pair_indices = self.miner(samples[0], y)
 
@@ -166,7 +167,7 @@ class HIBLightningModule(BaseLightningModule):
         neg_anc_scaled  = scale_indices(neg_anc)
         neg_scaled  = scale_indices(neg)
 
-        loss_soft_constrastive = self.loss_fn(
+        loss_soft_contrastive = self.loss_fn(
             embeddings=k1_samples,
             labels=y_k1,
             # something like this
@@ -175,14 +176,12 @@ class HIBLightningModule(BaseLightningModule):
             ref_labels=y_k2,
         )
 
-        loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()
-
-        
+        loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()        
 
         self.metrics.update("val_loss", loss_soft_contrastive.item())
         self.metrics.update("val_loss_kl", loss_kl.item())
 
-        return mu, std, norm_samples
+        return mu, std, samples[0]
     
     def val_end(self):
         self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_r"])
