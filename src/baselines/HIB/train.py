@@ -8,7 +8,7 @@ from src.data_modules.CasiaDataModule import CasiaDataModule
 
 from src.baselines.HIB.config import parse_args
 from src.baselines.HIB.models import MNIST_HIB, CIFAR10_HIB, Casia_HIB
-from src.baselines.HIB.losses import SoftContrastiveLoss
+from src.baselines.HIB.losses import SoftContrastiveLoss, WeightClipper
 
 from src.utils import (
     separate_batchnorm_params,
@@ -50,9 +50,7 @@ def run(HIB_args):
 
     loss = SoftContrastiveLoss()
 
-    miner = miners.MultiSimilarityMiner(
-        epsilon=0.1,
-    )
+    miner = miners.BatchEasyHardMiner()
 
     trainer = HIBLightningModule(
         accelerator="gpu", 

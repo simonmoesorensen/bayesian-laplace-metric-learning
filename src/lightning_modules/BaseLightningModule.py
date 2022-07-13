@@ -229,7 +229,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     self.update_accuracy(out, target, "train")
-                    self.display(batch, epoch)
+                    self.display(epoch, batch)
 
                 batch += 1
 

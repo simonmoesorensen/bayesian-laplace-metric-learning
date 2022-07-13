@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument('--to_visualize', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--disp_freq', type=int, default=20)
+    parser.add_argument('--K', type=int, default=5)
     
     # ----- hyperparameters
     parser.add_argument('--batch_size', type=int, default=512)
