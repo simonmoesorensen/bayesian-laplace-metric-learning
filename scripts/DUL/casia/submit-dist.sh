@@ -48,7 +48,7 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 ./src/train.py \
+python3 ./src/baselines/DUL/train.py \
     --dataset Casia \
     --name Casia \
     --batch_size 512 \

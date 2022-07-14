@@ -47,17 +47,18 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0,1
 
-# notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 ./src/baselines/DUL/train.py \
-    --model_save_folder $model_save_folder \
-    --log_dir $logs \
-    --dataset MNIST \
-    --name MNIST \
-    --batch_size 512 \
-    --embedding_size 256 \
-    --arcface_scale 15 \
-    --arcface_margin 0.8 \
+echo "Waiting for debugger to attach..."
+
+python3 ./src/baselines/HIB/train.py \
+    --dataset CIFAR10 \
+    --name CIFAR10 \
+    --batch_size 64 \
+    --K 8 \
+    --embedding_size 128 \
     --num_epoch 10 \
     --save_freq 5 \
-    --gpu_id 0 3\
-    --num_workers 8
+    --gpu_id 0\
+    --num_workers 8 \
+    --shuffle \
+    --kl_scale 0.0001 \
+    --to_visualize
