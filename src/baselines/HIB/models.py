@@ -46,7 +46,15 @@ def CIFAR10_HIB(embedding_size=128):
     """
     # Embedding dimension
     model = resnet50(num_classes=embedding_size)
-    return model
+
+    model_HIB = nn.Sequential(
+        model,
+        StochasticLayer(
+            embedding_size=embedding_size
+        )
+    )
+
+    return model_HIB
 
 def Casia_HIB(embedding_size=128):
     """
@@ -54,4 +62,12 @@ def Casia_HIB(embedding_size=128):
     """
     # Embedding dimension
     model = resnet50(num_classes=embedding_size)
-    return model
+
+    model_HIB = nn.Sequential(
+        model,
+        StochasticLayer(
+            embedding_size=embedding_size
+        )
+    )
+
+    return model_HIB
