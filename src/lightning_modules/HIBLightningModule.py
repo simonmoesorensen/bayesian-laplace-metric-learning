@@ -10,7 +10,6 @@ from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning.distances import LpDistance
 from pytorch_metric_learning.utils.inference import CustomKNN
 
-from src.baselines.HIB.losses import WeightClipper
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 from src.utils import l2_norm
