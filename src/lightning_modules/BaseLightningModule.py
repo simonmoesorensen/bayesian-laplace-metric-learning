@@ -270,7 +270,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         self.model.train()
 
     def test(self):
-        print(f"Testing @ epoch: {self.epoch}")
+        print(f"Testing @ epoch: {self.epoch + 1}")
         self.model.eval()
 
         self.test_start()
