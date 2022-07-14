@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/casia/run1.out
-#BSUB -e logs/casia/run1.err
+#BSUB -o logs/DUL/casia/run1.out
+#BSUB -e logs/DUL/casia/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -48,7 +48,7 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 ./src/baselines/DUL/train.py \
+python3 -m src.baselines.DUL.train \
     --dataset Casia \
     --name Casia \
     --batch_size 512 \

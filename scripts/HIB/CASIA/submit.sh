@@ -5,7 +5,7 @@
 #BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J HIB-mnist
+#BSUB -J HIB-Casia
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/HIB/mnist/run1.out
-#BSUB -e logs/HIB/mnist/run1.err
+#BSUB -o logs/HIB/casia/run1.out
+#BSUB -e logs/HIB/casia/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -48,15 +48,16 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0,1
 
 echo "Waiting for debugger to attach..."
+
 python3 -m src.baselines.HIB.train \
-    --dataset MNIST \
-    --name MNIST \
+    --dataset Casia \
+    --name Casia \
     --batch_size 64 \
     --K 8 \
     --embedding_size 128 \
-    --num_epoch 3 \
-    --save_freq 1 \
-    --gpu_id 0\
+    --num_epoch 10 \
+    --save_freq 5 \
+    --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
     --kl_scale 0.0001 \

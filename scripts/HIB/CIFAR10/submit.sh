@@ -5,7 +5,7 @@
 #BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J DUL-mnist
+#BSUB -J HIB-CIFAR10
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/mnist/run1.out
-#BSUB -e logs/mnist/run1.err
+#BSUB -o logs/HIB/cifar/run1.out
+#BSUB -e logs/HIB/cifar/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -49,7 +49,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 echo "Waiting for debugger to attach..."
 
-python3 ./src/baselines/HIB/train.py \
+python3 -m src.baselines.HIB.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 64 \

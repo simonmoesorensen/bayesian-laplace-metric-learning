@@ -2,8 +2,8 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 echo "Waiting for debugger to attach..."
 python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/HIB/train.py \
-    --dataset CASIA \
-    --name CASIA \
+    --dataset Casia \
+    --name Casia \
     --batch_size 64 \
     --K 8 \
     --embedding_size 128 \
