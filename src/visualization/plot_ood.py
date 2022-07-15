@@ -4,7 +4,7 @@ from scipy.stats import hmean
 from matplotlib.patches import Ellipse
 import seaborn as sns
 
-sns.set()
+sns.set_theme(style="ticks")
 
 c_id = "b"
 c_ood = "r"
@@ -55,25 +55,25 @@ def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
 
 
 def plot_ood(mu_id, var_id, mu_ood, var_ood):
-    fig, ax = plt.subplots(ncols=2, figsize=(10, 4))
+    # fig, ax = plt.subplots(ncols=2, figsize=(5, 3))
+    fig, ax = plt.subplots(ncols=2, figsize=(7, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
-    plot_histogram(var_id, color=c_id, ax=ax[1])
+    plot_histogram(var_id, color=c_id, label="ID", ax=ax[1])
     plot_samples(mu_ood, var_ood, limit=100, color=c_ood, label="OOD", ax=ax[0])
-    plot_histogram(var_ood, color=c_ood, ax=ax[1])
-    ax[0].legend()
+    plot_histogram(var_ood, color=c_ood, label="OOD", ax=ax[1])
+    ax[1].get_yaxis().set_ticks([])
+    ax[1].set_ylabel(None)
+    ax[1].legend()
     return fig, ax
 
 
 if __name__ == "__main__":
-    id_label = "cifar10"
     id_title = "CIFAR-10"
+    id_label = id_title.lower()
 
-    # ood_label = "cifar100"
-    # ood_title = "CIFAR-100"
-    ood_label = "svhn"
     ood_title = "SVHN"
-    # ood_label = "noise"
-    # ood_title = "Noise"
+    # ood_title = "CIFAR-100"
+    ood_label = ood_title.lower()
 
     mu_id = np.load(f"results/laplace/{id_label}/id_laplace_mu.npy")
     var_id = np.load(f"results/laplace/{id_label}/id_laplace_sigma_sq.npy")
@@ -82,4 +82,5 @@ if __name__ == "__main__":
 
     fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
     fig.suptitle(f"Trained on {id_title}, OOD {ood_title}")
+    fig.tight_layout()
     fig.savefig(f"figures/ood_plot_{id_label}_{ood_label}.png")
