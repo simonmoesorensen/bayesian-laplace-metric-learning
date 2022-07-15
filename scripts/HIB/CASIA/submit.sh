@@ -52,10 +52,10 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.HIB.train \
     --dataset Casia \
     --name Casia \
-    --batch_size 64 \
-    --K 8 \
+    --batch_size 256 \
+    --K 5 \
     --embedding_size 128 \
-    --num_epoch 10 \
+    --num_epoch 100 \
     --save_freq 5 \
     --gpu_id 0 1\
     --num_workers 8 \
