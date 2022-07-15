@@ -1,8 +1,9 @@
 from torchvision import transforms
 import torchvision.datasets as d
-from torch.utils.data import Subset, random_split, DataLoader
+from torch.utils.data import Subset, random_split, DataLoader, sampler
 import zipfile
 import numpy as np
+import torch
 
 from tqdm import tqdm
 
@@ -11,8 +12,24 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class CasiaDataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
-        super().__init__(d.ImageFolder, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
+    def __init__(
+        self,
+        data_dir,
+        batch_size,
+        num_workers,
+        sampler=None,
+        shuffle=False,
+        pin_memory=True,
+    ):
+        super().__init__(
+            d.ImageFolder,
+            data_dir,
+            batch_size,
+            num_workers,
+            sampler,
+            shuffle,
+            pin_memory,
+        )
 
         self.name = "Casia"
         self.n_classes = 10575
@@ -25,8 +42,8 @@ class CasiaDataModule(BaseDataModule):
                 transforms.ToTensor(),
                 transforms.Normalize(
                     # Found from `self._compute_mean_and_std()`
-                    [0.4668, 0.3803, 0.3344], 
-                    [0.2949, 0.2649, 0.2588]
+                    [0.4668, 0.3803, 0.3344],
+                    [0.2949, 0.2649, 0.2588],
                 ),
                 transforms.Resize((128, 128)),
             ]
@@ -54,7 +71,7 @@ class CasiaDataModule(BaseDataModule):
                     except zipfile.error as e:
                         print(e)
                         pass
-        
+
         # OOD dataset
         d.CIFAR10(self.data_dir, train=False, download=True)
 
@@ -77,7 +94,8 @@ class CasiaDataModule(BaseDataModule):
         if shuffle:
             # Overlapping classes allowed
             self.dataset_train, self.dataset_val, self.dataset_test = random_split(
-                dataset_full, [n_train, n_val, n_test]
+                dataset_full, [n_train, n_val, n_test],
+                generator=torch.Generator().manual_seed(42)
             )
         else:
             # Overlapping classes not allowed (zero-shot learning)
@@ -100,8 +118,25 @@ class CasiaDataModule(BaseDataModule):
             ]
         )
 
-        self.dataset_ood = d.CIFAR10(self.data_dir, train=False, transform=ood_transforms)
+        self.dataset_ood = d.CIFAR10(
+            self.data_dir, train=False, transform=ood_transforms
+        )
 
+        if self.sampler == "WeightedRandomSampler":
+            weights_file = self.data_dir / "casia_weights.tensor"
+
+            if weights_file.exists():
+                print(f"Found weights file {weights_file}")
+                weights = torch.load(weights_file)
+            else:
+                print(f"Computing class weights")
+                weights = self.make_weights_for_balanced_classes(
+                    self.dataset_train, self.n_classes
+                )
+                print(f"Saving class weights file {weights_file}")
+                torch.save(weights, weights_file)
+
+            self.sampler = self.get_sampler(weights)
 
     def ood_dataloader(self):
         return DataLoader(
@@ -109,6 +144,36 @@ class CasiaDataModule(BaseDataModule):
             num_workers=self.num_workers,
             batch_size=128,
             pin_memory=self.pin_memory,
-            sampler=self.sampler,
-            shuffle=False if self.sampler else self.shuffle,
         )
+
+    def make_weights_for_balanced_classes(self, images, nclasses):
+        """
+        Adapted from https://gist.github.com/srikarplus/15d7263ae2c82e82fe194fc94321f34e
+        """
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        batch_size = 1024
+        num_workers = self.num_workers
+
+        count = torch.zeros(nclasses).to(device)
+        loader = DataLoader(images, batch_size=batch_size, num_workers=num_workers)
+
+        for _, label in tqdm(loader, desc="Counting classes"):
+            label = label.to(device=device)
+            idx, counts = label.unique(return_counts=True)
+            count[idx] += counts
+
+        N = count.sum()
+        weight_per_class = N / count
+
+        weight = torch.zeros(len(images)).to(device)
+
+        for i, (img, label) in tqdm(enumerate(loader), desc="Apply weights", total=len(loader)):
+            idx = torch.arange(0, img.shape[0]) + (i * batch_size)
+            idx = idx.to(dtype=torch.long, device=device)
+            weight[idx] = weight_per_class[label]
+
+        return weight
+
+    def get_sampler(self, weights):
+        return sampler.WeightedRandomSampler(weights, len(weights))

@@ -28,6 +28,7 @@ def run(HIB_args):
     elif HIB_args.dataset == "Casia":
         model = Casia_HIB(embedding_size=HIB_args.embedding_size)
         data_module = CasiaDataModule
+        sampler = 'WeightedRandomSampler'
 
     data_module = data_module(
         HIB_args.data_dir, HIB_args.batch_size, HIB_args.num_workers,
