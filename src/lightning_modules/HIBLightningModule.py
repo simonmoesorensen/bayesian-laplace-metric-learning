@@ -91,7 +91,6 @@ class HIBLightningModule(BaseLightningModule):
             y_k1 = y.repeat_interleave(self.K**3, dim=0)
             y_k2 = y.repeat(self.K**3, 1).view(-1)
 
-            pos_anc, pos, neg_anc, neg = pair_indices
 
             # Scale the indices to match the shape of the samples
             step = self.to_device(torch.arange(0, self.K)) * self.batch_size
@@ -99,16 +98,15 @@ class HIBLightningModule(BaseLightningModule):
                     x.repeat(self.K, 1).T + step
                 ).T.view(-1)
 
-            pos_anc_scaled = scale_indices(pos_anc)
-            pos_scaled  = scale_indices(pos)
-            neg_anc_scaled  = scale_indices(neg_anc)
-            neg_scaled  = scale_indices(neg)
+            scaled_indices = []
+            for val in pair_indices:
+                scaled_indices.append(scale_indices(val))
 
             loss_soft_contrastive = self.loss_fn(
                 embeddings=k1_samples,
                 labels=y_k1,
                 # something like this
-                indices_tuple=(pos_anc_scaled, pos_scaled , neg_anc_scaled , neg_scaled ),
+                indices_tuple=scaled_indices,
                 ref_emb=k2_samples,
                 ref_labels=y_k2,
             )
