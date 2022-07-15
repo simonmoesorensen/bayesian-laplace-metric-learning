@@ -12,7 +12,12 @@ class MNISTDataModule(BaseDataModule):
         self.n_classes = 10
 
         self.transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            [
+                transforms.ToTensor(), 
+                transforms.Normalize((0.1307,), (0.3081,)),
+                transforms.RandomResizedCrop((28, 28)),
+                transforms.RandomHorizontalFlip(0.5)
+            ]
         )
 
     def prepare_data(self):
@@ -28,6 +33,8 @@ class MNISTDataModule(BaseDataModule):
                 transforms.ToTensor(),
                 # Found using self._compute_mean_and_std()
                 transforms.Normalize((0.2861), (0.3528)),
+                transforms.RandomResizedCrop((28, 28)),
+                transforms.RandomHorizontalFlip(0.5)
             ]
         )
 

@@ -45,7 +45,8 @@ class CasiaDataModule(BaseDataModule):
                     [0.4668, 0.3803, 0.3344],
                     [0.2949, 0.2649, 0.2588],
                 ),
-                transforms.Resize((128, 128)),
+                transforms.RandomResizedCrop((128, 128)),
+                transforms.RandomHorizontalFlip(0.5)
             ]
         )
 
@@ -114,7 +115,8 @@ class CasiaDataModule(BaseDataModule):
                     (0.49139968, 0.48215841, 0.44653091),
                     (0.24703223, 0.24348513, 0.26158784),
                 ),
-                transforms.Resize((32, 32)),
+                transforms.RandomResizedCrop((32, 32)),
+                transforms.RandomHorizontalFlip(0.5)
             ]
         )
 
