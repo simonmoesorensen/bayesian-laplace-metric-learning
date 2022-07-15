@@ -53,7 +53,7 @@ python3 -m src.baselines.HIB.train \
     --dataset Casia \
     --name Casia \
     --batch_size 256 \
-    --K 5 \
+    --K 4 \
     --embedding_size 128 \
     --num_epoch 100 \
     --save_freq 5 \
