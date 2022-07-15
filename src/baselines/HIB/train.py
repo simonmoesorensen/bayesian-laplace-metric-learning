@@ -18,6 +18,7 @@ from src.utils import (
 def run(HIB_args):
     HIB_args.gpu_id = [int(item) for item in HIB_args.gpu_id]
     
+    sampler = None
     if HIB_args.dataset == "MNIST":
         model = MNIST_HIB(embedding_size=HIB_args.embedding_size)
         data_module = MNISTDataModule
@@ -29,7 +30,9 @@ def run(HIB_args):
         data_module = CasiaDataModule
 
     data_module = data_module(
-        HIB_args.data_dir, HIB_args.batch_size, HIB_args.num_workers
+        HIB_args.data_dir, HIB_args.batch_size, HIB_args.num_workers,
+        shuffle=HIB_args.shuffle, pin_memory=HIB_args.pin_memory,
+        sampler=sampler
     )
 
     # Don't apply weight decay to batchnorm layers
@@ -50,7 +53,7 @@ def run(HIB_args):
 
     loss = SoftContrastiveLoss()
 
-    miner = miners.BatchEasyHardMiner()
+    miner = miners.MultiSimilarityMiner()
 
     trainer = HIBLightningModule(
         accelerator="gpu", 

@@ -5,7 +5,7 @@ from tqdm import tqdm
 import torch
 
 class BaseDataModule(LightningDataModule):
-    def __init__(self, dataset_cls, data_dir, batch_size, num_workers):
+    def __init__(self, dataset_cls, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
         super().__init__()
 
         self.cls = dataset_cls
@@ -16,6 +16,11 @@ class BaseDataModule(LightningDataModule):
         self.df_train = None
         self.df_val = None
         self.df_test = None
+
+        # Dataloader args
+        self.sampler = sampler
+        self.shuffle = shuffle
+        self.pin_memory = pin_memory
 
     def prepare_data(self):
         self.cls(self.data_dir, train=True, download=True)
@@ -52,36 +57,44 @@ class BaseDataModule(LightningDataModule):
             self.data_dir, train=False, transform=self.transform
         )
 
-    def train_dataloader(self, pin_memory=True):
+    def train_dataloader(self):
         return DataLoader(
             self.dataset_train,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
-            pin_memory=pin_memory,
+            pin_memory=self.pin_memory,
+            sampler=self.sampler,
+            shuffle=False if self.sampler else self.shuffle,
         )
 
-    def val_dataloader(self, pin_memory=True):
+    def val_dataloader(self):
         return DataLoader(
             self.dataset_val,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
-            pin_memory=pin_memory,
+            pin_memory=self.pin_memory,
+            sampler=self.sampler,
+            shuffle=False if self.sampler else self.shuffle,
         )
 
-    def test_dataloader(self, pin_memory=True):
+    def test_dataloader(self):
         return DataLoader(
             self.dataset_test,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
-            pin_memory=pin_memory,
+            pin_memory=self.pin_memory,
+            sampler=self.sampler,
+            shuffle=False if self.sampler else self.shuffle,
         )
 
-    def ood_dataloader(self, pin_memory=True):
+    def ood_dataloader(self):
         return DataLoader(
             self.dataset_ood,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
-            pin_memory=pin_memory,
+            pin_memory=self.pin_memory,
+            sampler=self.sampler,
+            shuffle=False if self.sampler else self.shuffle,
         )
 
     

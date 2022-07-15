@@ -11,8 +11,8 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class CasiaDataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers):
-        super().__init__(d.ImageFolder, data_dir, batch_size, num_workers)
+    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
+        super().__init__(d.ImageFolder, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
 
         self.name = "Casia"
         self.n_classes = 10575
@@ -103,10 +103,12 @@ class CasiaDataModule(BaseDataModule):
         self.dataset_ood = d.CIFAR10(self.data_dir, train=False, transform=ood_transforms)
 
 
-    def ood_dataloader(self, pin_memory=True):
+    def ood_dataloader(self):
         return DataLoader(
             self.dataset_ood,
             num_workers=self.num_workers,
             batch_size=128,
-            pin_memory=pin_memory,
+            pin_memory=self.pin_memory,
+            sampler=self.sampler,
+            shuffle=False if self.sampler else self.shuffle,
         )

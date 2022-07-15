@@ -5,8 +5,8 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class CIFAR10DataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers):
-        super().__init__(d.CIFAR10, data_dir, batch_size, num_workers)
+    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
+        super().__init__(d.CIFAR10, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
 
         self.name = "CIFAR"
         self.n_classes = 10

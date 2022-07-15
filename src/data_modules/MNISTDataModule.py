@@ -5,8 +5,8 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class MNISTDataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers):
-        super().__init__(d.MNIST, data_dir, batch_size, num_workers)
+    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
+        super().__init__(d.MNIST, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
 
         self.name = "MNIST"
         self.n_classes = 10

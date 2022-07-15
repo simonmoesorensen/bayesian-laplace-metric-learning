@@ -342,7 +342,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def add_data_module(self, data_module):
         data_module.prepare_data()
-        data_module.setup(shuffle=self.args.shuffle)
+        data_module.setup()
 
         (
             self.train_loader,
