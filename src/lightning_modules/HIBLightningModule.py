@@ -65,58 +65,65 @@ class HIBLightningModule(BaseLightningModule):
     def epoch_end(self):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
+    def loss_step(self, mu, std, y):
+        with self.autocast():
+            epsilon = self.to_device(torch.randn(self.K, std.shape[0], std.shape[1]))
+            # [K_samples, batch_size, embedding_space]
+            samples = mu + std * epsilon
+            samples = l2_norm(samples)
+
+            pair_indices = self.miner(samples[0], y)
+
+            # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes 
+            # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
+            k1_samples = samples.repeat_interleave(self.K**2, dim=0)
+
+            # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
+            # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
+            k2_samples = samples.repeat(self.K**2, 1, 1)
+                
+            # Convert 3D to 2D, we use self.K**3 because we have K_samples, repeated K**2 times
+            # Concatenates all K samples into one large [batch_size * K, embedding_space] tensor
+            k1_samples = k1_samples.view(self.K**3 * mu.shape[0], self.args.embedding_size)
+            k2_samples = k2_samples.view(self.K**3 * mu.shape[0], self.args.embedding_size)
+            
+            # Repeat target to match the shape of the samples [batch_size * K, embedding_space]
+            y_k1 = y.repeat_interleave(self.K**3, dim=0)
+            y_k2 = y.repeat(self.K**3, 1).view(-1)
+
+            pos_anc, pos, neg_anc, neg = pair_indices
+
+            # Scale the indices to match the shape of the samples
+            step = self.to_device(torch.arange(0, self.K)) * self.batch_size
+            scale_indices = lambda x: (
+                    x.repeat(self.K, 1).T + step
+                ).T.view(-1)
+
+            pos_anc_scaled = scale_indices(pos_anc)
+            pos_scaled  = scale_indices(pos)
+            neg_anc_scaled  = scale_indices(neg_anc)
+            neg_scaled  = scale_indices(neg)
+
+            loss_soft_contrastive = self.loss_fn(
+                embeddings=k1_samples,
+                labels=y_k1,
+                # something like this
+                indices_tuple=(pos_anc_scaled, pos_scaled , neg_anc_scaled , neg_scaled ),
+                ref_emb=k2_samples,
+                ref_labels=y_k2,
+            )
+
+            loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()
+
+            loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
+
+            return samples, loss, loss_soft_contrastive, loss_kl
+
     def train_step(self, X, y):
         # Pass images through the model
         mu, std = self.forward(X)
 
-        epsilon = torch.randn(self.K, std.shape[0], std.shape[1], device=self.device)
-        # [K_samples, batch_size, embedding_space]
-        samples = mu + std * epsilon
-        samples = l2_norm(samples)
-
-        pair_indices = self.miner(samples[0], y)
-
-        # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes 
-        # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
-        k1_samples = samples.repeat_interleave(self.K**2, dim=0)
-
-        # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
-        # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
-        k2_samples = samples.repeat(self.K**2, 1, 1)
-            
-        # Convert 3D to 2D, we use self.K**3 because we have K_samples, repeated K**2 times
-        # Concatenates all K samples into one large [batch_size * K, embedding_space] tensor
-        k1_samples = k1_samples.view(self.K**3 * X.shape[0], self.args.embedding_size)
-        k2_samples = k2_samples.view(self.K**3 * X.shape[0], self.args.embedding_size)
-        
-        # Repeat target to match the shape of the samples [batch_size * K, embedding_space]
-        y_k1 = y.repeat_interleave(self.K**3, dim=0)
-        y_k2 = y.repeat(self.K**3, 1).view(-1)
-
-        pos_anc, pos, neg_anc, neg = pair_indices
-
-        # Scale the indices to match the shape of the samples
-        scale_indices = lambda x: (
-                x.repeat(self.K, 1).T + (torch.arange(0, self.K, device=self.device) * self.batch_size)
-            ).T.view(-1)
-
-        pos_anc_scaled = scale_indices(pos_anc)
-        pos_scaled  = scale_indices(pos)
-        neg_anc_scaled  = scale_indices(neg_anc)
-        neg_scaled  = scale_indices(neg)
-
-        loss_soft_contrastive = self.loss_fn(
-            embeddings=k1_samples,
-            labels=y_k1,
-            # something like this
-            indices_tuple=(pos_anc_scaled, pos_scaled , neg_anc_scaled , neg_scaled ),
-            ref_emb=k2_samples,
-            ref_labels=y_k2,
-        )
-
-        loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()
-
-        loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
+        samples, loss, loss_soft_contrastive, loss_kl = self.loss_step(mu, std, y)       
 
         self.metrics.update("train_loss", loss_soft_contrastive.item())
         self.metrics.update("train_loss_kl", loss_kl.item())
@@ -129,53 +136,7 @@ class HIBLightningModule(BaseLightningModule):
     def val_step(self, X, y):
         mu, std = self.forward(X)
 
-        # Reparameterization trick
-        epsilon = torch.randn(self.K, std.shape[0], std.shape[1], device=self.device)
-        # [K_samples, batch_size, embedding_space]
-        samples = mu + std * epsilon
-        samples = l2_norm(samples)
-
-        pair_indices = self.miner(samples[0], y)
-
-        # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes 
-        # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
-        k1_samples = samples.repeat_interleave(self.K**2, dim=0)
-
-        # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
-        # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
-        k2_samples = samples.repeat(self.K**2, 1, 1)
-            
-        # Convert 3D to 2D, we use self.K**3 because we have K_samples, repeated K**2 times
-        # Concatenates all K samples into one large [batch_size * K, embedding_space] tensor
-        k1_samples = k1_samples.view(self.K**3 * X.shape[0], self.args.embedding_size)
-        k2_samples = k2_samples.view(self.K**3 * X.shape[0], self.args.embedding_size)
-        
-        # Repeat target to match the shape of the samples [batch_size * K, embedding_space]
-        y_k1 = y.repeat_interleave(self.K**3, dim=0)
-        y_k2 = y.repeat(self.K**3, 1).view(-1)
-
-        pos_anc, pos, neg_anc, neg = pair_indices
-
-        # Scale the indices to match the shape of the samples
-        scale_indices = lambda x: (
-                x.repeat(self.K, 1).T + (torch.arange(0, self.K, device=self.device) * self.batch_size)
-            ).T.view(-1)
-
-        pos_anc_scaled = scale_indices(pos_anc)
-        pos_scaled  = scale_indices(pos)
-        neg_anc_scaled  = scale_indices(neg_anc)
-        neg_scaled  = scale_indices(neg)
-
-        loss_soft_contrastive = self.loss_fn(
-            embeddings=k1_samples,
-            labels=y_k1,
-            # something like this
-            indices_tuple=(pos_anc_scaled, pos_scaled , neg_anc_scaled , neg_scaled ),
-            ref_emb=k2_samples,
-            ref_labels=y_k2,
-        )
-
-        loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()        
+        samples, _, loss_soft_contrastive, loss_kl = self.loss_step(mu, std, y)      
 
         self.metrics.update("val_loss", loss_soft_contrastive.item())
         self.metrics.update("val_loss_kl", loss_kl.item())
