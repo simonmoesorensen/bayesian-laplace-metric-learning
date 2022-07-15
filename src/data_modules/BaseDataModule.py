@@ -73,7 +73,6 @@ class BaseDataModule(LightningDataModule):
             num_workers=self.num_workers,
             batch_size=self.batch_size,
             pin_memory=self.pin_memory,
-            sampler=self.sampler,
             shuffle=False if self.sampler else self.shuffle,
         )
 
@@ -83,7 +82,6 @@ class BaseDataModule(LightningDataModule):
             num_workers=self.num_workers,
             batch_size=self.batch_size,
             pin_memory=self.pin_memory,
-            sampler=self.sampler,
             shuffle=False if self.sampler else self.shuffle,
         )
 
@@ -93,7 +91,6 @@ class BaseDataModule(LightningDataModule):
             num_workers=self.num_workers,
             batch_size=self.batch_size,
             pin_memory=self.pin_memory,
-            sampler=self.sampler,
             shuffle=False if self.sampler else self.shuffle,
         )
 
