@@ -55,7 +55,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         self.batch_size = args.batch_size
 
         # Miners and Loss
-        self.loss_fn = loss_fn
+        self.loss_fn = self.to_device(loss_fn)
 
         self.miner = miner
 
@@ -354,6 +354,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             data_module.val_dataloader(),
             data_module.test_dataloader(),
             data_module.ood_dataloader(),
+            replace_sampler=False if data_module.sampler else True
         )
 
     def save_model(self, prefix=None):
