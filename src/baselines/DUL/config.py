@@ -41,16 +41,22 @@ def parse_args():
     parser.add_argument('--embedding_size', type=int, default=512)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
-    parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--to_visualize', default=False, action='store_true')
-    parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--disp_freq', type=int, default=20)
+
+    # ----- data loader details
+    parser.add_argument('--num_workers', type=int, default=8)
+    parser.add_argument('--shuffle', default=False, action='store_true')
+    parser.add_argument('--pin_memory', default=True, action='store_true')
+    parser.add_argument('--batch_size', type=int, default=512)
     
     # ----- hyperparameters
-    parser.add_argument('--batch_size', type=int, default=512)
     parser.add_argument('--num_epoch', type=int, default=22)
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--kl_scale', type=float, default=0.01)
+
+    args = parser.parse_args()
+
 
     args = parser.parse_args()
 
