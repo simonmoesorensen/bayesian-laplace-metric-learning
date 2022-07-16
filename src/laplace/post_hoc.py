@@ -8,6 +8,7 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision import transforms
 from tqdm import tqdm
 from torchvision.models import resnet50
+from laplace.metric_learning import train_metric
 
 from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
@@ -18,6 +19,7 @@ from src import data
 def post_hoc(
     model: nn.Module,
     train_loader: DataLoader,
+    margin: float,
     device="cpu",
 ):
     """
@@ -28,7 +30,7 @@ def post_hoc(
 
     images_per_class = 5000
 
-    calculator = ContrastiveHessianCalculator()
+    calculator = ContrastiveHessianCalculator(margin=margin)
     calculator.init_model(model.linear)
     compute_hessian = calculator.compute_batch_pairs
     miner = AllCombinationsMiner()
@@ -65,6 +67,9 @@ if __name__ == "__main__":
 
     latent_dim = 25
     batch_size = 16
+    epochs = 30
+    lr = 3e-4
+    margin = 0.2
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
     id_module.setup()
@@ -77,8 +82,10 @@ if __name__ == "__main__":
 
     model = ConvNet(latent_dim).to(device)
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
-    model.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
 
-    mu_q, sigma_q = post_hoc(model, train_loader, device)
+    # model.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
+    train_metric(model, train_loader, epochs, lr, margin, device)
+
+    mu_q, sigma_q = post_hoc(model, train_loader, margin, device)
     torch.save(mu_q.detach().cpu(), "pretrained/laplace/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), "pretrained/laplace/laplace_sigma.pt")

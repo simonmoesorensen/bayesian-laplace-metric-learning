@@ -40,7 +40,7 @@ if __name__ == "__main__":
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
 
-    ood_module = data.CIFAR100DataModule("data/", batch_size, 4)
+    ood_module = data.SVHNDataModule("data/", batch_size, 4)
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
