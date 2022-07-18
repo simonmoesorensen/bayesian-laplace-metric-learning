@@ -68,7 +68,7 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
 
     def p_calc(self, pair_dist):
         p = torch.sigmoid(-self.A * pair_dist + self.B)
-        p = p.clamp_(min=1e-8, max=1.0)
+        p = torch.clamp(p, min=1e-8, max=1.0)
 
         return p
 
