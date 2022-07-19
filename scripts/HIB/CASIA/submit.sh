@@ -60,5 +60,5 @@ python3 -m src.baselines.HIB.train \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 0.0001 \
+    --kl_scale 0.00001 \
     --to_visualize
