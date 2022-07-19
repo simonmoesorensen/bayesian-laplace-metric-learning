@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/mnist/run1.out
-#BSUB -e logs/mnist/run1.err
+#BSUB -o logs/DUL/mnist/run1.out
+#BSUB -e logs/DUL/mnist/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -47,11 +47,8 @@ source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0,1
 
-model_save_folder='./checkpoints/'
-log_tensorboard='./logtensorboard/'
-
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
-python3 ./src/train.py \
+python3 -m src.baselines.DUL.train \
     --model_save_folder $model_save_folder \
     --log_dir $logs \
     --dataset MNIST \

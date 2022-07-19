@@ -55,7 +55,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         self.batch_size = args.batch_size
 
         # Miners and Loss
-        self.loss_fn = loss_fn
+        self.loss_fn = self.to_device(loss_fn)
 
         self.miner = miner
 
@@ -229,7 +229,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     self.update_accuracy(out, target, "train")
-                    self.display(batch, epoch)
+                    self.display(epoch, batch)
 
                 batch += 1
 
@@ -270,7 +270,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         self.model.train()
 
     def test(self):
-        print(f"Testing @ epoch: {self.epoch}")
+        print(f"Testing @ epoch: {self.epoch + 1}")
         self.model.eval()
 
         self.test_start()
@@ -342,7 +342,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def add_data_module(self, data_module):
         data_module.prepare_data()
-        data_module.setup(shuffle=self.args.shuffle)
+        data_module.setup()
 
         (
             self.train_loader,
@@ -354,6 +354,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             data_module.val_dataloader(),
             data_module.test_dataloader(),
             data_module.ood_dataloader(),
+            replace_sampler=False if data_module.sampler else True
         )
 
     def save_model(self, prefix=None):

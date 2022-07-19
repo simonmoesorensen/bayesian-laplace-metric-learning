@@ -11,6 +11,7 @@ matplotlib
 pytorch_lightning
 seaborn
 faiss-gpu
+pytorch_metric_learning
 
 --extra-index-url https://download.pytorch.org/whl/cu113
 torch==1.11.0
