@@ -43,6 +43,7 @@ if __name__ == "__main__":
     lr = 3e-4
     batch_size = 128
     margin = 0.2
+    normalize_encoding = False
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
     id_module.setup()
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    model = ConvNet(latent_dim).to(device)
+    model = ConvNet(latent_dim, normalize_encoding).to(device)
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     logging.info("Finding MAP solution.")

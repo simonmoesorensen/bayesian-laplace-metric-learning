@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     latent_dim = 32
     batch_size = 512
+    normalize_encoding = False
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
     id_module.setup()
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     ood_loader = ood_module.test_dataloader()
 
     logging.info("Loading pretrained model.")
-    model = ConvNet(latent_dim).to(device)
+    model = ConvNet(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = model.fc

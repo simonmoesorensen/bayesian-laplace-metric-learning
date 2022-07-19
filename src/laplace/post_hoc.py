@@ -1,3 +1,4 @@
+from encodings import normalize_encoding
 import logging
 
 import torch
@@ -61,6 +62,7 @@ if __name__ == "__main__":
     latent_dim = 32
     batch_size = 32
     margin = 0.2
+    normalize_encoding = False
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
     id_module.setup()
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
-    model = ConvNet(latent_dim).to(device)
+    model = ConvNet(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = nn.Sequential(model.fc)
