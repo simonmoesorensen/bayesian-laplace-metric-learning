@@ -15,8 +15,6 @@ class MNISTDataModule(BaseDataModule):
             [
                 transforms.ToTensor(), 
                 transforms.Normalize((0.1307,), (0.3081,)),
-                transforms.RandomResizedCrop((28, 28)),
-                transforms.RandomHorizontalFlip(0.5)
             ]
         )
 

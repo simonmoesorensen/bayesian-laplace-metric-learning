@@ -51,7 +51,7 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.HIB.train \
     --dataset MNIST \
     --name MNIST \
-    --batch_size 64 \
+    --batch_size 256 \
     --K 8 \
     --embedding_size 128 \
     --num_epoch 50 \
