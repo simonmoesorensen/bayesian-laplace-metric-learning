@@ -4,6 +4,7 @@ import time
 
 import torch
 from torch import nn
+import torch.distributions as tdist
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
@@ -67,9 +68,10 @@ class HIBLightningModule(BaseLightningModule):
 
     def loss_step(self, mu, std, y):
         with self.autocast():
-            epsilon = self.to_device(torch.randn(self.K, std.shape[0], std.shape[1]))
+            pdist = tdist.Normal(mu, std + 1e-20)
+
             # [K_samples, batch_size, embedding_space]
-            samples = mu + std * epsilon
+            samples = self.to_device(pdist.sample([self.K]))
             samples = l2_norm(samples)
 
             pair_indices = self.miner(samples[0], y)
@@ -91,7 +93,6 @@ class HIBLightningModule(BaseLightningModule):
             y_k1 = y.repeat_interleave(self.K**3, dim=0)
             y_k2 = y.repeat(self.K**3, 1).view(-1)
 
-
             # Scale the indices to match the shape of the samples
             step = self.to_device(torch.arange(0, self.K)) * self.batch_size
             scale_indices = lambda x: (
@@ -111,7 +112,10 @@ class HIBLightningModule(BaseLightningModule):
                 ref_labels=y_k2,
             )
 
-            loss_kl = torch.Tensor([self.kl_loss(sample.T, y) for sample in samples]).mean()
+            # Compare to unit gaussian r(z) ~ N(0, I)
+            zdist = tdist.Normal(torch.zeros_like(mu), torch.ones_like(std))
+
+            loss_kl = tdist.kl_divergence(pdist, zdist).sum() / mu.shape[0]
 
             loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
 
