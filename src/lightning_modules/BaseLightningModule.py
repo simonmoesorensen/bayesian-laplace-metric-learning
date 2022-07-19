@@ -179,16 +179,17 @@ class BaseLightningModule(LightningLite, MetricMeter):
             raise ValueError("step must be one of ['train', 'val', 'test']")
 
         # Metrics
-        metrics = self.metric_calc.get_accuracy(
-            query=z,
-            reference=z,
-            query_labels=y,
-            reference_labels=y,
-            embeddings_come_from_same_source=True,
-        )
+        with torch.no_grad():
+            metrics = self.metric_calc.get_accuracy(
+                query=z,
+                reference=z,
+                query_labels=y,
+                reference_labels=y,
+                embeddings_come_from_same_source=True,
+            )
 
-        self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
-        self.metrics.update(f"{step}_map_r", metrics["mean_average_precision_at_r"])
+            self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
+            self.metrics.update(f"{step}_map_r", metrics["mean_average_precision_at_r"])
 
     def optimizer_step(self):
         self.optimizer.step()
