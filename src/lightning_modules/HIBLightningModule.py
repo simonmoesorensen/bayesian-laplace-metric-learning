@@ -75,7 +75,6 @@ class HIBLightningModule(BaseLightningModule):
             # to do backprop
             # [K_samples, batch_size, embedding_space]
             samples = self.to_device(pdist.rsample([self.K]))
-            samples = l2_norm(samples)
 
             pair_indices = self.miner(samples[0], y)
 
@@ -174,9 +173,7 @@ class HIBLightningModule(BaseLightningModule):
         epsilon = torch.randn_like(std)
         samples = mu + epsilon * std
 
-        norm_samples = l2_norm(samples)
-
-        return mu, std, norm_samples
+        return mu, std, samples
 
     def ood_step(self, X, y):
         return self.forward(X)

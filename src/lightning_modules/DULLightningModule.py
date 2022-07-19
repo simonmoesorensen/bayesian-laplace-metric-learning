@@ -58,15 +58,13 @@ class DULLightningModule(BaseLightningModule):
 
     def train_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
-
+        
         epsilon = torch.randn_like(std_dul)
         samples = mu_dul + epsilon * std_dul
         variance_dul = std_dul**2
 
-        norm_samples = l2_norm(samples)
-
-        hard_pairs = self.miner(norm_samples, y)
-        loss_backbone = self.loss_fn(norm_samples, y, hard_pairs)
+        hard_pairs = self.miner(samples, y)
+        loss_backbone = self.loss_fn(samples, y, hard_pairs)
 
         loss_kl = (
             ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
@@ -79,7 +77,7 @@ class DULLightningModule(BaseLightningModule):
         self.metrics.update("train_loss", loss_backbone.item())
         self.metrics.update("train_loss_kl", loss_kl.item())
 
-        return norm_samples, loss
+        return samples, loss
 
     def val_start(self):
         self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_r"])
@@ -87,15 +85,12 @@ class DULLightningModule(BaseLightningModule):
     def val_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
 
-        # Reparameterization trick
         epsilon = torch.randn_like(std_dul)
         samples = mu_dul + epsilon * std_dul
         variance_dul = std_dul**2
 
-        norm_samples = l2_norm(samples)
-
-        hard_pairs = self.miner(norm_samples, y)
-        loss = self.loss_fn(norm_samples, y, hard_pairs)
+        hard_pairs = self.miner(samples, y)
+        loss = self.loss_fn(samples, y, hard_pairs)
 
         loss_kl = (
             ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
@@ -105,7 +100,7 @@ class DULLightningModule(BaseLightningModule):
 
         self.metrics.update("val_loss", loss.item())
         self.metrics.update("val_loss_kl", loss_kl.item())
-        return mu_dul, std_dul, norm_samples
+        return mu_dul, std_dul, samples
 
     def val_end(self):
         self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_r"])
@@ -133,9 +128,7 @@ class DULLightningModule(BaseLightningModule):
         epsilon = torch.randn_like(std_dul)
         samples = mu_dul + epsilon * std_dul
 
-        norm_samples = l2_norm(samples)
-
-        return mu_dul, std_dul, norm_samples
+        return mu_dul, std_dul, samples
 
     def ood_step(self, X, y):
         return self.forward(X)

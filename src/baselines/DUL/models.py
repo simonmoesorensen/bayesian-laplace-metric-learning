@@ -2,6 +2,8 @@ from torchvision.models import resnet18, resnet34, resnet50
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 
+from utils import l2_norm
+
 class DUL_Backbone(nn.Module):
     def __init__(self, resnet, embedding_size):
         super(DUL_Backbone, self).__init__()
@@ -20,6 +22,8 @@ class DUL_Backbone(nn.Module):
         mu_dul = self.mu_dul_backbone(x)
         logvar_dul = self.logvar_dul_backbone(x)
         std_dul = (logvar_dul * 0.5).exp()
+
+        mu_dul = l2_norm(mu_dul)
         return mu_dul, std_dul
 
 def MNIST_DUL(embedding_size=128):
