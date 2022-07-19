@@ -68,10 +68,13 @@ class HIBLightningModule(BaseLightningModule):
 
     def loss_step(self, mu, std, y):
         with self.autocast():
+            # Create sample distribution
             pdist = tdist.Normal(mu, std + 1e-20)
-
+            
+            # Monte Carlo K times sampling, reparameterization trick in order 
+            # to do backprop
             # [K_samples, batch_size, embedding_space]
-            samples = self.to_device(pdist.sample([self.K]))
+            samples = self.to_device(pdist.rsample([self.K]))
             samples = l2_norm(samples)
 
             pair_indices = self.miner(samples[0], y)
@@ -114,7 +117,7 @@ class HIBLightningModule(BaseLightningModule):
 
             # Compare to unit gaussian r(z) ~ N(0, I)
             zdist = tdist.Normal(torch.zeros_like(mu), torch.ones_like(std))
-
+            
             loss_kl = tdist.kl_divergence(pdist, zdist).sum() / mu.shape[0]
 
             loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
