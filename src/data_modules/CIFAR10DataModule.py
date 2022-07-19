@@ -5,8 +5,18 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class CIFAR10DataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
-        super().__init__(d.CIFAR10, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
+    def __init__(
+        self,
+        data_dir,
+        batch_size,
+        num_workers,
+        sampler=None,
+        shuffle=False,
+        pin_memory=True,
+    ):
+        super().__init__(
+            d.CIFAR10, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory
+        )
 
         self.name = "CIFAR"
         self.n_classes = 10
@@ -19,14 +29,13 @@ class CIFAR10DataModule(BaseDataModule):
                     (0.24703223, 0.24348513, 0.26158784),
                 ),
                 transforms.RandomResizedCrop((32, 32)),
-                transforms.RandomHorizontalFlip(0.5)
+                transforms.RandomHorizontalFlip(0.5),
             ]
         )
 
     def prepare_data(self):
         super().prepare_data()
-        d.DTD(self.data_dir, split='test', download=True)
-
+        d.DTD(self.data_dir, split="test", download=True)
 
     def setup(self, val_split=0.2, shuffle=True):
         super().setup(val_split, shuffle)
@@ -37,14 +46,11 @@ class CIFAR10DataModule(BaseDataModule):
                 transforms.ToTensor(),
                 # Found using self._compute_mean_and_std()
                 transforms.Normalize(
-                    (0.5287, 0.4742, 0.4236), 
-                    (0.2588, 0.2499, 0.2553)
+                    (0.5287, 0.4742, 0.4236), (0.2588, 0.2499, 0.2553)
                 ),
                 transforms.RandomResizedCrop((32, 32)),
-                transforms.RandomHorizontalFlip(0.5)
+                transforms.RandomHorizontalFlip(0.5),
             ]
         )
 
-        self.dataset_ood = d.DTD(
-            self.data_dir, split='test', transform=ood_transforms
-        )
+        self.dataset_ood = d.DTD(self.data_dir, split="test", transform=ood_transforms)
