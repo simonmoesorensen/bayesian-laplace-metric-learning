@@ -8,8 +8,8 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision import transforms
 from tqdm import tqdm
 from torchvision.models import resnet50
-from laplace.metric_learning import train_metric
 
+from src.laplace.metric_learning import train_metric
 from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.miners import AllPermutationsMiner, AllCombinationsMiner, AllPositiveMiner
@@ -19,6 +19,7 @@ from src import data
 
 def post_hoc(
     model: nn.Module,
+    inference_model: nn.Module,
     train_loader: DataLoader,
     margin: float,
     device="cpu",
@@ -26,31 +27,22 @@ def post_hoc(
     """
     Run post-hoc laplace on a pretrained metric learning model.
     """
-    preinference_model: nn.Module = model.conv
-    inference_model: nn.Module = model.linear
 
     images_per_class = 5000
 
-    calculator = ContrastiveHessianCalculator(margin=margin)
-    calculator.init_model(model.linear)
-    compute_hessian = calculator.compute_batch_pairs
+    calculator = ContrastiveHessianCalculator(margin=margin, device=device)
+    calculator.init_model(inference_model)
     miner = AllCombinationsMiner()
     h = 0
     for x, y in tqdm(train_loader):
         x, y = x.to(device), y.to(device)
 
-        # TODO: is this right?
-        x_conv = preinference_model(x)  # .detach()
-        output = inference_model(x_conv)
-        # output = output * model.normalizer(output)
-        # output = net(x)
-
+        output = model(x)
         hard_pairs = miner(output, y)
-        # assert len(hard_pairs[3]) == 0  # All positive miner, no negative elements
 
         # Total number of positive pairs / number of positive pairs in our batch
         scaler = images_per_class**2 / len(hard_pairs[0])
-        h += compute_hessian(inference_model, output, x_conv, y, hard_pairs) * scaler
+        h += calculator.compute_batch_pairs(inference_model, hard_pairs) * scaler
 
     if (h < 0).sum():
         logging.warn("Found negative values in Hessian.")
@@ -66,10 +58,8 @@ if __name__ == "__main__":
     # torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    latent_dim = 25
-    batch_size = 16
-    epochs = 30
-    lr = 3e-4
+    latent_dim = 32
+    batch_size = 32
     margin = 0.2
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
@@ -83,15 +73,16 @@ if __name__ == "__main__":
     ood_loader = ood_module.test_dataloader()
 
     model = ConvNet(latent_dim).to(device)
+    inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
+    # inference_model = nn.Sequential(model.fc)
 
-    # model.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
-    train_metric(model, train_loader, epochs, lr, margin, device)
+    model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
 
-    mu_q, sigma_q = post_hoc(model, train_loader, margin, device)
+    mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device)
     torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_sigma.pt")
 
     samples = sample_nn_weights(mu_q, sigma_q)
-    maps = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, model.linear, samples, device)
+    maps = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
     print(f"Post-hoc MAP: {maps}")

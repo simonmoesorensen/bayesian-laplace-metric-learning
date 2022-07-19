@@ -35,7 +35,7 @@ def sample_neural_network_wights(parameters, posterior_scale, n_samples=32):
 def run():
     epochs = 30
     freq = 3
-    nn_samples = 10
+    nn_samples = 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     batch_size = 16
     lr = 3e-4
@@ -52,15 +52,12 @@ def run():
     net_inference = net.linear
     net.to(device)
 
-    mu_q, sigma_q, id_loader = train_online(
-        epochs, freq, nn_samples, device, lr, train_loader, margin, net, net_inference
-    )
-
+    mu_q, sigma_q = train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net, net_inference)
     torch.save(net.state_dict(), f"pretrained/online/{id_label}/state_dict.pt")
     torch.save(mu_q.detach().cpu(), f"pretrained/online/{id_label}/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), f"pretrained/online/{id_label}/laplace_sigma.pt")
 
-    # net.load_state_dict(torch.load("pretrained/laplace/state_dict.pt"))
+    # net.load_state_dict(torch.load(f"pretrained/online/{id_label}/state_dict.pt"))
 
     k = 10
     results = test_model(train_loader.dataset, id_loader.dataset, net, device, k=k)
@@ -71,7 +68,7 @@ def run():
 def train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net, net_inference):
     contrastive_loss = losses.ContrastiveLoss(neg_margin=margin)
     miner = miners.MultiSimilarityMiner()
-    hessian_calculator = ContrastiveHessianCalculator()
+    hessian_calculator = ContrastiveHessianCalculator(margin=margin, device=device)
 
     hessian_calculator.init_model(net_inference)
 
@@ -85,13 +82,11 @@ def train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net
 
     # kl_weight = 0.1
 
-    for epoch in range(epochs):
-        print(f"{epoch=}")
+    for epoch in tqdm(range(epochs)):
         epoch_losses = []
-        train_laplace = epoch % freq == 0
-        print(f"{train_laplace=}")
+        compute_hessian = epoch % freq == 0
 
-        for x, y in tqdm(train_loader):
+        for x, y in train_loader:
             x, y = x.to(device), y.to(device)
 
             optim.zero_grad()
@@ -104,32 +99,24 @@ def train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net
             sampled_nn = sample_neural_network_wights(mu_q, sigma_q, n_samples=nn_samples)
 
             con_loss = 0
-            if train_laplace:
-                # h = []
+            if compute_hessian:
                 h = 0
 
             for nn_i in sampled_nn:
                 vector_to_parameters(nn_i, net_inference.parameters())
-
-                x_conv = net.conv(x).detach()
-                output = net.linear(x_conv)
-
+                output = net(x)
                 hard_pairs = miner(output, y)
-                if train_laplace:
-                    hessian_batch = hessian_calculator.compute_batch_pairs(net_inference, output, x_conv, y, hard_pairs)
 
+                if compute_hessian:
                     # Adjust hessian to the batch size
                     scaler = images_per_class**2 / len(hard_pairs[0])
-
-                    # h.append(hessian_batch * scaler)
+                    hessian_batch = hessian_calculator.compute_batch_pairs(net_inference, hard_pairs)
                     h += hessian_batch * scaler
 
                 con_loss += contrastive_loss(output, y, hard_pairs)
 
-            if train_laplace:
+            if compute_hessian:
                 h /= nn_samples
-                # h = torch.stack(h).mean(dim=0) if len(h) > 1 else h[0]
-                # h += 1
 
             con_loss /= nn_samples
             loss = con_loss  # + kl.mean() * kl_weight

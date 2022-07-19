@@ -86,14 +86,16 @@ if __name__ == "__main__":
     id_title = "CIFAR-10"
     id_label = id_title.lower()
 
+    method = "post_hoc"
+
     ood_title = "SVHN"
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 
-    mu_id = np.load(f"results/laplace/{id_label}/id_laplace_mu.npy")
-    var_id = np.load(f"results/laplace/{id_label}/id_laplace_sigma_sq.npy")
-    mu_ood = np.load(f"results/laplace/{id_label}/{ood_label}/ood_laplace_mu.npy")
-    var_ood = np.load(f"results/laplace/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
+    mu_id = np.load(f"results/{method}/{id_label}/id_laplace_mu.npy")
+    var_id = np.load(f"results/{method}/{id_label}/id_laplace_sigma_sq.npy")
+    mu_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy")
+    var_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
 
     metrics = compute_and_plot_roc_curves("", var_id, var_ood, pre_fix=f"{id_label}_{ood_label}_")
     print(metrics)
