@@ -15,11 +15,10 @@ class StochasticLayer(nn.Module):
         self.fc_mu = nn.Linear(embedding_size, embedding_size)
         self.fc_std = nn.Linear(embedding_size, embedding_size)
 
-        self.relu = nn.ReLU()
-
     def forward(self, x):
         mu = self.fc_mu(x)
-        std = self.relu(self.fc_std(x))
+        log_var = self.fc_std(x)
+        std = (log_var * 0.5).exp()
 
         return mu, std
 
