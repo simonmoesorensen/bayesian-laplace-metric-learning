@@ -2,7 +2,7 @@ from torchvision.models import resnet18, resnet34, resnet50
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 
-from utils import l2_norm
+from src.utils import l2_norm
 
 class DUL_Backbone(nn.Module):
     def __init__(self, resnet, embedding_size):
