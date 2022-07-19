@@ -19,6 +19,7 @@ def run(PFE_args):
     PFE_args.gpu_id = [int(item) for item in PFE_args.gpu_id]
 
     sampler = None
+
     if PFE_args.dataset == "MNIST":
         model = MNIST_PFE(embedding_size=PFE_args.embedding_size)
         data_module = MNISTDataModule
@@ -49,6 +50,9 @@ def run(PFE_args):
                 "weight_decay": PFE_args.weight_decay,
             },
             {"params": params_w_bn},
+            # Add beta and gamma as learnable parameters to the optimizer
+            {"params": model.beta},
+            {"params": model.gamma},
         ],
         lr=PFE_args.lr,
     )

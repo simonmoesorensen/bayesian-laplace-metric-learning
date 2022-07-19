@@ -35,8 +35,8 @@ class UncertaintyModule(nn.Module):
             nn.BatchNorm1d(embedding_size),
         )
 
-        self.beta = nn.Parameter(torch.zeros(embedding_size))
-        self.gamma = nn.Parameter(torch.ones(embedding_size))
+        self.beta = nn.Parameter(torch.zeros(embedding_size), requires_grad=True)
+        self.gamma = nn.Parameter(torch.ones(embedding_size), requires_grad=True)
 
         self.relu = nn.ReLU()
 
