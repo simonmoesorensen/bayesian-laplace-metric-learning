@@ -13,6 +13,7 @@ from laplace.metric_learning import train_metric
 from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.miners import AllPermutationsMiner, AllCombinationsMiner, AllPositiveMiner
+from src.laplace.utils import sample_nn_weights, get_sample_accuracy
 from src import data
 
 
@@ -62,7 +63,7 @@ def post_hoc(
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
-    torch.manual_seed(42)
+    # torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     latent_dim = 25
@@ -75,6 +76,7 @@ if __name__ == "__main__":
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
+    id_label = id_module.name.lower()
 
     ood_module = data.SVHNDataModule("data/", batch_size, 4)
     ood_module.setup()
@@ -87,5 +89,9 @@ if __name__ == "__main__":
     train_metric(model, train_loader, epochs, lr, margin, device)
 
     mu_q, sigma_q = post_hoc(model, train_loader, margin, device)
-    torch.save(mu_q.detach().cpu(), "pretrained/laplace/laplace_mu.pt")
-    torch.save(sigma_q.detach().cpu(), "pretrained/laplace/laplace_sigma.pt")
+    torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")
+    torch.save(sigma_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_sigma.pt")
+
+    samples = sample_nn_weights(mu_q, sigma_q)
+    maps = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, model.linear, samples, device)
+    print(f"Post-hoc MAP: {maps}")

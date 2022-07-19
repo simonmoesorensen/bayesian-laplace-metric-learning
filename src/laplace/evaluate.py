@@ -13,13 +13,7 @@ from src.models.conv_net import ConvNet
 from src import data
 
 
-def evaluate_laplace(net, loader, device="cpu"):
-    logging.info("Loading pretrained model.")
-    net.load_state_dict(torch.load("pretrained/laplace/state_dict.pt", map_location=device))
-
-    mu_q = torch.load("pretrained/laplace/laplace_mu.pt", map_location=device)
-    sigma_q = torch.load("pretrained/laplace/laplace_sigma.pt", map_location=device)
-
+def evaluate_laplace(net, loader, mu_q, sigma_q, device="cpu"):
     logging.info("Sampling.")
     samples = sample_nn_weights(mu_q, sigma_q)
 
@@ -31,6 +25,8 @@ def evaluate_laplace(net, loader, device="cpu"):
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    method = "post_hoc"
 
     latent_dim = 25
     batch_size = 512
@@ -44,15 +40,20 @@ if __name__ == "__main__":
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
+    logging.info("Loading pretrained model.")
     model = ConvNet(latent_dim).to(device)
+    model.load_state_dict(torch.load(f"pretrained/{method}/state_dict.pt", map_location=device))
 
     id_label = id_module.name.lower()
     ood_label = ood_module.name.lower()
 
-    mean, variance = evaluate_laplace(model, id_loader, device)
-    np.save(f"results/laplace/{id_label}/id_laplace_mu.npy", mean.detach().cpu().numpy())
-    np.save(f"results/laplace/{id_label}/id_laplace_sigma_sq.npy", variance.detach().cpu().numpy())
+    mu_q = torch.load(f"pretrained/{method}/laplace_mu.pt", map_location=device)
+    sigma_q = torch.load(f"pretrained/{method}/laplace_sigma.pt", map_location=device)
 
-    mean, variance = evaluate_laplace(model, ood_loader, device)
-    np.save(f"results/laplace/{id_label}/{ood_label}/ood_laplace_mu.npy", mean.detach().cpu().numpy())
-    np.save(f"results/laplace/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", variance.detach().cpu().numpy())
+    mean, variance = evaluate_laplace(model, id_loader, mu_q, sigma_q, device)
+    np.save(f"results/{method}/{id_label}/id_laplace_mu.npy", mean.detach().cpu().numpy())
+    np.save(f"results/{method}/{id_label}/id_laplace_sigma_sq.npy", variance.detach().cpu().numpy())
+
+    mean, variance = evaluate_laplace(model, ood_loader, mu_q, sigma_q, device)
+    np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy", mean.detach().cpu().numpy())
+    np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", variance.detach().cpu().numpy())

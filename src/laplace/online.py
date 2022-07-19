@@ -1,4 +1,5 @@
 import logging
+from tkinter import N
 
 import torch
 from tqdm import tqdm
@@ -12,6 +13,8 @@ from torch.utils.data import DataLoader, Subset
 
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.models.conv_net import ConvNet
+from src import data
+from src.laplace.utils import test_model
 
 
 def compute_kl_term(mu_q, sigma_q):
@@ -30,39 +33,62 @@ def sample_neural_network_wights(parameters, posterior_scale, n_samples=32):
 
 
 def run():
-    epochs = 10
+    epochs = 30
     freq = 3
     nn_samples = 10
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    batch_size = 16
+    lr = 3e-4
+    latent_dim = 25
+    margin = 0.2
 
-    contrastive_loss = losses.ContrastiveLoss()
-    miner = miners.MultiSimilarityMiner()
-    hessian_calculator = ContrastiveHessianCalculator()
+    train_module = data.CIFAR10DataModule("data/", batch_size, 4)
+    train_module.setup()
+    train_loader = train_module.train_dataloader()
+    id_loader = train_module.test_dataloader()
+    id_label = train_module.name.lower()
 
-    latent_dim = 15
     net = ConvNet(latent_dim)
     net_inference = net.linear
     net.to(device)
+
+    mu_q, sigma_q, id_loader = train_online(
+        epochs, freq, nn_samples, device, lr, train_loader, margin, net, net_inference
+    )
+
+    torch.save(net.state_dict(), f"pretrained/online/{id_label}/state_dict.pt")
+    torch.save(mu_q.detach().cpu(), f"pretrained/online/{id_label}/laplace_mu.pt")
+    torch.save(sigma_q.detach().cpu(), f"pretrained/online/{id_label}/laplace_sigma.pt")
+
+    # net.load_state_dict(torch.load("pretrained/laplace/state_dict.pt"))
+
+    k = 10
+    results = test_model(train_loader.dataset, id_loader.dataset, net, device, k=k)
+    logging.info(f"MAP MAP@{k}: {results['mean_average_precision']:.2f}")
+    logging.info(f"MAP Accuracy: {100*results['precision_at_1']:.2f}%")
+
+
+def train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net, net_inference):
+    contrastive_loss = losses.ContrastiveLoss(neg_margin=margin)
+    miner = miners.MultiSimilarityMiner()
+    hessian_calculator = ContrastiveHessianCalculator()
 
     hessian_calculator.init_model(net_inference)
 
     num_params = sum(p.numel() for p in net_inference.parameters())
 
-    optim = Adam(net.parameters(), lr=3e-4)
+    optim = Adam(net.parameters(), lr=lr)
 
-    batch_size = 16
-    train_set = CIFAR10("data/", train=True, transform=transforms.ToTensor())
-    train_loader = DataLoader(train_set, batch_size, shuffle=True)
+    images_per_class = 5000
 
     h = 1e10 * torch.ones((num_params,), device=device)
 
-    kl_weight = 0.1
+    # kl_weight = 0.1
 
     for epoch in range(epochs):
         print(f"{epoch=}")
         epoch_losses = []
-        # train_laplace = epoch % freq == 0
-        train_laplace = False
+        train_laplace = epoch % freq == 0
         print(f"{train_laplace=}")
 
         for x, y in tqdm(train_loader):
@@ -77,9 +103,10 @@ def run():
 
             sampled_nn = sample_neural_network_wights(mu_q, sigma_q, n_samples=nn_samples)
 
-            con_losses = []
+            con_loss = 0
             if train_laplace:
-                h = []
+                # h = []
+                h = 0
 
             for nn_i in sampled_nn:
                 vector_to_parameters(nn_i, net_inference.parameters())
@@ -89,32 +116,23 @@ def run():
 
                 hard_pairs = miner(output, y)
                 if train_laplace:
-                    try:
-                        hessian_batch = hessian_calculator.compute_batch_pairs(
-                            net_inference, output, x_conv, y, hard_pairs
-                        )
-                    except Exception:
-                        print(f"{nn_i.shape=}")
-                        print(f"{x.shape=}")
-                        print(f"{x_conv.shape=}")
-                        print(f"{output.shape=}")
-                        raise Exception
+                    hessian_batch = hessian_calculator.compute_batch_pairs(net_inference, output, x_conv, y, hard_pairs)
 
                     # Adjust hessian to the batch size
                     scaler = images_per_class**2 / len(hard_pairs[0])
-                    hessian_batch = hessian_batch * scaler
 
-                    h.append(hessian_batch)
+                    # h.append(hessian_batch * scaler)
+                    h += hessian_batch * scaler
 
-                con_loss = contrastive_loss(output, y, hard_pairs)
-                con_losses.append(con_loss)
+                con_loss += contrastive_loss(output, y, hard_pairs)
 
             if train_laplace:
-                h = torch.stack(h).mean(dim=0) if len(h) > 1 else h[0]
+                h /= nn_samples
+                # h = torch.stack(h).mean(dim=0) if len(h) > 1 else h[0]
                 # h += 1
 
-            con_loss = torch.stack(con_losses).mean(dim=0)
-            loss = con_loss + kl.mean() * kl_weight
+            con_loss /= nn_samples
+            loss = con_loss  # + kl.mean() * kl_weight
             vector_to_parameters(mu_q, net_inference.parameters())
 
             loss.backward()
@@ -124,8 +142,9 @@ def run():
         loss_mean = torch.mean(torch.tensor(epoch_losses))
         logging.info(f"{loss_mean=} for {epoch=}")
 
-    torch.save(net.state_dict(), f="models/laplace_model.ckpt")
-    torch.save(h, f="models/laplace_hessian.ckpt")
+    mu_q = parameters_to_vector(net_inference.parameters())
+    sigma_q = 1 / (h + 1e-6)
+    return mu_q, sigma_q
 
 
 if __name__ == "__main__":
