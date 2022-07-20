@@ -39,7 +39,7 @@ def run():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     batch_size = 16
     lr = 3e-4
-    latent_dim = 25
+    latent_dim = 32
     margin = 0.2
 
     train_module = data.CIFAR10DataModule("data/", batch_size, 4)

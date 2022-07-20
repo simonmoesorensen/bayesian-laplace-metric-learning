@@ -9,8 +9,7 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision.models import resnet50
 
 from src.laplace.utils import generate_predictions_from_samples_rolling, sample_nn_weights
-from src.models.conv_net import ConvNet
-from src import data
+from src import data, models
 
 
 def evaluate_laplace(net, inference_net, loader, mu_q, sigma_q, device="cpu"):
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     ood_loader = ood_module.test_dataloader()
 
     logging.info("Loading pretrained model.")
-    model = ConvNet(latent_dim, normalize_encoding).to(device)
+    model = models.ConvNet(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = model.fc

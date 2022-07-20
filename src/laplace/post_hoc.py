@@ -11,11 +11,10 @@ from tqdm import tqdm
 from torchvision.models import resnet50
 
 from src.laplace.metric_learning import train_metric
-from src.models.conv_net import ConvNet
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.miners import AllPermutationsMiner, AllCombinationsMiner, AllPositiveMiner
 from src.laplace.utils import sample_nn_weights, get_sample_accuracy
-from src import data
+from src import data, models
 
 
 def post_hoc(
@@ -74,7 +73,7 @@ if __name__ == "__main__":
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
-    model = ConvNet(latent_dim, normalize_encoding).to(device)
+    model = models.ConvNet(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = nn.Sequential(model.fc)

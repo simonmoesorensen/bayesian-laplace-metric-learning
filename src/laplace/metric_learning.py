@@ -11,8 +11,7 @@ from torchvision.models import resnet50
 from tqdm import tqdm
 
 from src.laplace.utils import test_model
-from src.models.conv_net import ConvNet
-from src import data
+from src import data, models
 
 
 def train_metric(net: nn.Module, train_loader: DataLoader, epochs: int, lr: float, margin: float, device="cpu"):
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    model = ConvNet(latent_dim, normalize_encoding).to(device)
+    model = models.ConvNet(latent_dim, normalize_encoding).to(device)
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     logging.info("Finding MAP solution.")

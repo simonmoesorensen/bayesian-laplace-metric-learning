@@ -69,7 +69,7 @@ def generate_predictions_from_samples_rolling(
         msq += delta * delta
 
     variance = msq / (N - 1)
-    return torch.tensor(mean), torch.tensor(variance)
+    return mean, variance
 
 
 def get_sample_accuracy(train_set, test_set, model, inference_model, samples, device):
