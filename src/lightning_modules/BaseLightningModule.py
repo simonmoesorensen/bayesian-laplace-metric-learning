@@ -139,6 +139,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def epoch_end(self):
         self.log(["train_loss", "train_accuracy", "train_map_r"])
+    
+    def train_start(self):
+        pass
+
+    def train_end(self):
+        pass
 
     def val_start(self):
         self.metrics.reset(["val_loss", "val_accuracy", "val_map_r"])
@@ -225,6 +231,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
     # noinspection PyMethodOverriding
     def train(self):
         print(f"Training")
+        self.train_start()
         self.model.train()
 
         if not self.name:
@@ -275,6 +282,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 self.save_model()
                 print("=" * 60, flush=True)
 
+        self.train_end()
         print(f"Finished training @ epoch: {self.epoch + 1}")
         return self.model
 
