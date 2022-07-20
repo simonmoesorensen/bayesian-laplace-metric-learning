@@ -1,4 +1,11 @@
 import torch
+import torch.nn as nn
+
+
+class L2Norm(nn.Module):
+    def forward(self, X):
+        return l2_norm(X, axis=1)
+
 
 def l2_norm(input, axis=1):
     norm = torch.norm(input, 2, axis, True)
@@ -24,4 +31,3 @@ def separate_batchnorm_params(modules):
                 paras_wo_bn.extend([*layer.parameters()])
 
     return paras_only_bn, paras_wo_bn
-
