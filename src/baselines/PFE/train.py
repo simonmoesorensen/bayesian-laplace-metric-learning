@@ -59,7 +59,8 @@ def run(PFE_args):
 
     loss = MLSLoss()
 
-    miner = miners.MultiSimilarityMiner()
+    # Get all positive pairs for the loss 
+    miner = miners.BatchEasyHardMiner(pos_strategy='all', neg_strategy='hard')
     
     trainer = PFELightningModule(
         accelerator="gpu", devices=len(PFE_args.gpu_id), strategy="dp"
