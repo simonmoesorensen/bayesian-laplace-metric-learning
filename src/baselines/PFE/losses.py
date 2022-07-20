@@ -22,12 +22,12 @@ class MLSLoss(BaseMetricLossFunction):
             anc, pos, _ = indices_tuple
         elif len(indices_tuple) == 4:
             anc, pos, _, _ = indices_tuple
-        
-        mu, std = embeddings, ref_emb
 
-        # [batch_size, embedding_size, embedding_size]
-        loss_mls = self.negative_MLS(mu, mu, std.square(), std.square())
-        
+        mu, sigma_sq = embeddings, ref_emb
+
+        # [batch_size, batch_size]
+        loss_mls = self.negative_MLS(mu, mu, sigma_sq, sigma_sq)
+
         # Only get the loss for 'genuine' aka positive pairs
         loss = loss_mls[anc, pos]
 
@@ -41,6 +41,7 @@ class MLSLoss(BaseMetricLossFunction):
 
     def negative_MLS(self, X, Y, sigma_sq_X, sigma_sq_Y):
         embedding_size = X.shape[1]
+        D = embedding_size
 
         # Reshape to matrix of [batch_size, embedding_size, embedding_size]
         X = X.reshape([-1, 1, embedding_size])
@@ -50,10 +51,21 @@ class MLSLoss(BaseMetricLossFunction):
 
         sigma_sq_fuse = sigma_sq_X + sigma_sq_Y
 
-        return (X - Y).square() / (1e-10 + sigma_sq_fuse) + (sigma_sq_fuse).log()
+        # From equation (3) in the paper
+        pi = torch.acos(torch.zeros(1)) * 2
+        pi = pi.to(X.device)
+
+        const = (D / 2) * torch.log(2 * pi)
+
+        diffs = (
+            ((X - Y).square() / (1e-10 + sigma_sq_fuse)) + sigma_sq_fuse.log() - const
+        )
+
+        return -1 / 2 * diffs.sum(axis=2)
 
     def get_default_reducer(self):
         return AvgNonZeroReducer()
+
 
 # def negative_MLS(X, Y, sigma_sq_X, sigma_sq_Y, mean=False):
 #     with tf.name_scope("negative_MLS"):
@@ -103,4 +115,3 @@ class MLSLoss(BaseMetricLossFunction):
 #         loss_pos = tf.boolean_mask(loss_mat, label_mask_pos)
 
 #         return tf.reduce_mean(loss_pos)
-
