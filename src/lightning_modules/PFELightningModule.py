@@ -6,7 +6,7 @@ import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
@@ -24,6 +24,17 @@ def get_time():
 class PFELightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
+        
+        # Avoid FAISS error on Ampere GPUs
+        knn_func = CustomKNN(distances.LpDistance())
+
+        # Metric calculation
+        self.metric_calc = AccuracyCalculator(
+            include=("mean_average_precision_at_r", "precision_at_1"),
+            k="max_bin_count",
+            device=self.device,
+            knn_func=knn_func,
+        )
 
     def train_step(self, X, y):
         mu, std = self.forward(X)
