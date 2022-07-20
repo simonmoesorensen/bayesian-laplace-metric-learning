@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/Backbone/cifar/run1.out
-#BSUB -e logs/Backbone/cifar/run1.err
+#BSUB -oo logs/Backbone/cifar/run1.out
+#BSUB -eo logs/Backbone/cifar/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -52,8 +52,8 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.Backbone.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --batch_size 128 \
-    --embedding_size 128 \
+    --batch_size 256 \
+    --embedding_size 512 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\

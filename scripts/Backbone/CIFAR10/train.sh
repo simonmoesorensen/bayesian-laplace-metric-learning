@@ -5,7 +5,7 @@ python3 -m debugpy --listen 10.66.20.9:1331 ./src/baselines/Backbone/train.py \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 128 \
-    --embedding_size 256 \
+    --embedding_size 512 \
     --num_epoch 20 \
     --save_freq 25 \
     --gpu_id 0 1\

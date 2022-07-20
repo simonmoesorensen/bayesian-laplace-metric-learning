@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -o logs/DUL/cifar10/run1.out
-#BSUB -e logs/DUL/cifar10/run1.err
+#BSUB -oo logs/DUL/cifar10/run1.out
+#BSUB -eo logs/DUL/cifar10/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
