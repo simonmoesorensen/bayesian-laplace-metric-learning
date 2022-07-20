@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpuv100
+#BSUB -q gpua100
 
 ### -- set the job Name --
 #BSUB -J Backbone-Casia
@@ -17,8 +17,8 @@
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=32GB]"
-#BSUB -R "select[gpu32gb]"
+#BSUB -R "rusage[mem=40GB]"
+#BSUB -R "select[gpu40gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
