@@ -26,8 +26,8 @@ def separate_batchnorm_params(modules):
             continue
         else:
             if "batchnorm" in str(layer.__class__):
-                paras_only_bn.extend([*layer.parameters()])
+                paras_only_bn.extend([param for param in [*layer.parameters()] if param.requires_grad])
             else:
-                paras_wo_bn.extend([*layer.parameters()])
+                paras_wo_bn.extend([param for param in [*layer.parameters()] if param.requires_grad])
 
     return paras_only_bn, paras_wo_bn
