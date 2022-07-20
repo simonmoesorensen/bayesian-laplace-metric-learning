@@ -56,7 +56,7 @@ python3 -m src.baselines.DUL.train \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
     --num_epoch 50 \
-    --save_freq 5 \
+    --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 12\
     --shuffle\

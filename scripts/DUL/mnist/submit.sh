@@ -58,6 +58,6 @@ python3 -m src.baselines.DUL.train \
     --arcface_scale 15 \
     --arcface_margin 0.8 \
     --num_epoch 10 \
-    --save_freq 5 \
+    --save_freq 25 \
     --gpu_id 0 3\
     --num_workers 8
