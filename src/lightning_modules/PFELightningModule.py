@@ -46,8 +46,9 @@ class PFELightningModule(BaseLightningModule):
         sample = self.to_device(pdist.rsample())
 
         hard_pairs = self.miner(sample, y)
-
-        loss = self.loss_fn(embeddings=mu, ref_emb=std, indices_tuple=hard_pairs)
+        
+        var = std.square()
+        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=hard_pairs)
 
         self.metrics.update("val_loss", loss.item())
         return mu, std, sample
