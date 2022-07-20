@@ -39,7 +39,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         max_lr = min(args.lr * 1e3, 0.05)
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
-        step_size_up = args.num_epoch // 20
+        step_size_up = max(1, args.num_epoch // 20)
 
         print(" 'base_lr' : '{}' ".format(base_lr))
         print(" 'max_lr' : '{}' ".format(max_lr))
@@ -258,7 +258,6 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 self.backward(loss)
 
                 self.optimizer_step()
-                self.scheduler.step(epoch + 1)
 
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
@@ -274,6 +273,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 batch += 1
 
             self.epoch_end()
+            self.scheduler.step()
 
             # Validate @ frequency
             if (epoch + 1) % self.args.save_freq == 0:
