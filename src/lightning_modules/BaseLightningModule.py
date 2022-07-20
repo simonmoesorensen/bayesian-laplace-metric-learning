@@ -7,6 +7,7 @@ import torch
 from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
+import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
@@ -21,6 +22,7 @@ torch.manual_seed(1234)
 def get_time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")
 
+
 class BaseLightningModule(LightningLite, MetricMeter):
     """
     Base Lightning Module for Probabilistic Metric Learning
@@ -31,6 +33,17 @@ class BaseLightningModule(LightningLite, MetricMeter):
         print("=" * 60)
         for k in args.__dict__:
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
+        
+        # Learning rate scheduler options
+        base_lr = args.lr
+        max_lr = min(args.lr * 1e3, 0.05)
+        # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
+        # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
+        step_size_up = args.num_epoch // 20
+
+        print(" 'base_lr' : '{}' ".format(base_lr))
+        print(" 'max_lr' : '{}' ".format(max_lr))
+        print(" 'step_size_up' : '{}' ".format(step_size_up))
 
         self.args = args
 
@@ -61,6 +74,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
+
+        # Scheduler
+        self.scheduler = lr_scheduler.CyclicLR(
+            self.optimizer,
+            base_lr=base_lr,
+            max_lr=max_lr,
+            step_size_up=step_size_up,
+            mode='triangular2',
+            cycle_momentum=False,
+        )
 
         # Metric calculation
         self.metric_calc = AccuracyCalculator(
@@ -162,7 +185,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
             "Time {}\t"
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})".format(
+            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})\t"
+            "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
                 batch + 1,
@@ -171,6 +195,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 loss=self.metrics.get("train_loss"),
                 acc=self.metrics.get("train_accuracy"),
                 map_r=self.metrics.get("train_map_r"),
+                lr=self.optimizer.param_groups[0]["lr"],
             )
         )
 
@@ -226,11 +251,18 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 self.backward(loss)
 
                 self.optimizer_step()
+                self.scheduler.step(epoch + 1)
 
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     self.update_accuracy(out, target, "train")
                     self.display(epoch, batch)
+                    self.writer.add_scalar(
+                        "lr",
+                        self.optimizer.param_groups[0]["lr"],
+                        global_step=self.epoch + 1,
+                        new_style=True,
+                    )
 
                 batch += 1
 
@@ -355,7 +387,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             data_module.val_dataloader(),
             data_module.test_dataloader(),
             data_module.ood_dataloader(),
-            replace_sampler=False if data_module.sampler else True
+            replace_sampler=False if data_module.sampler else True,
         )
 
     def save_model(self, prefix=None):
