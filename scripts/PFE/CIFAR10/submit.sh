@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q gpuv100
 
 ### -- set the job Name --
 #BSUB -J PFE-CIFAR10
@@ -17,8 +17,8 @@
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=40GB]"
-#BSUB -R "select[gpu40gb]"
+#BSUB -R "rusage[mem=32GB]"
+#BSUB -R "select[gpu32gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -52,7 +52,7 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.PFE.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --batch_size 64 \
+    --batch_size 128 \
     --embedding_size 128 \
     --num_epoch 100 \
     --save_freq 5 \

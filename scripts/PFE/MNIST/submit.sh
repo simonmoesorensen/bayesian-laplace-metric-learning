@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q gpuv100
 
 ### -- set the job Name --
 #BSUB -J PFE-mnist
@@ -17,8 +17,8 @@
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=40GB]"
-#BSUB -R "select[gpu40gb]"
+#BSUB -R "rusage[mem=16GB]"
+#BSUB -R "select[gpu16gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -51,7 +51,7 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.PFE.train \
     --dataset MNIST \
     --name MNIST \
-    --batch_size 64 \
+    --batch_size 128 \
     --embedding_size 128 \
     --num_epoch 50 \
     --save_freq 5 \

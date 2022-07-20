@@ -1,7 +1,7 @@
 export CUDA_VISIBLE_DEVICES=0,1
 
 echo "Waiting for debugger to attach..."
-python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/PFE/train.py \
+python3 -m debugpy --listen 10.66.20.9:1332 ./src/baselines/PFE/train.py \
     --dataset Casia \
     --name Casia \
     --batch_size 256 \
