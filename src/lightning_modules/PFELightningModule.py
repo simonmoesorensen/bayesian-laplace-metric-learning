@@ -10,6 +10,7 @@ from pytorch_metric_learning.distances import CosineSimilarity
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
+from src.utils import l2_norm
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -26,13 +27,13 @@ class PFELightningModule(BaseLightningModule):
 
     def train_step(self, X, y):
         mu, std = self.forward(X)
-
         pdist = torch.distributions.Normal(mu, std)
         sample = self.to_device(pdist.rsample())
 
         hard_pairs = self.miner(sample, y)
 
-        loss = self.loss_fn(embeddings=mu, ref_emb=std, indices_tuple=hard_pairs)
+        var = std.square()
+        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=hard_pairs)
 
         self.metrics.update("train_loss", loss.item())
 
