@@ -55,7 +55,6 @@ class DULLightningModule(BaseLightningModule):
     def epoch_end(self):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
-
     def loss_step(self, mu, std, y, step):
         epsilon = torch.randn_like(std)
         samples = mu + epsilon * std
@@ -78,11 +77,10 @@ class DULLightningModule(BaseLightningModule):
 
         return samples, loss
 
-
     def train_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
         
-        samples, loss = self.loss_step(mu_dul, std_dul, step='train')
+        samples, loss = self.loss_step(mu_dul, std_dul, y, step='train')
 
         return samples, loss
 
@@ -92,21 +90,8 @@ class DULLightningModule(BaseLightningModule):
     def val_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
 
-        epsilon = torch.randn_like(std_dul)
-        samples = mu_dul + epsilon * std_dul
-        variance_dul = std_dul.square()
+        samples, _ = self.loss_step(mu_dul, std_dul, y, step='val')
 
-        hard_pairs = self.miner(samples, y)
-        loss = self.loss_fn(samples, y, hard_pairs)
-
-        loss_kl = (
-            ((variance_dul + mu_dul.square() - torch.log(variance_dul) - 1) * 0.5)
-            .sum(dim=-1)
-            .mean()
-        )
-
-        self.metrics.update("val_loss", loss.item())
-        self.metrics.update("val_loss_kl", loss_kl.item())
         return mu_dul, std_dul, samples
 
     def val_end(self):
