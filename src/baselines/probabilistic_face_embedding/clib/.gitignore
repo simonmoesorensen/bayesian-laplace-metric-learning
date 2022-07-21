@@ -1,6 +1,0 @@
-*
-!.gitignore
-!__init__.py
-!mls.pyx
-!setup.py
-!compile.sh

@@ -54,7 +54,7 @@ python3 -m src.baselines.Backbone.train \
     --name CIFAR10 \
     --batch_size 256 \
     --embedding_size 512 \
-    --num_epoch 100 \
+    --num_epoch 200 \
     --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 8 \
