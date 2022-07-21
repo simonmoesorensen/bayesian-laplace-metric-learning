@@ -1,16 +1,13 @@
 import datetime
 import logging
-import time
 
 import torch
 from matplotlib import pyplot as plt
-from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
-from src.utils import l2_norm
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -24,7 +21,7 @@ def get_time():
 class PFELightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
-        
+
         # Avoid FAISS error on Ampere GPUs
         knn_func = CustomKNN(distances.LpDistance())
 
@@ -41,10 +38,10 @@ class PFELightningModule(BaseLightningModule):
         pdist = torch.distributions.Normal(mu, std)
         sample = self.to_device(pdist.rsample())
 
-        hard_pairs = self.miner(sample, y)
+        pairs = self.miner(sample, y)
 
         var = std.square()
-        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=hard_pairs)
+        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
 
         self.metrics.update("train_loss", loss.item())
 
@@ -56,10 +53,10 @@ class PFELightningModule(BaseLightningModule):
         pdist = torch.distributions.Normal(mu, std)
         sample = self.to_device(pdist.rsample())
 
-        hard_pairs = self.miner(sample, y)
-        
+        pairs = self.miner(sample, y)
+
         var = std.square()
-        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=hard_pairs)
+        loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
 
         self.metrics.update("val_loss", loss.item())
         return mu, std, sample
