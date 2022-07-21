@@ -7,8 +7,8 @@ python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/HIB/train.py \
     --batch_size 64 \
     --K 8 \
     --embedding_size 128 \
-    --num_epoch 3 \
-    --save_freq 1 \
+    --num_epoch 6 \
+    --save_freq 2 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
