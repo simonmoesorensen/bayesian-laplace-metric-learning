@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/cifar10/run1.out
-#BSUB -eo logs/DUL/cifar10/run1.err
+#BSUB -oo logs/DUL/cifar/run1.out
+#BSUB -eo logs/DUL/cifar/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -55,7 +55,7 @@ python3 -m src.baselines.DUL.train \
     --embedding_size 256 \
     --arcface_scale 15 \
     --arcface_margin 0.8 \
-    --num_epoch 40 \
+    --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 12 \
