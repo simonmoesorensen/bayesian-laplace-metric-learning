@@ -55,8 +55,8 @@ python3 -m src.baselines.DUL.train \
     --name MNIST \
     --batch_size 512 \
     --embedding_size 256 \
-    --arcface_scale 15 \
-    --arcface_margin 0.8 \
+    --arcface_scale 64 \
+    --arcface_margin 28.6 \
     --num_epoch 10 \
     --save_freq 25 \
     --gpu_id 0 3\

@@ -54,7 +54,7 @@ python3 -m src.baselines.DUL.train \
     --batch_size 512 \
     --embedding_size 256 \
     --arcface_scale 15 \
-    --arcface_margin 0.8 \
+    --arcface_margin 28.6 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\
