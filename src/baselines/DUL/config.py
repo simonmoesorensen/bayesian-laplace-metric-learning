@@ -4,7 +4,7 @@ from pathlib import Path
 output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'DUL'
 
-data_dir = Path('/work3/s174379/datasets')
+data_dir = Path('/work3/s174420/datasets')
 vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument('--loss_name', type=str, default='Softmax')
     parser.add_argument('--triplet_margin', type=float, default=0.2)
     parser.add_argument('--arcface_scale', type=int, default=64)
-    parser.add_argument('--arcface_margin', type=float, default=0.5)
+    parser.add_argument('--arcface_margin', type=float, default=28.6)
     parser.add_argument('--embedding_size', type=int, default=512)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
@@ -54,9 +54,6 @@ def parse_args():
     parser.add_argument('--num_epoch', type=int, default=22)
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--kl_scale', type=float, default=0.01)
-
-    args = parser.parse_args()
-
 
     args = parser.parse_args()
 
