@@ -56,26 +56,33 @@ class DULLightningModule(BaseLightningModule):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
 
-    def train_step(self, X, y):
-        mu_dul, std_dul = self.forward(X)
-        
-        epsilon = torch.randn_like(std_dul)
-        samples = mu_dul + epsilon * std_dul
-        variance_dul = std_dul**2
+    def loss_step(self, mu, std, y, step):
+        epsilon = torch.randn_like(std)
+        samples = mu + epsilon * std
+
+        variance_dul = std.square()
 
         hard_pairs = self.miner(samples, y)
         loss_backbone = self.loss_fn(samples, y, hard_pairs)
 
         loss_kl = (
-            ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
+            ((variance_dul + mu**2 - torch.log(variance_dul) - 1) * 0.5)
             .sum(dim=-1)
             .mean()
         )
 
         loss = loss_backbone + self.args.kl_scale * loss_kl
 
-        self.metrics.update("train_loss", loss_backbone.item())
-        self.metrics.update("train_loss_kl", loss_kl.item())
+        self.metrics.update(f"{step}_loss", loss_backbone.item())
+        self.metrics.update(f"{step}_loss_kl", loss_kl.item())
+
+        return samples, loss
+
+
+    def train_step(self, X, y):
+        mu_dul, std_dul = self.forward(X)
+        
+        samples, loss = self.loss_step(mu_dul, std_dul, step='train')
 
         return samples, loss
 
@@ -87,13 +94,13 @@ class DULLightningModule(BaseLightningModule):
 
         epsilon = torch.randn_like(std_dul)
         samples = mu_dul + epsilon * std_dul
-        variance_dul = std_dul**2
+        variance_dul = std_dul.square()
 
         hard_pairs = self.miner(samples, y)
         loss = self.loss_fn(samples, y, hard_pairs)
 
         loss_kl = (
-            ((variance_dul + mu_dul**2 - torch.log(variance_dul) - 1) * 0.5)
+            ((variance_dul + mu_dul.square() - torch.log(variance_dul) - 1) * 0.5)
             .sum(dim=-1)
             .mean()
         )
@@ -141,7 +148,7 @@ class DULLightningModule(BaseLightningModule):
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})"
+            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})\t"
             "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
