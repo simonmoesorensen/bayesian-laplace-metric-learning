@@ -13,6 +13,12 @@ sns.set()
 c_id = "b"
 c_ood = "r"
 
+
+def visualize_top_5(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
+    """Visualize the top 5 highest and lowest variance images"""
+    pass
+
+
 def visualize_all(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix):
     id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
     id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
