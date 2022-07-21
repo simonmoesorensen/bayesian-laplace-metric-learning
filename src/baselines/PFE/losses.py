@@ -3,7 +3,6 @@ import torch
 from pytorch_metric_learning import reducers
 
 from pytorch_metric_learning.losses import BaseMetricLossFunction
-import torch
 
 
 class MLSLoss(BaseMetricLossFunction):

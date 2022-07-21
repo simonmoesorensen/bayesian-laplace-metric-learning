@@ -55,7 +55,9 @@ python3 -m src.baselines.DUL.train \
     --embedding_size 256 \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
-    --num_epoch 100 \
-    --save_freq 25 \
-    --gpu_id 0 3\
-    --num_workers 8
+    --num_epoch 25 \
+    --save_freq 10 \
+    --gpu_id 0 1\
+    --num_workers 8 \
+    --shuffle \
+    --to_visualize

@@ -1,10 +1,9 @@
 import torch
 
-from pytorch_metric_learning.reducers import AvgNonZeroReducer
+from pytorch_metric_learning import reducers
 from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 from pytorch_metric_learning.losses.generic_pair_loss import GenericPairLoss
 from pytorch_metric_learning.distances import LpDistance
-from pytorch_metric_learning.utils import common_functions as c_f
 from pytorch_metric_learning.losses.mixins import WeightMixin
 
 
@@ -16,6 +15,7 @@ class WeightClipper:
         # filter the variables to get the ones you want
         if hasattr(module, 'A'):
             module.A.data = module.A.data.clamp(min=0)
+
 
 class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
     def __init__(self, **kwargs):
@@ -32,14 +32,11 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
         self.B = torch.nn.Parameter(torch.Tensor(1))
         self.weight_init_func(self.B)
 
-
     def cast_params(self, device):
         self.A.data = self.A.data.to(device)
         self.B.data = self.B.data.to(device)
 
     def _compute_loss(self, pos_pair_dist, neg_pair_dist, indices_tuple):
-        self.cast_params(pos_pair_dist.device)
-
         pos_loss, neg_loss = 0, 0
         if len(pos_pair_dist) > 0:
             pos_loss = self.get_per_pair_loss(pos_pair_dist, "pos")
@@ -83,7 +80,7 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
         return -torch.log(1 - p)
 
     def get_default_reducer(self):
-        return AvgNonZeroReducer()
+        return reducers.MeanReducer()
 
     def _sub_loss_names(self):
         return ["pos_loss", "neg_loss"]

@@ -48,8 +48,8 @@ class HIBLightningModule(BaseLightningModule):
         # Monte Carlo K times sampling
         self.K = args.K
 
-        # KL Divergence
-        self.kl_loss = nn.KLDivLoss(reduction="batchmean")
+        # Move loss fn parameters to GPU
+        self.loss_fn.cast_params(self.device)
 
     def optimizer_step(self):
         self.optimizer.step()
@@ -65,10 +65,10 @@ class HIBLightningModule(BaseLightningModule):
     def epoch_end(self):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
-    def loss_step(self, mu, std, y):
+    def loss_step(self, mu, std, y, step):
         with self.autocast():
             # Create sample distribution
-            pdist = tdist.Normal(mu, std + 1e-20)
+            pdist = tdist.Normal(mu, std + 1e-6)
 
             # Monte Carlo K times sampling, reparameterization trick in order
             # to do backprop
@@ -99,10 +99,10 @@ class HIBLightningModule(BaseLightningModule):
             y_k2 = y.repeat(self.K**3, 1).view(-1)
 
             # Scale the indices to match the shape of the samples
-            step = self.to_device(torch.arange(0, self.K)) * self.batch_size
+            batch_step = self.to_device(torch.arange(0, self.K)) * self.batch_size
 
             def scale_indices(x):
-                return (x.repeat(self.K, 1).T + step).T.view(-1)
+                return (x.repeat(self.K, 1).T + batch_step).T.view(-1)
 
             scaled_indices = []
             for val in pair_indices:
@@ -127,7 +127,7 @@ class HIBLightningModule(BaseLightningModule):
             self.metrics.update(f"{step}_loss", loss_soft_contrastive.item())
             self.metrics.update(f"{step}_loss_kl", loss_kl.item())
 
-            return samples, loss, loss_soft_contrastive, loss_kl
+            return samples, loss
 
     def train_step(self, X, y):
         # Pass images through the model
