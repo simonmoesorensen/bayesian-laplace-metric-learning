@@ -12,10 +12,14 @@ class DUL_Backbone(nn.Module):
         self.features = resnet
 
         self.mu_dul_backbone = nn.Sequential(
+            nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
+            nn.Dropout(0.4)
         )
         self.logvar_dul_backbone = nn.Sequential(
+            nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
+            nn.Dropout(0.4)
         )
 
     def forward(self, img):
