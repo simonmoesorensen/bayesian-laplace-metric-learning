@@ -17,8 +17,8 @@
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=16GB]"
-#BSUB -R "select[gpu16gb]"
+#BSUB -R "rusage[mem=32GB]"
+#BSUB -R "select[gpu32gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -51,10 +51,10 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.PFE.train \
     --dataset MNIST \
     --name MNIST \
-    --batch_size 128 \
+    --batch_size 64 \
     --embedding_size 128 \
     --num_epoch 50 \
-    --save_freq 25 \
+    --save_freq 10 \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
