@@ -186,7 +186,8 @@ class HIBLightningModule(BaseLightningModule):
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})".format(
+            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})"
+            "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
                 batch + 1,
@@ -196,5 +197,6 @@ class HIBLightningModule(BaseLightningModule):
                 loss_KL=self.metrics.get("train_loss_kl"),
                 acc=self.metrics.get("train_accuracy"),
                 map_r=self.metrics.get("train_map_r"),
+                lr=self.optimizer.param_groups[0]["lr"],
             )
         )
