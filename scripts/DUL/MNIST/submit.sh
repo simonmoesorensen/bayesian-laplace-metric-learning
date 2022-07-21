@@ -49,8 +49,6 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 -m src.baselines.DUL.train \
-    --model_save_folder $model_save_folder \
-    --log_dir $logs \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \

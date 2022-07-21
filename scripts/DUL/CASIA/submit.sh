@@ -60,6 +60,4 @@ python3 -m src.baselines.DUL.train \
     --gpu_id 0 1\
     --num_workers 12\
     --shuffle\
-    --to_visualize\
-    --model_path checkpoints/Casia/Backbone_Epoch_45_Batch_26100_Time_2022-07-11T125559_checkpoint.pth\
-    --resume_epoch 45
+    --to_visualize
