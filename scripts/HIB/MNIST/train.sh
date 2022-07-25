@@ -1,7 +1,7 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2,3
 
 echo "Waiting for debugger to attach..."
-python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/HIB/train.py \
+python3 -m debugpy --listen 10.66.20.9:1331 ./src/baselines/HIB/train.py \
     --dataset MNIST \
     --name MNIST \
     --batch_size 64 \
@@ -9,8 +9,8 @@ python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/HIB/train.py \
     --embedding_size 128 \
     --num_epoch 6 \
     --save_freq 2 \
-    --gpu_id 0\
+    --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 0.0001 \
+    --kl_scale 0.00015 \
     --to_visualize

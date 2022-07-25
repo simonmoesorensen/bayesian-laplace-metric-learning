@@ -12,6 +12,7 @@ from pytorch_metric_learning.distances import LpDistance
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
+import torch.optim.lr_scheduler as lr_scheduler
 
 from src.utils import l2_norm
 
@@ -27,6 +28,11 @@ def get_time():
 class HIBLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
+
+        max_lr = 0.0003
+        self.scheduler.max_lrs = self.scheduler._format_param(
+            "max_lr", optimizer, max_lr
+        )
 
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
