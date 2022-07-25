@@ -65,7 +65,7 @@ class DULLightningModule(BaseLightningModule):
         loss_backbone = self.loss_fn(samples, y, hard_pairs)
 
         loss_kl = (
-            ((variance_dul + mu**2 - torch.log(variance_dul) - 1) * 0.5)
+            ((variance_dul + mu.square() - torch.log(variance_dul) - 1) * 0.5)
             .sum(dim=-1)
             .mean()
         )
