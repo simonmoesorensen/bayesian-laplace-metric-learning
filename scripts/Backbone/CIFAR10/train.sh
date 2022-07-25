@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,3
 
 echo "Waiting for debugger to attach..."
 python3 -m debugpy --listen 10.66.20.9:1331 ./src/baselines/Backbone/train.py \
