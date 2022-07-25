@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -J online
 #BSUB -o online_%J.out
-#BSUB -q gpuv100
+#BSUB -q gpua100
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 24:00
 #BSUB -R "rusage[mem=32GB] span[hosts=1]"

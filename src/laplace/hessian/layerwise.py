@@ -167,6 +167,10 @@ class ContrastiveHessianCalculator(HessianCalculator):
         tmp2 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))
         tmp3 = torch.diag_embed(torch.ones(bs, output_size, device=self.device))
 
+        # a1 = []
+        # a2 = []
+        # a3 = []
+
         H = []
         with torch.no_grad():
             for k in range(len(model) - 1, -1, -1):
@@ -202,6 +206,10 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
                     h_k = h1 + h2 - 2 * h3
 
+                    # a1 = [h1] + a1
+                    # a2 = [h2] + a2
+                    # a3 = [2 * h3] + a3
+
                     H = [h_k] + H
 
                 if k == 0 or isinstance(model[k], torch.nn.Conv2d):
@@ -234,6 +242,20 @@ class ContrastiveHessianCalculator(HessianCalculator):
                 tmp2 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x2, tmp2, jacobian_x2)
                 tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
         Hs = torch.cat(H, dim=1)
+
+        # a1 = torch.cat(a1, dim=1)
+        # a2 = torch.cat(a2, dim=1)
+        # a3 = torch.cat(a3, dim=1)
+
+        # positive_mask = torch.logical_and(~zero_mask, ~negative_mask)
+        # print(9 * Hs[positive_mask, :].sum() / Hs[negative_mask, :].sum())
+        # # print(f"Zero Hessian: {100*zero_mask.sum() / bs:.2f}%")
+        # # print(f"Negative Hessian: {100*negative_mask.sum() / bs:.2f}%")
+        # # print(a1[positive_mask].sum(), a2[positive_mask].sum(), a3[positive_mask].sum())
+        # # print(1 / 9 * a1[negative_mask].sum(), 1 / 9 * a2[negative_mask].sum(), 1 / 9 * a3[negative_mask].sum())
+        # print(a1[positive_mask].sum() / (1 / 9 * a1[negative_mask].sum()))
+        # print(a2[positive_mask].sum() / (1 / 9 * a2[negative_mask].sum()))
+        # print(a3[positive_mask].sum() / (1 / 9 * a3[negative_mask].sum()))
 
         # Set to zero for non-matches outside mask
         Hs = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), Hs)
