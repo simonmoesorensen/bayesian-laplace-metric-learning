@@ -33,9 +33,6 @@ def parse_args():
     parser.add_argument('--model_path', type=str, default=None)
     
     # ----- model & training details
-    parser.add_argument('--head_name', type=str, default='ArcFace')
-    parser.add_argument('--loss_name', type=str, default='Softmax')
-    parser.add_argument('--triplet_margin', type=float, default=0.2)
     parser.add_argument('--arcface_scale', type=int, default=64)
     parser.add_argument('--arcface_margin', type=float, default=28.6)
     parser.add_argument('--embedding_size', type=int, default=512)
