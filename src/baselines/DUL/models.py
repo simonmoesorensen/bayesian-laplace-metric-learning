@@ -14,12 +14,12 @@ class DUL_Backbone(nn.Module):
         self.mu_dul_backbone = nn.Sequential(
             nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
-            nn.Dropout(0.4)
+            nn.Dropout(0.4),
         )
         self.logvar_dul_backbone = nn.Sequential(
             nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
-            nn.Dropout(0.4)
+            nn.Dropout(0.4),
         )
 
     def forward(self, img):
@@ -29,6 +29,7 @@ class DUL_Backbone(nn.Module):
         std_dul = (logvar_dul * 0.5).exp()
 
         mu_dul = l2_norm(mu_dul)
+
         return mu_dul, std_dul
 
 
