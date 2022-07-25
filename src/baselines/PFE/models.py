@@ -2,7 +2,7 @@ from torchvision.models import resnet18, resnet34, resnet50
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 import torch
-from src.baselines.Backbone.models import MNIST_Backbone
+from src.baselines.Backbone.models import CIFAR10_Backbone, Casia_Backbone, MNIST_Backbone
 
 
 class UncertaintyModule(nn.Module):
@@ -91,10 +91,11 @@ def CIFAR10_PFE(embedding_size=128):
     Construct a cifar10 model for PFE.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    backbone = CIFAR10_Backbone(embedding_size=embedding_size)
+    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/cifar10.pth"))
 
     # Wrap in PFE framework
-    model_PFE = UncertaintyModule(model, embedding_size)
+    model_PFE = UncertaintyModule(backbone, embedding_size)
 
     return model_PFE
 
@@ -104,9 +105,10 @@ def Casia_PFE(embedding_size=128):
     Construct a Casia Webface model for PFE.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    backbone = Casia_Backbone(embedding_size=embedding_size)
+    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/casia.pth"))
 
     # Wrap in PFE framework
-    model_PFE = UncertaintyModule(model, embedding_size)
+    model_PFE = UncertaintyModule(backbone, embedding_size)
 
     return model_PFE
