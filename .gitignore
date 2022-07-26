@@ -147,5 +147,4 @@ dmypy.json
 .vscode/
 
 data
-pretrained
 log
