@@ -11,13 +11,13 @@ log_dir = baseline_dir / "logs"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Post-hoc Laplace approximation")
-    parser.add_argument("--name", type=str, default="MNIST")
+    parser.add_argument("--name", type=str, default="CIFAR10")
 
     # ----- random seed for reproducing
     parser.add_argument("--random_seed", type=int, default=6666)
 
     # ----- directory (train & test)
-    parser.add_argument("--dataset", type=str)
+    parser.add_argument("--dataset", type=str, default="CIFAR10")
     parser.add_argument("--data_dir", type=str, default=data_dir)
     parser.add_argument("--vis_dir", type=str, default=vis_dir)
     parser.add_argument("--model_save_folder", type=str, default=save_dir)
@@ -26,16 +26,20 @@ def parse_args():
 
     # ----- training env
     parser.add_argument("--multi_gpu", type=bool, default=True)
-    parser.add_argument("--gpu_id", type=str, nargs="+")
+    parser.add_argument("--gpu_id", type=str, nargs="+", default=["0"])
 
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
-    parser.add_argument("--model_path", type=str, default=None)
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default="outputs/PostHoc/checkpoints/CIFAR10/Model_Epoch_12_Time_2022-07-26T103419_checkpoint.pth",
+    )
 
     # ----- model & training details
     parser.add_argument("--head_name", type=str, default="ArcFace")
     parser.add_argument("--loss_name", type=str, default="Softmax")
-    parser.add_argument("--embedding_size", type=int, default=512)
+    parser.add_argument("--embedding_size", type=int, default=32)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--to_visualize", default=False, action="store_true")
@@ -45,9 +49,13 @@ def parse_args():
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--shuffle", default=False, action="store_true")
     parser.add_argument("--pin_memory", default=True, action="store_true")
-    parser.add_argument("--batch_size", type=int, default=512)
+    parser.add_argument("--batch_size", type=int, default=16)
 
+    # ----- laplace details
     parser.add_argument("--neg_margin", type=float, default=0.2)
+    parser.add_argument("--inference_model", type=str, default="linear")
+    parser.add_argument("--hessian_calculator", type=str, default="")
+    parser.add_argument("--posterior_samples", type=int, default=12)
 
     # ----- hyperparameters
     parser.add_argument("--num_epoch", type=int, default=22)

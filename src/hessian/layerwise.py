@@ -20,6 +20,7 @@ class HessianCalculator:
         pass
 
     def init_model(self, model):
+        self.model = model
 
         self.feature_maps = []
         self.handles = []
@@ -30,9 +31,11 @@ class HessianCalculator:
         def fw_hook_get_input(module, input, output):
             self.feature_maps = [input[0].detach()]
 
-        self.handles.append(model[0].register_forward_hook(fw_hook_get_input))
-        for k in range(len(model)):
-            self.handles.append(model[k].register_forward_hook(fw_hook_get_latent))
+        if not isinstance(self.model, nn.Sequential):
+            raise ValueError("self.model must be a sequential self.model.")
+        self.handles.append(self.model[0].register_forward_hook(fw_hook_get_input))
+        for k in range(len(self.model)):
+            self.handles.append(self.model[k].register_forward_hook(fw_hook_get_latent))
 
     def clean_up(self):
         for handle in self.handles:
@@ -40,20 +43,20 @@ class HessianCalculator:
             del handle
         gc.collect()
 
-    def compute(self, loader, model, output_size):
+    def compute(self, loader, output_size):
         # keep track of running sum
-        h = torch.zeros_like(parameters_to_vector(model.parameters()))
+        h = torch.zeros_like(parameters_to_vector(self.model.parameters()))
 
         for batch in loader:
             batch = [item.to(self.device) for item in batch]
 
-            h += self.compute_batch(model, output_size, *batch)
+            h += self.compute_batch(output_size, *batch)
 
         return h
 
 
 class RmseHessianCalculator(HessianCalculator):
-    def compute_batch(self, model, feature_maps):
+    def compute_batch(self, feature_maps):
         z = self.feature_maps[-1]
         bs, output_size = z.shape
 
@@ -62,8 +65,8 @@ class RmseHessianCalculator(HessianCalculator):
 
         hessian = []
         with torch.no_grad():
-            for k in range(len(model) - 1, -1, -1):
-                if isinstance(model[k], torch.nn.Linear):
+            for k in range(len(self.model) - 1, -1, -1):
+                if isinstance(self.model[k], torch.nn.Linear):
                     diag_elements = torch.einsum("bii->bi", tmp)
                     h_k = torch.einsum(
                         "bi,bj,bj->bij",
@@ -72,7 +75,7 @@ class RmseHessianCalculator(HessianCalculator):
                         self.feature_maps[k],
                     )
                     h_k = h_k.view(bs, -1)
-                    if model[k].bias is not None:
+                    if self.model[k].bias is not None:
                         h_k = torch.cat([h_k, diag_elements], dim=1)
 
                     hessian = [h_k] + hessian
@@ -81,14 +84,19 @@ class RmseHessianCalculator(HessianCalculator):
                     break
 
                 # Calculate the Jacobian wrt to the inputs
-                if isinstance(model[k], torch.nn.Linear):
-                    jacobian_x = model[k].weight.expand((bs, *model[k].weight.shape))
-                elif isinstance(model[k], torch.nn.Tanh):
-                    jacobian_x = torch.diag_embed(
-                        torch.ones(self.feature_maps[k + 1].shape, device=self.device) - self.feature_maps[k + 1] ** 2
+                if isinstance(self.model[k], torch.nn.Linear):
+                    jacobian_x = self.model[k].weight.expand(
+                        (bs, *self.model[k].weight.shape)
                     )
-                elif isinstance(model[k], torch.nn.ReLU):
-                    jacobian_x = torch.diag_embed((self.feature_maps[k + 1] > 0).float())
+                elif isinstance(self.model[k], torch.nn.Tanh):
+                    jacobian_x = torch.diag_embed(
+                        torch.ones(self.feature_maps[k + 1].shape, device=self.device)
+                        - self.feature_maps[k + 1] ** 2
+                    )
+                elif isinstance(self.model[k], torch.nn.ReLU):
+                    jacobian_x = torch.diag_embed(
+                        (self.feature_maps[k + 1] > 0).float()
+                    )
                 else:
                     raise NotImplementedError
 
@@ -107,10 +115,13 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         self.rmse_hessian_calculator = RmseHessianCalculator(device)
 
     def compute_batch(
-        self, model: nn.Module, feature_maps1: List[Tensor], feature_maps2: List[Tensor], y: Tensor
+        self,
+        feature_maps1: List[Tensor],
+        feature_maps2: List[Tensor],
+        y: Tensor,
     ) -> Tensor:
-        h1 = self.rmse_hessian_calculator.compute_batch(model, feature_maps1)
-        h2 = self.rmse_hessian_calculator.compute_batch(model, feature_maps2)
+        h1 = self.rmse_hessian_calculator.compute_batch(feature_maps1)
+        h2 = self.rmse_hessian_calculator.compute_batch(feature_maps2)
         hessian = h1 + h2
 
         z1 = feature_maps1[-1]
@@ -127,11 +138,15 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), hessian)
 
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
-        hessian = torch.einsum("b,bm->bm", torch.where(negative_mask, -1 / (self.num_classes - 1), 1), hessian)
+        hessian = torch.einsum(
+            "b,bm->bm",
+            torch.where(negative_mask, -1 / (self.num_classes - 1), 1),
+            hessian,
+        )
 
         return hessian
 
-    def compute_batch_pairs(self, model: nn.Module, hard_pairs) -> Tensor:
+    def compute_batch_pairs(self, hard_pairs) -> Tensor:
         ap, p, an, n = hard_pairs
 
         t = torch.cat(
@@ -144,11 +159,13 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         feature_maps1 = [x[torch.cat((ap, an))] for x in self.feature_maps]
         feature_maps2 = [x[torch.cat((p, n))] for x in self.feature_maps]
 
-        return self.compute(model, feature_maps1, feature_maps2, t)
+        return self.compute_batch(feature_maps1, feature_maps2, t)
 
 
 class ContrastiveHessianCalculator(HessianCalculator):
-    def __init__(self, margin=0.2, alpha=0.01, num_classes=10, device="cpu", force_positive=False) -> None:
+    def __init__(
+        self, margin=0.2, alpha=0.01, num_classes=10, device="cpu", force_positive=False
+    ) -> None:
         super().__init__(device)
         self.margin = margin
         self.alpha = alpha
@@ -156,7 +173,12 @@ class ContrastiveHessianCalculator(HessianCalculator):
         self.force_positive = force_positive
 
     def compute_batch(
-        self, model, feature_maps1: List[Tensor], feature_maps2: List[Tensor], y: Tensor, *args, **kwargs
+        self,
+        feature_maps1: List[Tensor],
+        feature_maps2: List[Tensor],
+        y: Tensor,
+        *args,
+        **kwargs
     ) -> Tensor:
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
@@ -171,15 +193,19 @@ class ContrastiveHessianCalculator(HessianCalculator):
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
 
         # Saves the product of the Jacobians wrt layer input
-        tmp1 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))
-        tmp2 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))
+        tmp1 = torch.diag_embed(
+            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+        )
+        tmp2 = torch.diag_embed(
+            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+        )
         tmp3 = torch.diag_embed(torch.ones(bs, output_size, device=self.device))
 
         hessian = []
         with torch.no_grad():
-            for k in range(len(model) - 1, -1, -1):
+            for k in range(len(self.model) - 1, -1, -1):
                 # Calculate Hessian for linear layers (since they have parameters)
-                if isinstance(model[k], torch.nn.Linear):
+                if isinstance(self.model[k], torch.nn.Linear):
                     diag_elements1 = torch.einsum("bii->bi", tmp1)
                     diag_elements2 = torch.einsum("bii->bi", tmp2)
                     diag_elements3 = torch.einsum("bii->bi", tmp3)
@@ -203,7 +229,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
                         feature_maps2[k],
                     ).view(bs, -1)
 
-                    if model[k].bias is not None:
+                    if self.model[k].bias is not None:
                         h1 = torch.cat([h1, diag_elements1], dim=1)
                         h2 = torch.cat([h2, diag_elements2], dim=1)
                         h3 = torch.cat([h3, diag_elements3], dim=1)
@@ -212,26 +238,34 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
                     hessian = [h_k] + hessian
 
-                if k == 0 or isinstance(model[k], torch.nn.Conv2d):
+                if k == 0 or isinstance(self.model[k], torch.nn.Conv2d):
                     break
 
                 # Calculate the Jacobian wrt to the inputs
-                if isinstance(model[k], torch.nn.Linear):
-                    jacobian_x1 = model[k].weight.expand((bs, *model[k].weight.shape))
+                if isinstance(self.model[k], torch.nn.Linear):
+                    jacobian_x1 = self.model[k].weight.expand(
+                        (bs, *self.model[k].weight.shape)
+                    )
                     jacobian_x2 = jacobian_x1
-                elif isinstance(model[k], torch.nn.Tanh):
+                elif isinstance(self.model[k], torch.nn.Tanh):
                     jacobian_x1 = torch.diag_embed(
-                        torch.ones(feature_maps1[k + 1].shape, device=self.device) - feature_maps1[k + 1] ** 2
+                        torch.ones(feature_maps1[k + 1].shape, device=self.device)
+                        - feature_maps1[k + 1] ** 2
                     )
                     jacobian_x2 = torch.diag_embed(
-                        torch.ones(feature_maps2[k + 1].shape, device=self.device) - feature_maps2[k + 1] ** 2
+                        torch.ones(feature_maps2[k + 1].shape, device=self.device)
+                        - feature_maps2[k + 1] ** 2
                     )
-                elif isinstance(model[k], torch.nn.ReLU):
+                elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x1 = torch.diag_embed((feature_maps1[k + 1] > 0).float())
                     jacobian_x2 = torch.diag_embed((feature_maps2[k + 1] > 0).float())
-                elif isinstance(model[k], L2Normalize):
-                    jacobian_x1 = model[k]._jacobian_wrt_input(feature_maps1[k], feature_maps1[k + 1])
-                    jacobian_x2 = model[k]._jacobian_wrt_input(feature_maps2[k], feature_maps2[k + 1])
+                elif isinstance(self.model[k], L2Normalize):
+                    jacobian_x1 = self.model[k]._jacobian_wrt_input(
+                        feature_maps1[k], feature_maps1[k + 1]
+                    )
+                    jacobian_x2 = self.model[k]._jacobian_wrt_input(
+                        feature_maps2[k], feature_maps2[k + 1]
+                    )
                 else:
                     raise NotImplementedError
 
@@ -247,7 +281,11 @@ class ContrastiveHessianCalculator(HessianCalculator):
         hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), hessian)
 
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
-        hessian = torch.einsum("b,bm->bm", torch.where(negative_mask, -1 / (self.num_classes - 1), 1), hessian)
+        hessian = torch.einsum(
+            "b,bm->bm",
+            torch.where(negative_mask, -1 / (self.num_classes - 1), 1),
+            hessian,
+        )
 
         # Scale by the number of samples
 
@@ -258,7 +296,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
         return hessian
 
-    def compute_batch_pairs(self, model, hard_pairs) -> Tensor:
+    def compute_batch_pairs(self, hard_pairs) -> Tensor:
         ap, p, an, n = hard_pairs
 
         t = torch.cat(
@@ -271,4 +309,4 @@ class ContrastiveHessianCalculator(HessianCalculator):
         feature_maps1 = [x[torch.cat((ap, an))] for x in self.feature_maps]
         feature_maps2 = [x[torch.cat((p, n))] for x in self.feature_maps]
 
-        return self.compute_batch(model, feature_maps1, feature_maps2, t)
+        return self.compute_batch(feature_maps1, feature_maps2, t)

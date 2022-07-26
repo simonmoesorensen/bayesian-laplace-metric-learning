@@ -34,9 +34,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
         for k in args.__dict__:
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
 
+        self.epoch = 0
+
         # Learning rate scheduler options
         base_lr = args.lr
-        max_lr = min(args.lr * 1e3, 0.1)
+        # max_lr = min(args.lr * 1e3, 0.1)
+        max_lr = args.lr
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
@@ -61,6 +64,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
             for key in state_dict:
                 if key.startswith("module."):
                     new_state_dict[key[7:]] = state_dict[key]
+                elif key.startswith("_module."):
+                    new_state_dict[key[8:]] = state_dict[key]
 
             model.load_state_dict(new_state_dict)
 
@@ -259,16 +264,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
                 self.optimizer_step()
 
-                # display and log metrics every DISP_FREQ
-                if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
-                    self.update_accuracy(out, target, "train")
-                    self.display(epoch, batch)
-                    self.writer.add_scalar(
-                        "lr",
-                        self.optimizer.param_groups[0]["lr"],
-                        global_step=self.epoch + 1,
-                        new_style=True,
-                    )
+                # # display and log metrics every DISP_FREQ
+                # if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
+                #     self.update_accuracy(out, target, "train")
+                #     self.display(epoch, batch)
+                #     self.writer.add_scalar(
+                #         "lr",
+                #         self.optimizer.param_groups[0]["lr"],
+                #         global_step=self.epoch + 1,
+                #         new_style=True,
+                #     )
 
                 batch += 1
 

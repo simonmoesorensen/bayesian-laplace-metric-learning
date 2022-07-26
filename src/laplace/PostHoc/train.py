@@ -48,22 +48,23 @@ def run(args):
     map_trainer = BackboneLightningModule()
     map_trainer.init(model, loss, miner, optimizer, args)
     map_trainer.add_data_module(data_module)
-    map_trainer.train()
+    if not args.model_path:
+        map_trainer.train()
     map_trainer.test()
 
-    # # Post-hoc
-    # miner = AllPermutationsMiner()
-    # post_hoc_trainer = PostHocLaplaceLightningModule(
-    #     accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
-    # )
-    # post_hoc_trainer.init(model, None, miner, None, args)
-    # post_hoc_trainer.add_data_module(data_module)
-    # post_hoc_trainer.train()
-    # post_hoc_trainer.test()
-    # post_hoc_trainer.log_hyperparams()
-    # post_hoc_trainer.save_model(prefix="Final")
+    # Post-hoc
+    miner = AllPermutationsMiner()
+    post_hoc_trainer = PostHocLaplaceLightningModule(
+        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
+    )
+    post_hoc_trainer.init(model, loss, miner, optimizer, args)
+    post_hoc_trainer.add_data_module(data_module)
+    post_hoc_trainer.train()
+    post_hoc_trainer.test()
+    post_hoc_trainer.log_hyperparams()
+    post_hoc_trainer.save_model(prefix="Final")
 
-    # return post_hoc_trainer
+    return post_hoc_trainer
 
 
 if __name__ == "__main__":
