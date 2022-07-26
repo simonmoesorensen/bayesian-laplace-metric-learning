@@ -105,7 +105,7 @@ class HIBLightningModule(BaseLightningModule):
             y_k2 = y.repeat(self.K**3, 1).view(-1)
 
             # Scale the indices to match the shape of the samples
-            batch_step = self.to_device(torch.arange(0, self.K)) * self.batch_size
+            batch_step = self.to_device(torch.arange(0, self.K)) * mu.shape[0]
 
             def scale_indices(x):
                 return (x.repeat(self.K, 1).T + batch_step).T.view(-1)
