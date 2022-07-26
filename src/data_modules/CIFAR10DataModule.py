@@ -28,7 +28,7 @@ class CIFAR10DataModule(BaseDataModule):
                     (0.49139968, 0.48215841, 0.44653091),
                     (0.24703223, 0.24348513, 0.26158784),
                 ),
-                transforms.RandomResizedCrop((32, 32)),
+                transforms.RandomCrop((32, 32), padding=4),
                 transforms.RandomHorizontalFlip(0.5),
             ]
         )
@@ -48,7 +48,7 @@ class CIFAR10DataModule(BaseDataModule):
                 transforms.Normalize(
                     (0.5287, 0.4742, 0.4236), (0.2588, 0.2499, 0.2553)
                 ),
-                transforms.RandomResizedCrop((32, 32)),
+                transforms.RandomCrop((32, 32), padding=4),
                 transforms.RandomHorizontalFlip(0.5),
             ]
         )
