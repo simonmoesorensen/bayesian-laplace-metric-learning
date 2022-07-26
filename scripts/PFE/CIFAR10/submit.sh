@@ -53,7 +53,7 @@ python3 -m src.baselines.PFE.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 128 \
-    --embedding_size 128 \
+    --embedding_size 512 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\
