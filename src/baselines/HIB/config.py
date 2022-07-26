@@ -5,7 +5,7 @@ output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'HIB'
 
 eric = 's174379'
-simon = 's174420'
+simon = 's174379'
 
 data_dir = Path(f'/work3/{simon}/datasets')
 vis_dir = baseline_dir / 'figures'
