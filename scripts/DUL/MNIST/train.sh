@@ -7,12 +7,12 @@ python3 -m debugpy --listen 10.66.12.19:1331 ./src/baselines/DUL/train.py \
     --name MNIST \
     --batch_size 512 \
     --embedding_size 64 \
-    --arcface_scale 4 \
-    --arcface_margin 10 \
-    --num_epoch 30 \
+    --arcface_scale 10 \
+    --arcface_margin 13 \
+    --num_epoch 20 \
     --save_freq 10 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
     --to_visualize \
-    --kl_scale 1e-3
+    --kl_scale 1e-4
