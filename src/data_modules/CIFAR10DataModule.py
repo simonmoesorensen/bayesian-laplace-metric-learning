@@ -54,3 +54,24 @@ class CIFAR10DataModule(BaseDataModule):
         )
 
         self.dataset_ood = d.DTD(self.data_dir, split="test", transform=ood_transforms)
+
+        # OOD noise
+        ood_noise_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    (0.49139968, 0.48215841, 0.44653091),
+                    (0.24703223, 0.24348513, 0.26158784),
+                ),
+                transforms.RandomCrop((32, 32), padding=4),
+                transforms.RandomHorizontalFlip(0.5),
+                transforms.GaussianBlur(
+                    kernel_size=7,
+                    sigma=3,
+                ),
+            ]
+        )
+
+        self.dataset_ood = d.CIFAR10(
+            self.data_dir, train=False, transform=ood_noise_transforms
+        )

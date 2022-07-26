@@ -5,15 +5,25 @@ from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class MNISTDataModule(BaseDataModule):
-    def __init__(self, data_dir, batch_size, num_workers, sampler=None, shuffle=False, pin_memory=True):
-        super().__init__(d.MNIST, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory)
+    def __init__(
+        self,
+        data_dir,
+        batch_size,
+        num_workers,
+        sampler=None,
+        shuffle=False,
+        pin_memory=True,
+    ):
+        super().__init__(
+            d.MNIST, data_dir, batch_size, num_workers, sampler, shuffle, pin_memory
+        )
 
         self.name = "MNIST"
         self.n_classes = 10
 
         self.transform = transforms.Compose(
             [
-                transforms.ToTensor(), 
+                transforms.ToTensor(),
                 transforms.Normalize((0.1307,), (0.3081,)),
             ]
         )
@@ -36,4 +46,20 @@ class MNISTDataModule(BaseDataModule):
 
         self.dataset_ood = d.FashionMNIST(
             self.data_dir, train=False, transform=ood_transforms
+        )
+
+        # OOD noise
+        ood_noise_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,)),
+                transforms.GaussianBlur(
+                    kernel_size=9,
+                    sigma=3,
+                ),
+            ]
+        )
+
+        self.dataset_ood = d.MNIST(
+            self.data_dir, train=False, transform=ood_noise_transforms
         )
