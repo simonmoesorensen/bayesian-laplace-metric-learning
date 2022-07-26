@@ -6,7 +6,7 @@ python3 -m debugpy --listen 10.66.12.19:1331 ./src/baselines/DUL/train.py \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 512 \
-    --embedding_size 256 \
+    --embedding_size 512 \
     --arcface_scale 15 \
     --arcface_margin 28.6 \
     --num_epoch 1 \

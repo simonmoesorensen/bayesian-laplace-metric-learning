@@ -55,7 +55,7 @@ def run(HIB_args):
 
     loss = SoftContrastiveLoss()
 
-    miner = miners.MultiSimilarityMiner()
+    miner = miners.PairMarginMiner()
     
     trainer = HIBLightningModule(
         accelerator="gpu", devices=len(HIB_args.gpu_id), strategy="dp"

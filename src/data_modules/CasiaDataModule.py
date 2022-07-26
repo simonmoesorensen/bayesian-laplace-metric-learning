@@ -45,8 +45,8 @@ class CasiaDataModule(BaseDataModule):
                     [0.4668, 0.3803, 0.3344],
                     [0.2949, 0.2649, 0.2588],
                 ),
-                transforms.RandomResizedCrop((128, 128)),
-                transforms.RandomHorizontalFlip(0.5)
+                transforms.RandomCrop((128, 128), padding=16),
+                transforms.RandomHorizontalFlip(0.5),
             ]
         )
 
@@ -89,14 +89,19 @@ class CasiaDataModule(BaseDataModule):
         n_val = get_split_size(val_split)
         n_test = get_split_size(test_split)
 
+        print(f"Training set size: {n_train}")
+        print(f"Validation set size: {n_val}")
+        print(f"Test set size: {n_test}")
+
         # Ensure that the splits cover the whole dataset
         n_train += size - n_train - n_val - n_test
 
         if shuffle:
             # Overlapping classes allowed
             self.dataset_train, self.dataset_val, self.dataset_test = random_split(
-                dataset_full, [n_train, n_val, n_test],
-                generator=torch.Generator().manual_seed(42)
+                dataset_full,
+                [n_train, n_val, n_test],
+                generator=torch.Generator().manual_seed(42),
             )
         else:
             # Overlapping classes not allowed (zero-shot learning)
@@ -115,13 +120,37 @@ class CasiaDataModule(BaseDataModule):
                     (0.49139968, 0.48215841, 0.44653091),
                     (0.24703223, 0.24348513, 0.26158784),
                 ),
-                transforms.RandomResizedCrop((32, 32)),
-                transforms.RandomHorizontalFlip(0.5)
+                transforms.RandomCrop((128, 128), pad_if_needed=True),
+                transforms.RandomHorizontalFlip(0.5),
             ]
         )
 
         self.dataset_ood = d.CIFAR10(
             self.data_dir, train=False, transform=ood_transforms
+        )
+        
+        # OOD noise
+        ood_noise_transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    # Found from `self._compute_mean_and_std()`
+                    [0.4668, 0.3803, 0.3344],
+                    [0.2949, 0.2649, 0.2588],
+                ),
+                transforms.RandomCrop((128, 128), padding=16),
+                transforms.RandomHorizontalFlip(0.5),
+                transforms.GaussianBlur(kernel_size=31, sigma=5),
+            ]
+        )
+
+        ood_full = d.ImageFolder(self.img_path, transform=ood_noise_transforms)
+        ood_size = 10000
+        print(f"OOD set size: {ood_size}")
+
+        self.dataset_ood, _ = random_split(
+            ood_full,
+            [ood_size, size - ood_size]
         )
 
         if self.sampler == "WeightedRandomSampler":
@@ -131,7 +160,7 @@ class CasiaDataModule(BaseDataModule):
                 print(f"Found weights file {weights_file}")
                 weights = torch.load(weights_file)
             else:
-                print(f"Computing class weights")
+                print("Computing class weights")
                 weights = self.make_weights_for_balanced_classes(
                     self.dataset_train, self.n_classes
                 )
@@ -170,7 +199,9 @@ class CasiaDataModule(BaseDataModule):
 
         weight = torch.zeros(len(images)).to(device)
 
-        for i, (img, label) in tqdm(enumerate(loader), desc="Apply weights", total=len(loader)):
+        for i, (img, label) in tqdm(
+            enumerate(loader), desc="Apply weights", total=len(loader)
+        ):
             idx = torch.arange(0, img.shape[0]) + (i * batch_size)
             idx = idx.to(dtype=torch.long, device=device)
             weight[idx] = weight_per_class[label]
