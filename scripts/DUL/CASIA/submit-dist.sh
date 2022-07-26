@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/casia/run1.out
-#BSUB -eo logs/DUL/casia/run1.err
+#BSUB -oo logs/DUL/casia/run.out
+#BSUB -eo logs/DUL/casia/run.err
 # -- end of LSF options --
 
 # Load the cuda module
