@@ -11,7 +11,7 @@ from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
-from src.utils import l2_norm
+import torch.distributions as dist
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -56,8 +56,8 @@ class DULLightningModule(BaseLightningModule):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
     def loss_step(self, mu, std, y, step):
-        epsilon = torch.randn_like(std)
-        samples = mu + epsilon * std
+        pdist = dist.Normal(mu, std)
+        samples = pdist.rsample()
 
         variance_dul = std.square()
 
