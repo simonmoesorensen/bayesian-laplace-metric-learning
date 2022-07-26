@@ -33,7 +33,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         print("=" * 60)
         for k in args.__dict__:
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
-        
+
         # Learning rate scheduler options
         base_lr = args.lr
         max_lr = min(args.lr * 1e3, 0.1)
@@ -81,7 +81,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             base_lr=base_lr,
             max_lr=max_lr,
             step_size_up=step_size_up,
-            mode='triangular2',
+            mode="triangular2",
             cycle_momentum=False,
         )
 
@@ -139,7 +139,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def epoch_end(self):
         self.log(["train_loss", "train_accuracy", "train_map_r"])
-    
+
     def train_start(self):
         pass
 
@@ -411,4 +411,4 @@ class BaseLightningModule(LightningLite, MetricMeter):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"Saving model @ {str(path)}")
-        self.save(content=self.model.module.module.state_dict(), filepath=str(path))
+        self.save(content=self.model.state_dict(), filepath=str(path))

@@ -3,7 +3,7 @@ from pathlib import Path
 
 baseline_dir = Path("outputs") / "PostHoc"
 
-data_dir = Path("/work3/s174420/datasets")
+data_dir = Path("/work3/s174433/data")
 vis_dir = baseline_dir / "figures"
 save_dir = baseline_dir / "checkpoints"
 log_dir = baseline_dir / "logs"
@@ -35,9 +35,6 @@ def parse_args():
     # ----- model & training details
     parser.add_argument("--head_name", type=str, default="ArcFace")
     parser.add_argument("--loss_name", type=str, default="Softmax")
-    parser.add_argument("--triplet_margin", type=float, default=0.2)
-    parser.add_argument("--arcface_scale", type=int, default=64)
-    parser.add_argument("--arcface_margin", type=float, default=0.5)
     parser.add_argument("--embedding_size", type=int, default=512)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--momentum", type=float, default=0.9)
@@ -49,6 +46,8 @@ def parse_args():
     parser.add_argument("--shuffle", default=False, action="store_true")
     parser.add_argument("--pin_memory", default=True, action="store_true")
     parser.add_argument("--batch_size", type=int, default=512)
+
+    parser.add_argument("--neg_margin", type=float, default=0.2)
 
     # ----- hyperparameters
     parser.add_argument("--num_epoch", type=int, default=22)
