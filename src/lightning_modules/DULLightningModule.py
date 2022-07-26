@@ -44,7 +44,7 @@ class DULLightningModule(BaseLightningModule):
         self.metrics.add("val_loss_kl")
 
     def optimizer_step(self):
-        self.optimizer.step()
+        super().optimizer_step()
         self.loss_optimizer.step()
 
     def epoch_start(self):
@@ -117,8 +117,8 @@ class DULLightningModule(BaseLightningModule):
         mu_dul, std_dul = self.forward(X)
 
         # Reparameterization trick
-        epsilon = torch.randn_like(std_dul)
-        samples = mu_dul + epsilon * std_dul
+        pdist = dist.Normal(mu_dul, std_dul)
+        samples = pdist.rsample()
 
         return mu_dul, std_dul, samples
 
