@@ -31,8 +31,6 @@ class MNISTDataModule(BaseDataModule):
                 transforms.ToTensor(),
                 # Found using self._compute_mean_and_std()
                 transforms.Normalize((0.2861), (0.3528)),
-                transforms.RandomResizedCrop((28, 28)),
-                transforms.RandomHorizontalFlip(0.5)
             ]
         )
 
