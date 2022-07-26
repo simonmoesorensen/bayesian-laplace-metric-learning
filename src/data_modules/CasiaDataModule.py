@@ -129,7 +129,7 @@ class CasiaDataModule(BaseDataModule):
             self.data_dir, train=False, transform=ood_transforms
         )
         
-        # OOD noise 
+        # OOD noise
         ood_noise_transforms = transforms.Compose(
             [
                 transforms.ToTensor(),
