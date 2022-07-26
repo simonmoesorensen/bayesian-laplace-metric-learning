@@ -1,3 +1,4 @@
+import torch
 from torchvision.models import resnet50
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
@@ -14,13 +15,13 @@ class DUL_Backbone(nn.Module):
         self.mu_dul_backbone = nn.Sequential(
             nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
-            nn.Dropout(0.4),
         )
         self.logvar_dul_backbone = nn.Sequential(
             nn.Linear(embedding_size, embedding_size),
             BatchNorm1d(embedding_size),
-            nn.Dropout(0.4),
         )
+
+        torch.nn.init.constant_(self.logvar_dul_backbone[0].weight, 1e-6)
 
     def forward(self, img):
         x = self.features(img)

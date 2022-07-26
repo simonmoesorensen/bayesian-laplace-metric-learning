@@ -230,7 +230,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     # noinspection PyMethodOverriding
     def train(self):
-        print(f"Training")
+        print("Training")
         self.train_start()
         self.model.train()
 
