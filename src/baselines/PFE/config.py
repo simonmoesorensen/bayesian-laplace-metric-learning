@@ -1,10 +1,14 @@
 import argparse
+import os
+from dotenv import load_dotenv
 from pathlib import Path
+
+load_dotenv()
 
 output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'PFE'
 
-data_dir = Path('/work3/s174379/datasets')
+data_dir = Path(os.getenv("DATA_DIR"))
 vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
