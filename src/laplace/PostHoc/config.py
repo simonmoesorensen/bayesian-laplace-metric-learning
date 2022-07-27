@@ -30,17 +30,13 @@ def parse_args():
 
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
-    parser.add_argument(
-        "--model_path",
-        type=str,
-        default="outputs/PostHoc/checkpoints/CIFAR10/Model_Epoch_12_Time_2022-07-26T103419_checkpoint.pth",
-    )
+    parser.add_argument("--model_path", type=str, default=None)
 
     # ----- model & training details
     parser.add_argument("--head_name", type=str, default="ArcFace")
     parser.add_argument("--loss_name", type=str, default="Softmax")
     parser.add_argument("--embedding_size", type=int, default=32)
-    parser.add_argument("--weight_decay", type=float, default=1e-4)
+    parser.add_argument("--weight_decay", type=float, default=0)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--to_visualize", default=False, action="store_true")
     parser.add_argument("--disp_freq", type=int, default=20)
