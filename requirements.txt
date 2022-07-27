@@ -1,3 +1,5 @@
+python-dotenv
+
 numpy
 bcolz-zipline
 tqdm==4.62.0

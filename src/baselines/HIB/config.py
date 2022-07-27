@@ -1,13 +1,14 @@
 import argparse
+import os
+from dotenv import load_dotenv
 from pathlib import Path
+
+load_dotenv()
 
 output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'HIB'
 
-eric = 's174379'
-simon = 's174379'
-
-data_dir = Path(f'/work3/{simon}/datasets')
+data_dir = Path(os.getenv("DATA_DIR"))
 vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
