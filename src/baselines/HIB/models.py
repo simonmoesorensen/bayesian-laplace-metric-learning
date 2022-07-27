@@ -1,5 +1,5 @@
-from torchvision.models import resnet18, resnet34, resnet50
-from torch.nn import Conv2d, BatchNorm1d
+from torchvision.models import resnet18, resnet50
+from torch.nn import Conv2d
 import torch.nn as nn
 import torch
 
@@ -18,7 +18,8 @@ class StochasticLayer(nn.Module):
         self.fc_var = nn.Linear(embedding_size, embedding_size)
 
         # Initialize the variance weights to a small value
-        torch.nn.init.constant_(self.fc_var.weight, 1e-6)
+        # Note: incredible unstable!!!
+        torch.nn.init.constant_(self.fc_var.weight, 1e-5)
 
     def forward(self, x):
         mu = self.fc_mu(x)
