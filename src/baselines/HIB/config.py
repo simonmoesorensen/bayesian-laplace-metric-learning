@@ -1,16 +1,17 @@
 import argparse
+import os
+from dotenv import load_dotenv
 from pathlib import Path
 
-output_dir = Path(__file__).parent.parent.parent.parent / "outputs"
-baseline_dir = output_dir / "HIB"
+load_dotenv()
 
-eric = "s174379"
-simon = "s174420"
+output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
+baseline_dir = output_dir / 'HIB'
 
-data_dir = Path(f"/work3/{simon}/datasets")
-vis_dir = baseline_dir / "figures"
-save_dir = baseline_dir / "checkpoints"
-log_dir = baseline_dir / "logs"
+data_dir = Path(os.getenv("DATA_DIR"))
+vis_dir = baseline_dir / 'figures'
+save_dir = baseline_dir / 'checkpoints'
+log_dir = baseline_dir / 'logs'
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DUL: Data Uncertainty Learning")
