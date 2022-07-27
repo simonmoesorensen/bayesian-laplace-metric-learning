@@ -1,1 +1,1 @@
-kill $(ps aux | grep '-m debugpy' | awk '{print $2}')
+kill $(ps aux | grep debugpy | awk '{print $2}')
