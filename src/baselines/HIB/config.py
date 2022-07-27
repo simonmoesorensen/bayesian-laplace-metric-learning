@@ -13,6 +13,7 @@ vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="DUL: Data Uncertainty Learning")
     parser.add_argument("--name", type=str, default="MNIST")
