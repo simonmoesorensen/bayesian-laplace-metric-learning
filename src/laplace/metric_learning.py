@@ -56,6 +56,7 @@ if __name__ == "__main__":
     logging.info("Finding MAP solution.")
     train_metric(model, train_loader, epochs, lr, margin, device)
     torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict.pt")
+    # torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt")
 
     k = 10
     results = test_model(train_loader.dataset, id_loader.dataset, model, device, k=k)

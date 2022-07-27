@@ -11,6 +11,7 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision import transforms
 from tqdm import tqdm
 from torchvision.models import resnet50
+from pytorch_metric_learning import losses
 
 from src.laplace.metric_learning import train_metric
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
@@ -30,24 +31,43 @@ def post_hoc(
     Run post-hoc laplace on a pretrained metric learning model.
     """
 
-    images_per_class = 5000
+    loss_fn = losses.ContrastiveLoss(neg_margin=margin)
+    dataset_size = len(train_loader.dataset)
 
     calculator = ContrastiveHessianCalculator(margin=margin, device=device)
     calculator.init_model(inference_model)
     miner = AllCombinationsMiner()
     h = 0
+    grads = []
+    mins = []
     for x, y in tqdm(train_loader):
         x, y = x.to(device), y.to(device)
+        x.requires_grad = True
 
         output = model(x)
         hard_pairs = miner(output, y)
 
+        loss = loss_fn(output, y, hard_pairs)
+        loss.backward()
+
+        grads.append(torch.norm(x.grad).detach().cpu().item())
+
         # Total number of possible pairs / number of pairs in our batch
-        scaler = 50000**2 / x.shape[0] ** 2
-        h += calculator.compute_batch_pairs(inference_model, hard_pairs) * scaler
+        scaler = dataset_size**2 / x.shape[0] ** 2
+        hessian = calculator.compute_batch_pairs(hard_pairs)
+        mins.append(hessian.min().detach().cpu().item())
+        h += hessian * scaler
 
     if (h < 0).sum():
         logging.warning("Found negative values in Hessian.")
+
+    fig, ax = plt.subplots()
+    ax.scatter(grads, mins)
+    ax.set(
+        xlabel="Gradient norm",
+        ylabel="Hessian min",
+    )
+    fig.savefig("grads.png")
 
     h = torch.maximum(h, torch.tensor(0))
 
@@ -76,7 +96,7 @@ if __name__ == "__main__":
     latent_dim = 32
     batch_size = 32
     margin = 0.2
-    normalize_encoding = True
+    normalize_encoding = False
 
     id_module = data.CIFAR10DataModule("data/", batch_size, 4)
     id_module.setup()
@@ -93,7 +113,8 @@ if __name__ == "__main__":
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = nn.Sequential(model.fc)
 
-    model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt", map_location=device))
+    model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
+    # model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt", map_location=device))
 
     mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device)
     torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")

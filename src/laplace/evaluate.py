@@ -49,7 +49,8 @@ if __name__ == "__main__":
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
     # inference_model = model.fc
     model.load_state_dict(torch.load(f"pretrained/{method}/{id_label}/state_dict.pt", map_location=device))
-    [param. for param in inference_model.parameters()]
+    # model.load_state_dict(torch.load(f"pretrained/{method}/{id_label}/state_dict_normalized.pt", map_location=device))
+
     id_label = id_module.name.lower()
     ood_label = ood_module.name.lower()
 

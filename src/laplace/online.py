@@ -110,7 +110,7 @@ def train_online(epochs, freq, nn_samples, device, lr, train_loader, margin, net
                 if compute_hessian:
                     # Adjust hessian to the batch size
                     scaler = images_per_class**2 / len(hard_pairs[0])
-                    hessian_batch = hessian_calculator.compute_batch_pairs(net_inference, hard_pairs)
+                    hessian_batch = hessian_calculator.compute_batch_pairs(hard_pairs)
                     h += hessian_batch * scaler
 
                 con_loss += contrastive_loss(output, y, hard_pairs)
