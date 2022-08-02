@@ -278,12 +278,12 @@ class ContrastiveHessianCalculator(HessianCalculator):
         hessian = torch.cat(hessian, dim=1)
 
         # Set to zero for non-matches outside mask
-        hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), hessian)
+        hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0., 1.), hessian)
 
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
         hessian = torch.einsum(
             "b,bm->bm",
-            torch.where(negative_mask, -1 / (self.num_classes - 1), 1),
+            torch.where(negative_mask, -1 / (self.num_classes - 1), 1.),
             hessian,
         )
 

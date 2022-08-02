@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q gpuv100
 
 ### -- set the job Name --
 #BSUB -J PostHoc-CIFAR10
@@ -11,7 +11,7 @@
 #BSUB -n 8
 
 ### -- Select the resources: 2 gpus -- 
-#BSUB -gpu "num=2"
+#BSUB -gpu "num=1"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
@@ -19,6 +19,7 @@
 # Request GPU resources
 #BSUB -R "rusage[mem=32GB]"
 #BSUB -R "select[gpu32gb]"
+#BSUB -R "span[hosts=1]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -31,8 +32,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/PostHoc/cifar/run1.out
-#BSUB -eo logs/PostHoc/cifar/run1.err
+## BSUB -oo logs/PostHoc/cifar/run1.out
+## BSUB -eo logs/PostHoc/cifar/run1.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -48,7 +49,7 @@ python src/laplace/PostHoc/train.py \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --neg_margin 0.2 \
-    --batch_size 128 \
+    --batch_size 32 \
     --embedding_size 32 \
     --num_epoch 15 \
     --disp_freq 2 \
