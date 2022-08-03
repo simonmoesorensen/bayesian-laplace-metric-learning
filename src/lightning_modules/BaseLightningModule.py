@@ -235,7 +235,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     # noinspection PyMethodOverriding
     def train(self):
-        print(f"Training")
+        print("Training")
         self.train_start()
         self.model.train()
 
@@ -300,18 +300,20 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         id_sigma = []
         id_mu = []
+        id_images = []
         with torch.no_grad():
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu, sigma, out = self.val_step(image, target)
                 id_sigma.append(sigma)
                 id_mu.append(mu)
+                id_images.append(image)
 
                 self.update_accuracy(out, target, "val")
 
         self.val_end()
 
         if self.to_visualize:
-            self.visualize(id_mu, id_sigma, prefix="val_")
+            self.visualize(id_mu, id_sigma, id_images, prefix="val_")
 
         self.model.train()
 
@@ -323,20 +325,22 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         id_sigma = []
         id_mu = []
+        id_images = []
         with torch.no_grad():
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
                 id_sigma.append(sigma)
                 id_mu.append(mu)
+                id_images.append(image)
 
                 self.update_accuracy(out, target, "test")
 
         self.test_end()
 
         if self.to_visualize:
-            self.visualize(id_mu, id_sigma, prefix="test_")
+            self.visualize(id_mu, id_sigma, id_images, prefix="test_")
 
-    def visualize(self, id_mu, id_sigma, prefix):
+    def visualize(self, id_mu, id_sigma, id_images, prefix):
         print("=" * 60, flush=True)
         print("Visualizing...")
 
@@ -346,12 +350,14 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         ood_sigma = []
         ood_mu = []
+        ood_images = []
         for img, y in tqdm(self.ood_loader, desc="OOD"):
             mu_dul, std_dul = self.ood_step(img, y)
             ood_sigma.append(std_dul)
             ood_mu.append(mu_dul)
+            ood_images.append(img)
 
-        visualize_all(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix)
+        visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix)
 
     def forward(self, x):
         return self.model(x)

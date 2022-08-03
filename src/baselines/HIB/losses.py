@@ -14,7 +14,7 @@ class WeightClipper:
     def __call__(self, module):
         # filter the variables to get the ones you want
         if hasattr(module, 'A'):
-            module.A.data = module.A.data.clamp(min=0)
+            module.A.data = module.A.data.clamp(min=1e-6)
 
 
 class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
@@ -23,11 +23,11 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
         self.add_to_recordable_attributes(
             list_of_names=["A", "B"], is_stat=False
         )
+        self.weight_clipper = WeightClipper()
 
         self.A = torch.nn.Parameter(torch.Tensor(1))
         # Constrain A to be positive
         self.weight_init_func(self.A)
-        self.weight_clipper = WeightClipper()
 
         self.B = torch.nn.Parameter(torch.Tensor(1))
         self.weight_init_func(self.B)
@@ -65,8 +65,9 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
 
     def p_calc(self, pair_dist):
         p = torch.sigmoid(-self.A * pair_dist + self.B)
-        p = torch.clamp(p, min=1e-8, max=1.0)
 
+        # Numerical stability, clamp to 1e-14
+        p = p.clamp(min=1e-14)
         return p
 
     def pos_calc(self, pos_pair_dist):
@@ -86,48 +87,4 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
         return ["pos_loss", "neg_loss"]
     
     def get_default_distance(self):
-        return LpDistance(p=2)
-
-
-
-# class KLpDistance(BaseDistance):
-#     def __init__(self, K, **kwargs):
-#         super().__init__(**kwargs)
-#         assert not self.is_inverted
-#         self.K = K
-
-#     def compute_mat(self, query_emb, ref_emb):
-#         dtype, device = query_emb.dtype, query_emb.device
-#         if ref_emb is None:
-#             ref_emb = query_emb
-
-#         # Repeat over `self.K` samples
-        
-#         # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes 
-#         # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
-#         query_emb_K = query_emb.repeat_interleave(self.K**2, dim=0)
-
-#         # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
-#         # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
-#         ref_emb_K = ref_emb.repeat(self.K**2, 1, 1)
-
-#         out = []
-#         for k in range(self.K**2):
-#             query_emb_sample = query_emb_K[k]
-#             ref_emb_sample = ref_emb_K[k]
-
-#             # Compute pairwise distances
-#             if dtype == torch.float16:  # cdist doesn't work for float16
-#                 rows, cols = lmu.meshgrid_from_sizes(query_emb_sample, ref_emb_sample, dim=0)
-#                 output = torch.zeros(rows.size(), dtype=dtype, device=device)
-#                 rows, cols = rows.flatten(), cols.flatten()
-#                 distances = self.pairwise_distance(query_emb_sample[rows], ref_emb_sample[cols])
-#                 output[rows, cols] = distances
-#                 out.append(output)
-#             else:
-#                 out.append(torch.cdist(query_emb_sample, ref_emb_sample, p=self.p))
-
-#         return out
-
-#     def pairwise_distance(self, query_emb, ref_emb):
-#         return torch.nn.functional.pairwise_distance(query_emb, ref_emb, p=self.p)
+        return LpDistance(p=2, normalize_embeddings=False)

@@ -7,6 +7,13 @@
 | `probabilistic_face_embedding`  | [Probabilistic Face Embeddings](https://arxiv.org/pdf/1904.09658.pdf)                                      | [seasonSH](https://github.com/seasonSH/Probabilistic-Face-Embeddings)                                          |
 | `unsupervised_visual_retrieval` | [Unsupervised Data Uncertainty Learning in Visual Retrieval Systems](https://arxiv.org/pdf/1902.02586.pdf) |                                                                                                                |
 
+# Getting started
+
+* In this project we use python 3.8.11 and CUDA 11.7, so run `module load python3/3.8.11; module load cuda/11.7`
+* Create and activate the environment with `python3 -m venv venv/; source venv/bin/activate`
+* `python3 -m pip install --no-cache-dir -U pip; python3 -m pip install --no-cache-dir -r requirements.txt`
+* Create a file named `.env` in the root directory and fill it with the following line: `DATA_DIR=/work3/sXXXXXX/datasets/`, where `XXXXXX` is your student ID.
+
 # Debugging in HPC
 
 First, install the `debugpy` package:

@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/PFE/cifar/run1.out
-#BSUB -eo logs/PFE/cifar/run1.err
+#BSUB -oo logs/PFE/cifar/run.out
+#BSUB -eo logs/PFE/cifar/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -53,7 +53,7 @@ python3 -m src.baselines.PFE.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 128 \
-    --embedding_size 128 \
+    --embedding_size 512 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\

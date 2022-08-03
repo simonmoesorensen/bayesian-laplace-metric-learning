@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/Backbone/cifar/run1.out
-#BSUB -eo logs/Backbone/cifar/run1.err
+#BSUB -oo logs/Backbone/cifar/run.out
+#BSUB -eo logs/Backbone/cifar/run.err
 # -- end of LSF options --
 
 # Load the cuda module

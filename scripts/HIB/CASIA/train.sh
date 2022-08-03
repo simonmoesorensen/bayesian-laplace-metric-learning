@@ -12,5 +12,5 @@ python3 -m debugpy --listen 10.66.12.19:1332 ./src/baselines/HIB/train.py \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 0.0001 \
+    --kl_scale 0.00015 \
     --to_visualize

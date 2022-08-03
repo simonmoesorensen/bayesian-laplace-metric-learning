@@ -1,10 +1,9 @@
 import datetime
 import logging
-import time
+import torch.optim as optim
 
 import torch
 from matplotlib import pyplot as plt
-from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
@@ -26,6 +25,8 @@ class BackboneLightningModule(BaseLightningModule):
 
         self.to_visualize = False
 
+        # self.loss_optimizer = optim.SGD(loss_fn.parameters(), lr=0.01)
+
         # Avoid FAISS error on Ampere GPUs
         knn_func = CustomKNN(distances.LpDistance())
 
@@ -36,6 +37,10 @@ class BackboneLightningModule(BaseLightningModule):
             device=self.device,
             knn_func=knn_func,
         )
+
+    # def optimizer_step(self):
+    #     self.loss_optimizer.step()
+    #     return super().optimizer_step()
 
     def train_step(self, X, y):
         z = self.forward(X)
@@ -63,4 +68,4 @@ class BackboneLightningModule(BaseLightningModule):
         return 0, 0, z
 
     def ood_step(self, X, y):
-        raise ValueError('Backbone module is not probabilistic')
+        raise ValueError("Backbone module is not probabilistic")

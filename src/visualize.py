@@ -14,19 +14,76 @@ c_id = "b"
 c_ood = "r"
 
 
-def visualize_top_5(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
+def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix, n=5):
     """Visualize the top 5 highest and lowest variance images"""
-    pass
+    # Get l2 norm of ID variances
+    id_sigma_l2 = np.linalg.norm(id_sigma, axis=1)
+
+    # get top 5 and bottom 5 of  l2 norm of ID variances
+    top_5_id = (-id_sigma_l2).argsort()[:n]
+    bot_5_id = (-id_sigma_l2).argsort()[-n:]
+
+    # Get l2 norm of OOD variances
+    ood_sigma_l2 = np.linalg.norm(ood_sigma, axis=1)
+
+    # get top 5 and bottom 5 of  l2 norm of OOD variances
+    top_5_ood = (-ood_sigma_l2).argsort()[:n]
+    bot_5_ood = (-ood_sigma_l2).argsort()[-n:]
+
+    # plot top and bottom 5 images
+    rows = 4
+    columns = n
+    fig = plt.figure(figsize=(10, 7))
+    counter = 0
+    for col in range(columns):
+        fig.add_subplot(rows, columns, counter+1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.imshow(id_images[top_5_id[col],0])
+        plt.title(f'ID, L2 var={id_sigma_l2[top_5_id[col]]:.2f}')
+        counter += 1
+
+    for col in range(columns):
+        fig.add_subplot(rows, columns, counter+1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.imshow(id_images[bot_5_id[col],0])
+        plt.title(f'ID, L2 var={id_sigma_l2[bot_5_id[col]]:.2f}')
+        counter += 1
+
+    for col in range(columns):
+        fig.add_subplot(rows, columns, counter+1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.imshow(ood_images[top_5_ood[col],0])
+        plt.title(f'OOD, L2 var={ood_sigma_l2[top_5_ood[col]]:.2f}')
+        counter += 1
+
+    for col in range(columns):
+        fig.add_subplot(rows, columns, counter+1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.imshow(ood_images[bot_5_ood[col],0])
+        plt.title(f'OOD, L2 var={ood_sigma_l2[bot_5_ood[col]]:.2f}')
+        counter += 1
+    
+    fig.savefig(vis_path / f"{prefix}top_bot_5_var.png")
+    
 
 
-def visualize_all(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix):
+def visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix):
     id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
     id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
     ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
     ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
+    id_images = torch.cat(id_images, dim=0).cpu().detach().numpy()
+    ood_images = torch.cat(ood_images, dim=0).cpu().detach().numpy()
 
     if not prefix.endswith("_"):
         prefix += "_"
+
+    # visualize top 5 and bottom 5 variance images
+    visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix)
 
     # Visualize
     plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)

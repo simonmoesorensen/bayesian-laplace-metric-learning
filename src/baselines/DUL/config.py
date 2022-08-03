@@ -1,10 +1,14 @@
 import argparse
+import os
+from dotenv import load_dotenv
 from pathlib import Path
+
+load_dotenv()
 
 output_dir = Path(__file__).parent.parent.parent.parent / 'outputs'
 baseline_dir = output_dir / 'DUL'
 
-data_dir = Path('/work3/s174420/datasets')
+data_dir = Path(os.getenv("DATA_DIR"))
 vis_dir = baseline_dir / 'figures'
 save_dir = baseline_dir / 'checkpoints'
 log_dir = baseline_dir / 'logs'
@@ -33,9 +37,6 @@ def parse_args():
     parser.add_argument('--model_path', type=str, default=None)
     
     # ----- model & training details
-    parser.add_argument('--head_name', type=str, default='ArcFace')
-    parser.add_argument('--loss_name', type=str, default='Softmax')
-    parser.add_argument('--triplet_margin', type=float, default=0.2)
     parser.add_argument('--arcface_scale', type=int, default=64)
     parser.add_argument('--arcface_margin', type=float, default=28.6)
     parser.add_argument('--embedding_size', type=int, default=512)

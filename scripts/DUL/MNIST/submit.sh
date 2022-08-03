@@ -23,7 +23,7 @@
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
 # if you want to receive e-mail notifications on a non-default address
-#BSUB -u moe.simon@gmail.com
+### BSUB -u moe.simon@gmail.com
 ### -- send notification at start --
 #BSUB -B
 ### -- send notification at completion--
@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/mnist/run1.out
-#BSUB -eo logs/DUL/mnist/run1.err
+#BSUB -oo logs/DUL/mnist/run.out
+#BSUB -eo logs/DUL/mnist/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -40,24 +40,24 @@ module load python3/3.8.11
 module load cuda/11.7
 
 # Go to directory
-cd /zhome/e2/5/127625/bayesian-laplace-metric-learning
+cd /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning
 
 # Load venv
-source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
+source /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning/venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 -m src.baselines.DUL.train \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \
-    --embedding_size 256 \
+    --embedding_size 32 \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
     --num_epoch 25 \
     --save_freq 10 \
-    --gpu_id 0 1\
+    --gpu_id 0\
     --num_workers 8 \
     --shuffle \
     --to_visualize

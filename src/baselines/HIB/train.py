@@ -55,8 +55,11 @@ def run(HIB_args):
 
     loss = SoftContrastiveLoss()
 
-    miner = miners.MultiSimilarityMiner()
-    
+    miner = miners.BatchEasyHardMiner(
+        pos_strategy='all',
+        neg_strategy='easy',
+    )
+
     trainer = HIBLightningModule(
         accelerator="gpu", devices=len(HIB_args.gpu_id), strategy="dp"
     )

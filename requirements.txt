@@ -14,6 +14,8 @@ pytorch_lightning
 seaborn
 faiss-gpu
 pytorch_metric_learning
+debugpy
+python-dotenv
 
 --extra-index-url https://download.pytorch.org/whl/cu113
 torch==1.11.0

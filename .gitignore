@@ -10,6 +10,9 @@ events.out.tfevents*
 # Project
 data
 
+# Notebooks
+.ipynb_checkpoints
+
 # IDE
 .vscode
 
@@ -147,7 +150,6 @@ dmypy.json
 .vscode/
 
 data
-pretrained
 log
 
 *.out

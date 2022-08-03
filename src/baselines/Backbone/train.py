@@ -7,7 +7,11 @@ from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
 from src.data_modules.CasiaDataModule import CasiaDataModule
 
 from src.baselines.Backbone.config import parse_args
-from src.baselines.Backbone.models import MNIST_Backbone, CIFAR10_Backbone, Casia_Backbone
+from src.baselines.Backbone.models import (
+    MNIST_Backbone,
+    CIFAR10_Backbone,
+    Casia_Backbone,
+)
 
 from src.utils import (
     separate_batchnorm_params,
@@ -53,10 +57,12 @@ def run(Backbone_args):
         lr=Backbone_args.lr,
     )
 
-    loss = losses.ContrastiveLoss()
+    loss = losses.LargeMarginSoftmaxLoss(
+        embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes
+    )
 
-    miner = miners.MultiSimilarityMiner()
-    
+    miner = miners.PairMarginMiner()
+
     trainer = BackboneLightningModule(
         accelerator="gpu", devices=len(Backbone_args.gpu_id), strategy="dp"
     )

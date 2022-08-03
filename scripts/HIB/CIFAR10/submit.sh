@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/HIB/cifar/run1.out
-#BSUB -eo logs/HIB/cifar/run1.err
+#BSUB -oo logs/HIB/cifar/run.out
+#BSUB -eo logs/HIB/cifar/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -60,5 +60,5 @@ python3 -m src.baselines.HIB.train \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 0.0001 \
+    --kl_scale 0.00015 \
     --to_visualize
