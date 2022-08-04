@@ -14,23 +14,26 @@ c_id = "b"
 c_ood = "r"
 
 
-def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix, n=5):
+def visualize_top_5(
+    id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix, n=5
+):
     """Visualize the top 5 highest and lowest variance images"""
     model_name, dataset = get_names(vis_path)
 
     # Get l2 norm of ID variances
-    id_sigma_l2 = np.linalg.norm(id_sigma, axis=1)
+
+    id_sigma_mu = hmean(id_sigma**2, axis=1)
 
     # get top 5 and bottom 5 of  l2 norm of ID variances
-    top_5_id = (-id_sigma_l2).argsort()[:n]
-    bot_5_id = (-id_sigma_l2).argsort()[-n:]
+    top_5_id = (-id_sigma_mu).argsort()[:n]
+    bot_5_id = (-id_sigma_mu).argsort()[-n:]
 
     # Get l2 norm of OOD variances
-    ood_sigma_l2 = np.linalg.norm(ood_sigma, axis=1)
+    ood_sigma_mu = hmean(ood_sigma**2, axis=1)
 
     # get top 5 and bottom 5 of  l2 norm of OOD variances
-    top_5_ood = (-ood_sigma_l2).argsort()[:n]
-    bot_5_ood = (-ood_sigma_l2).argsort()[-n:]
+    top_5_ood = (-ood_sigma_mu).argsort()[:n]
+    bot_5_ood = (-ood_sigma_mu).argsort()[-n:]
 
     # plot top and bottom 5 images
     rows = 4
@@ -38,52 +41,55 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
     fig = plt.figure(figsize=(10, 7))
     counter = 0
     for col in range(columns):
-        fig.add_subplot(rows, columns, counter+1)
+        fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(id_images[top_5_id[col],0])
-        plt.title(f'ID, L2 var={id_sigma_l2[top_5_id[col]]:.2f}')
+        plt.imshow(id_images[top_5_id[col], 0])
+        plt.title(f"ID muvar={id_sigma_mu[top_5_id[col]]:.2E}")
         if col == 0:
-            plt.ylabel('Top 5 var ID')
+            plt.ylabel("Top 5 var ID")
         counter += 1
 
     for col in range(columns):
-        fig.add_subplot(rows, columns, counter+1)
+        fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(id_images[bot_5_id[col],0])
-        plt.title(f'ID, L2 var={id_sigma_l2[bot_5_id[col]]:.2f}')
+        plt.imshow(id_images[bot_5_id[col], 0])
+        plt.title(f"ID muvar={id_sigma_mu[bot_5_id[col]]:.2E}")
         if col == 0:
-            plt.ylabel('Bot 5 var ID')
+            plt.ylabel("Bot 5 var ID")
         counter += 1
 
     for col in range(columns):
-        fig.add_subplot(rows, columns, counter+1)
+        fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(ood_images[top_5_ood[col],0])
-        plt.title(f'OOD, L2 var={ood_sigma_l2[top_5_ood[col]]:.2f}')
+        plt.imshow(ood_images[top_5_ood[col], 0])
+        plt.title(f"OOD muvar={ood_sigma_mu[top_5_ood[col]]:.2E}")
         if col == 0:
-            plt.ylabel('Top 5 var OOD')
+            plt.ylabel("Top 5 var OOD")
         counter += 1
 
     for col in range(columns):
-        fig.add_subplot(rows, columns, counter+1)
+        fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(ood_images[bot_5_ood[col],0])
-        plt.title(f'OOD, L2 var={ood_sigma_l2[bot_5_ood[col]]:.2f}')
+        plt.imshow(ood_images[bot_5_ood[col], 0])
+        plt.title(f"OOD muvar={ood_sigma_mu[bot_5_ood[col]]:.2E}")
         if col == 0:
-            plt.ylabel('Bot 5 var OOD')
+            plt.ylabel("Bot 5 var OOD")
         counter += 1
 
-    plt.suptitle(f'Top and bottom 5 variance images for model {model_name} on dataset {dataset}')
-    
+    plt.suptitle(
+        f"Top and bottom 5 variance images for model {model_name} on dataset {dataset}"
+    )
+
     fig.savefig(vis_path / f"{prefix}top_bot_5_var.png")
-    
 
 
-def visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix):
+def visualize_all(
+    id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
+):
     id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
     id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
     ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
@@ -95,7 +101,9 @@ def visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis
         prefix += "_"
 
     # visualize top 5 and bottom 5 variance images
-    visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix)
+    visualize_top_5(
+        id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
+    )
 
     # Visualize
     plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
@@ -103,9 +111,11 @@ def visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis
     id_var = id_sigma**2
     ood_var = ood_sigma**2
     plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
-    
-    
-def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="b", label=None):
+
+
+def plot_samples(
+    mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="b", label=None
+):
     if ax is None:
         _, ax = plt.subplots()
 
@@ -166,7 +176,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     model_name, dataset = get_names(vis_path)
     id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
     ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
-    
+
     id_sigma, ood_sigma = id_sigma.sum(axis=1), ood_sigma.sum(axis=1)
 
     pred = np.concatenate([id_sigma, ood_sigma])
@@ -182,7 +192,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(fpr, tpr)
     plt.xlabel("FPR")
     plt.ylabel("TPR")
-    plt.title(f'OOD ROC Curve for model {model_name} on dataset {dataset}')
+    plt.title(f"OOD ROC Curve for model {model_name} on dataset {dataset}")
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
     plt.cla()
@@ -205,7 +215,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(recall, precision)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
-    plt.title(f'OOD Precision-Recall Curve for model {model_name} on dataset {dataset}')
+    plt.title(f"OOD Precision-Recall Curve for model {model_name} on dataset {dataset}")
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
     plt.cla()
@@ -237,7 +247,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     )
     metrics["auroc"] = float(auroc_score.numpy())
     print(f"Metrics: {metrics}")
-    
+
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
