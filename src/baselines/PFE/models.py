@@ -59,7 +59,7 @@ class UncertaintyModule(nn.Module):
 
         # Get log var
         log_var = self.bottleneck(x)
-        log_var = self.relu(self.fc_var1(log_var.view(log_var.size(0), -1)))
+        log_var = self.fc_var1(log_var.view(log_var.size(0), -1))
         log_var = self.fc_var2(log_var)
 
         log_var = self.scale_and_shift(log_var)

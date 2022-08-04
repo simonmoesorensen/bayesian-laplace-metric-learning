@@ -56,7 +56,9 @@ class DULLightningModule(BaseLightningModule):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
     def loss_step(self, mu, std, y, step):
-        pdist = dist.Normal(mu, std)
+        # pdist = dist.Normal(mu, std)
+        cov = torch.stack([torch.diag(s) for s in (std)])
+        pdist = dist.MultivariateNormal(mu, cov)
         samples = pdist.rsample()
 
         variance_dul = std.square()
@@ -117,7 +119,9 @@ class DULLightningModule(BaseLightningModule):
         mu_dul, std_dul = self.forward(X)
 
         # Reparameterization trick
-        pdist = dist.Normal(mu_dul, std_dul)
+        # pdist = dist.Normal(mu_dul, std_dul)
+        cov = torch.stack([torch.diag(s) for s in (std_dul)])
+        pdist = dist.MultivariateNormal(mu_dul, cov)
         samples = pdist.rsample()
 
         return mu_dul, std_dul, samples
