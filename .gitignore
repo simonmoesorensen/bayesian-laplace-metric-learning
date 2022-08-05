@@ -136,7 +136,6 @@ dmypy.json
 
 /data/
 /pretrained/
-/results/
 log
 
 *.out
