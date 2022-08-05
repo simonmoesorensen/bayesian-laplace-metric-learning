@@ -11,4 +11,4 @@ module load python3/3.9.6
 module load cuda/11.3
 source venv/bin/activate
 
-python src/laplace/online.py
+python3 src/laplace/online.py

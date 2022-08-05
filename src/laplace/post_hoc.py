@@ -83,7 +83,7 @@ def post_hoc(
     fig.savefig("hessian.png")
 
     mu_q = parameters_to_vector(inference_model.parameters())
-    sigma_q = 1 / (h + 1e-6)
+    sigma_q = 1 / (h.sqrt() + 1e-6)
 
     return mu_q, sigma_q
 
@@ -93,20 +93,22 @@ if __name__ == "__main__":
     # torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    latent_dim = 32
-    batch_size = 32
+    latent_dim = 2
+    batch_size = 16
     margin = 0.2
     normalize_encoding = False
 
-    id_module = data.CIFAR10DataModule("data/", batch_size, 4)
+    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size, 4)
+    id_module.prepare_data()
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    ood_module = data.SVHNDataModule("data/", batch_size, 4)
-    ood_module.setup()
-    ood_loader = ood_module.test_dataloader()
+    # ood_module = data.SVHNDataModule("/work3/s174433/datasets", batch_size, 4)
+    # ood_module.prepare_data()
+    # ood_module.setup()
+    # ood_loader = ood_module.test_dataloader()
 
     model = models.ConvNet(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
@@ -119,7 +121,11 @@ if __name__ == "__main__":
     mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device)
     torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_sigma.pt")
+    # mu_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_mu.pt", map_location=device)
+    # sigma_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_sigma.pt", map_location=device)
 
-    # samples = sample_nn_weights(mu_q, sigma_q)
-    # maps = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
-    # print(f"Post-hoc MAP: {maps}")
+    samples = sample_nn_weights(mu_q, sigma_q)
+    accs = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
+    accs = {k: [dic[k] for dic in accs] for k in accs[0]}
+    for key, val in accs.items():
+        print(f"Post-hoc {key}: {val}")

@@ -1,3 +1,4 @@
+import os
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,7 +30,7 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
         ylabel="True Positive Rate",
     )
     fig.tight_layout()
-    fig.savefig(f"figures/{path}/{pre_fix}ood_roc_curve.png")
+    fig.savefig(f"{path}/{pre_fix}ood_roc_curve.png")
 
     # save data
     # data = pd.DataFrame(
@@ -49,7 +50,7 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
         ylabel="Precision",
     )
     fig.tight_layout()
-    fig.savefig(f"figures/{path}/{pre_fix}ood_precision_recall_curve.png")
+    fig.savefig(f"{path}/{pre_fix}ood_precision_recall_curve.png")
 
     metrics = {}
 
@@ -59,16 +60,15 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
     metrics["auprc"] = float(auprc_score.numpy())
 
     # compute false positive rate at 80
-    num_id = len(id_sigma)
-
-    for p in range(0, 100, 10):
-        # if there is no difference in variance
-        try:
-            metrics[f"fpr{p}"] = float(fpr[int(p / 100.0 * num_id)].numpy())
-        except:
-            metrics[f"fpr{p}"] = "none"
-        else:
-            continue
+    # num_id = len(id_sigma)
+    # for p in range(0, 100, 10):
+    #     # if there is no difference in variance
+    #     try:
+    #         metrics[f"fpr{p}"] = float(fpr[int(p / 100.0 * num_id)].numpy())
+    #     except:
+    #         metrics[f"fpr{p}"] = "none"
+    #     else:
+    #         continue
 
     # compute auroc
     auroc = torchmetrics.AUROC(num_classes=1)
@@ -83,12 +83,16 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
 
 if __name__ == "__main__":
-    id_title = "CIFAR-10"
+    id_title = "FashionMNIST"
+    # id_title = "MNIST"
+    # id_title = "CIFAR-10"
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    ood_title = "SVHN"
+    ood_title = "MNIST"
+    # ood_title = "FashionMNIST"
+    # ood_title = "SVHN"
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 
@@ -97,9 +101,12 @@ if __name__ == "__main__":
     mu_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy")
     var_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
 
-    metrics = compute_and_plot_roc_curves("", var_id, var_ood, pre_fix=f"{id_label}_{ood_label}_")
+    metrics = compute_and_plot_roc_curves(f"results/{method}/{id_label}/{ood_label}/", var_id, var_ood)
     print(metrics)
-    # fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
-    # fig.suptitle(f"Trained on {id_title}, OOD {ood_title}")
-    # fig.tight_layout()
-    # fig.savefig(f"figures/ood_plot_{id_label}_{ood_label}.png")
+    metrics = pd.DataFrame.from_dict({metric: [val] for metric, val in metrics.items()})
+    metrics_path = f"results/{method}/{id_label}/{ood_label}/ood_metrics.csv"
+    metrics.to_csv(metrics_path, index=False, header=True)
+    # if os.path.exists(metrics_path):
+    #     metrics.to_csv(metrics_path, mode="a", index=False, header=False)
+    # else:
+    #     metrics.to_csv(metrics_path, index=False, header=True)

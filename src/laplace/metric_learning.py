@@ -37,14 +37,14 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    latent_dim = 32
+    latent_dim = 2
     epochs = 50
     lr = 3e-4
     batch_size = 128
     margin = 0.2
     normalize_encoding = False
 
-    id_module = data.CIFAR10DataModule("data/", batch_size, 4)
+    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
@@ -56,7 +56,8 @@ if __name__ == "__main__":
     logging.info("Finding MAP solution.")
     train_metric(model, train_loader, epochs, lr, margin, device)
     torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict.pt")
-    # torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt")
+    # # torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt")
+    # model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt"))
 
     k = 10
     results = test_model(train_loader.dataset, id_loader.dataset, model, device, k=k)

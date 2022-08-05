@@ -20,18 +20,17 @@ def test_model(train_set, test_set, model, data_device, k=10):
     """
     Compute accuracy using AccuracyCalculator from pytorch-metric-learning
     """
-    accuracy_calculator = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=k)
-
     train_embeddings, train_labels = get_all_embeddings(train_set, model, data_device)
     test_embeddings, test_labels = get_all_embeddings(test_set, model, data_device)
 
-    accuracies = accuracy_calculator.get_accuracy(
-        test_embeddings,
-        train_embeddings,
-        test_labels.squeeze(),
-        train_labels.squeeze(),
-        embeddings_come_from_same_source=False,
-    )
+    accuracies = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=k)\
+        .get_accuracy(
+            test_embeddings,
+            train_embeddings,
+            test_labels.squeeze(),
+            train_labels.squeeze(),
+            embeddings_come_from_same_source=False,
+        )
     return accuracies
 
 
@@ -76,7 +75,7 @@ def get_sample_accuracy(train_set, test_set, model, inference_model, samples, de
     accuracies = []
     for sample in samples:
         vector_to_parameters(sample, inference_model.parameters())
-        accuracies.append(test_model(train_set, test_set, model, device)["precision_at_1"])
+        accuracies.append(test_model(train_set, test_set, model, device))
     return accuracies
 
 

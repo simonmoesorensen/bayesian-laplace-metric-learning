@@ -31,3 +31,4 @@ class CIFAR10DataModule(datamodules.CIFAR10DataModule):
             **kwargs
         )
         self.name = "CIFAR-10"
+        

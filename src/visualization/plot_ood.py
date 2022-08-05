@@ -68,12 +68,16 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood):
 
 
 if __name__ == "__main__":
-    id_title = "CIFAR-10"
+    id_title = "FashionMNIST"
+    # id_title = "MNIST"
+    # id_title = "CIFAR-10"
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    ood_title = "SVHN"
+    ood_title = "MNIST"
+    # ood_title = "FashionMNIST"
+    # ood_title = "SVHN"
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 
@@ -85,4 +89,5 @@ if __name__ == "__main__":
     fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
     fig.suptitle(f"Trained on {id_title}, OOD {ood_title}")
     fig.tight_layout()
-    fig.savefig(f"figures/ood_plot_{id_label}_{ood_label}.png")
+    fig.savefig(f"results/{method}/{id_label}/{ood_label}/ood_plot.png")
+    # fig.savefig(f"figures/ood_plot_{id_label}_{ood_label}.png")

@@ -9,6 +9,7 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision.models import resnet50
 from torchvision.utils import save_image
+from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
 from src.laplace.utils import generate_predictions_from_samples_rolling, sample_nn_weights
 from src import data, models
@@ -29,17 +30,17 @@ if __name__ == "__main__":
 
     method = "post_hoc"
 
-    latent_dim = 32
+    latent_dim = 2
     batch_size = 512
     normalize_encoding = False
 
-    id_module = data.CIFAR10DataModule("data/", batch_size, 4)
+    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size, 4)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    ood_module = data.SVHNDataModule("data/", batch_size, 4)
+    ood_module = data.MNISTDataModule("/work3/s174433/datasets", batch_size, 4)
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
@@ -58,6 +59,16 @@ if __name__ == "__main__":
     sigma_q = torch.load(f"pretrained/{method}/{id_label}/laplace_sigma.pt", map_location=device)
 
     mean, variance = evaluate_laplace(model, inference_model, id_loader, mu_q, sigma_q, device)
+    mean_train, _ = evaluate_laplace(model, inference_model, train_loader, mu_q, sigma_q, device)
+    accuracy_calculator = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=10)
+    accuracies = accuracy_calculator.get_accuracy(
+        mean,
+        mean_train,
+        torch.cat([b[1] for b in id_loader]),
+        torch.cat([b[1] for b in train_loader]),
+        embeddings_come_from_same_source=False,
+    )
+    print(accuracies)
     mean = mean.detach().cpu()
     variance = variance.detach().cpu()
     np.save(f"results/{method}/{id_label}/id_laplace_mu.npy", mean.numpy())
