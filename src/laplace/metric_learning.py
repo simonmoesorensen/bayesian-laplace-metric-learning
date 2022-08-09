@@ -38,7 +38,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     latent_dim = 2
-    epochs = 50
+    epochs = 30
     lr = 3e-4
     batch_size = 128
     margin = 0.2

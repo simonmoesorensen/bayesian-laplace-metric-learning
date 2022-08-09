@@ -39,35 +39,36 @@ def post_hoc(
     miner = AllCombinationsMiner()
     h = 0
     grads = []
-    mins = []
-    for x, y in tqdm(train_loader):
-        x, y = x.to(device), y.to(device)
-        x.requires_grad = True
+    # mins = []
+    with torch.no_grad():
+        for x, y in tqdm(train_loader):
+            x, y = x.to(device), y.to(device)
+            # x.requires_grad = True
 
-        output = model(x)
-        hard_pairs = miner(output, y)
+            output = model(x)
+            hard_pairs = miner(output, y)
 
-        loss = loss_fn(output, y, hard_pairs)
-        loss.backward()
+            # loss = loss_fn(output, y, hard_pairs)
+            # loss.backward()
 
-        grads.append(torch.norm(x.grad).detach().cpu().item())
+            # grads.append(torch.norm(x.grad).detach().cpu().item())
 
-        # Total number of possible pairs / number of pairs in our batch
-        scaler = dataset_size**2 / x.shape[0] ** 2
-        hessian = calculator.compute_batch_pairs(hard_pairs)
-        mins.append(hessian.min().detach().cpu().item())
-        h += hessian * scaler
+            # Total number of possible pairs / number of pairs in our batch
+            scaler = dataset_size**2 / x.shape[0] ** 2
+            hessian = calculator.compute_batch_pairs(hard_pairs)
+            # mins.append(hessian.min().detach().cpu().item())
+            h += hessian * scaler
 
     if (h < 0).sum():
         logging.warning("Found negative values in Hessian.")
 
-    fig, ax = plt.subplots()
-    ax.scatter(grads, mins)
-    ax.set(
-        xlabel="Gradient norm",
-        ylabel="Hessian min",
-    )
-    fig.savefig("grads.png")
+    # fig, ax = plt.subplots()
+    # ax.scatter(grads, mins)
+    # ax.set(
+    #     xlabel="Gradient norm",
+    #     ylabel="Hessian min",
+    # )
+    # fig.savefig("grads.png")
 
     h = torch.maximum(h, torch.tensor(0))
 
@@ -81,9 +82,10 @@ def post_hoc(
     ax.set(xlabel="Layer", ylabel="Log-Hessian")
     # ax.vlines(params, h.detach().cpu().numpy().min() + 1e-6, h.detach().cpu().numpy().max())
     fig.savefig("hessian.png")
+    # torch.save(h.detach().cpu(), "hessian_32-2.pt")
 
     mu_q = parameters_to_vector(inference_model.parameters())
-    sigma_q = 1 / (h.sqrt() + 1e-6)
+    sigma_q = 1 / (h + 1e-6)
 
     return mu_q, sigma_q
 
@@ -124,8 +126,8 @@ if __name__ == "__main__":
     # mu_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_mu.pt", map_location=device)
     # sigma_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_sigma.pt", map_location=device)
 
-    samples = sample_nn_weights(mu_q, sigma_q)
-    accs = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
-    accs = {k: [dic[k] for dic in accs] for k in accs[0]}
-    for key, val in accs.items():
-        print(f"Post-hoc {key}: {val}")
+    # samples = sample_nn_weights(mu_q, sigma_q)
+    # accs = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
+    # accs = {k: [dic[k] for dic in accs] for k in accs[0]}
+    # for key, val in accs.items():
+    #     print(f"Post-hoc {key}: {val}")

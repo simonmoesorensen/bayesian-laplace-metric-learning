@@ -39,7 +39,7 @@ def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="
     )
 
 
-def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
+def plot_histogram(sigma_sq, mean="arithmetic", ax=None, color="b", label=None):
     if ax is None:
         _, ax = plt.subplots()
 

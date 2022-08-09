@@ -59,16 +59,16 @@ if __name__ == "__main__":
     sigma_q = torch.load(f"pretrained/{method}/{id_label}/laplace_sigma.pt", map_location=device)
 
     mean, variance = evaluate_laplace(model, inference_model, id_loader, mu_q, sigma_q, device)
-    mean_train, _ = evaluate_laplace(model, inference_model, train_loader, mu_q, sigma_q, device)
-    accuracy_calculator = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=10)
-    accuracies = accuracy_calculator.get_accuracy(
-        mean,
-        mean_train,
-        torch.cat([b[1] for b in id_loader]),
-        torch.cat([b[1] for b in train_loader]),
-        embeddings_come_from_same_source=False,
-    )
-    print(accuracies)
+    # mean_train, _ = evaluate_laplace(model, inference_model, train_loader, mu_q, sigma_q, device)
+    # accuracy_calculator = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=10)
+    # accuracies = accuracy_calculator.get_accuracy(
+    #     mean,
+    #     mean_train,
+    #     torch.cat([b[1] for b in id_loader]),
+    #     torch.cat([b[1] for b in train_loader]),
+    #     embeddings_come_from_same_source=False,
+    # )
+    # print(accuracies)
     mean = mean.detach().cpu()
     variance = variance.detach().cpu()
     np.save(f"results/{method}/{id_label}/id_laplace_mu.npy", mean.numpy())
