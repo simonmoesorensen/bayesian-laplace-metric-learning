@@ -26,6 +26,19 @@ class HIBLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
+        if args.model_path:
+            loss_path = args.model_path.replace('Model', 'Loss', 1)
+            state_dict = self.load(loss_path)
+
+            new_state_dict = {}
+            for key in state_dict:
+                if key.startswith("module."):
+                    new_state_dict[key[7:]] = state_dict[key]
+                else:
+                    new_state_dict[key] = state_dict[key]
+
+            loss_fn.load_state_dict(new_state_dict)
+
         max_lr = 0.0003
         self.scheduler.max_lrs = self.scheduler._format_param(
             "max_lr", optimizer, max_lr
@@ -273,4 +286,7 @@ class HIBLightningModule(BaseLightningModule):
             loss_name = prefix + "_" + loss_name
 
         print(f"Saving loss @ {str(path)}")
-        torch.save(self.loss_fn, loss_path)
+        torch.save(self.loss_fn.state_dict(), loss_path)
+
+    def load(self, filepath):
+        return self._strategy.load_checkpoint(filepath)
