@@ -36,6 +36,7 @@ def parse_args():
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
     parser.add_argument("--model_path", type=str, default=None)
+    parser.add_argument("--loss_path", type=str, default=None)
 
     # ----- model & training details
     parser.add_argument("--embedding_size", type=int, default=512)
