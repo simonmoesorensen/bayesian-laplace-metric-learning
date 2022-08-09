@@ -47,12 +47,14 @@ def run(dul_args):
         eps=1e-8,
     )
 
-    loss = losses.ArcFaceLoss(
-        num_classes=data_module.n_classes,
-        scale=dul_args.arcface_scale,
-        margin=dul_args.arcface_margin,
-        embedding_size=dul_args.embedding_size,
-    )
+    # loss = losses.ArcFaceLoss(
+    #     num_classes=data_module.n_classes,
+    #     scale=dul_args.arcface_scale,
+    #     margin=dul_args.arcface_margin,
+    #     embedding_size=dul_args.embedding_size,
+    # )
+
+    loss = losses.ContrastiveLoss()
 
     miner = miners.MultiSimilarityMiner(
         epsilon=0.1,
