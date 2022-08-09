@@ -1,6 +1,7 @@
 import datetime
 import logging
 import time
+from pathlib import Path, PosixPath
 
 import torch
 import torch.distributions as tdist
@@ -242,3 +243,34 @@ class HIBLightningModule(BaseLightningModule):
                 b=self.loss_fn.B.data.item(),
             )
         )
+
+    def save_model(self, prefix=None):
+        current_time = get_time()
+
+        model_name = "Model_Epoch_{}_Time_{}_checkpoint.pth".format(
+            self.epoch + 1, current_time
+        )
+
+        if prefix is not None:
+            model_name = prefix + "_" + model_name
+
+        path = Path(self.args.model_save_folder) / self.args.name
+        model_path = path / model_name
+
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+
+        print(f"Saving model @ {str(path)}")
+        self.save(content=self.model.module.module.state_dict(), filepath=str(model_path))
+
+
+        loss_name = "Loss_Epoch_{}_Time_{}_checkpoint.pth".format(
+            self.epoch + 1, current_time
+        )
+
+        loss_path = path / loss_name
+
+        if prefix is not None:
+            loss_name = prefix + "_" + loss_name
+
+        print(f"Saving loss @ {str(path)}")
+        torch.save(self.loss_fn, loss_path)
