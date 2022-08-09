@@ -1,5 +1,4 @@
 python-dotenv
-
 numpy
 bcolz-zipline
 tqdm==4.62.0
@@ -15,7 +14,6 @@ seaborn
 faiss-gpu
 pytorch_metric_learning
 debugpy
-
 --extra-index-url https://download.pytorch.org/whl/cu113
 torch==1.11.0
 torchvision==0.12.0
