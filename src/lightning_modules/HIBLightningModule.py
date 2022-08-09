@@ -68,7 +68,7 @@ class HIBLightningModule(BaseLightningModule):
         self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
 
     def loss_step(self, mu, std, y, step):
-        # Matrix of positive images
+        # Matrix of positive pairs
         pos_mask = y.view(-1, 1) == y.view(1, -1)
 
         # Don't sample diagonal (same images)
@@ -80,7 +80,7 @@ class HIBLightningModule(BaseLightningModule):
         # Get indicies where matrix is true
         pos_idx = torch.nonzero(pos_mask)
 
-        # Get negative pair indicies
+        # Get negative pair indicies (not same image)
         neg_mask = pos_mask.fill_diagonal_(True)
         neg_idx = torch.nonzero(~neg_mask)
 
