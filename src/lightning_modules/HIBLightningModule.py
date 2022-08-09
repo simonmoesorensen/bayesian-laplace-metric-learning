@@ -26,8 +26,19 @@ class HIBLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-        if args.model_path:
+        loss_path = None
+
+        if args.model_path and not args.loss_path:
             loss_path = args.model_path.replace('Model', 'Loss', 1)
+            
+        
+        elif args.model_path and args.loss_path:
+            loss_path = args.loss_path
+
+        elif not args.model_path and args.loss_path:
+            raise Exception('You can not specify a loss path without a model path! Use --model_path to specify the model path.')
+
+        if loss_path is not None:
             state_dict = self.load(loss_path)
 
             new_state_dict = {}
@@ -38,6 +49,8 @@ class HIBLightningModule(BaseLightningModule):
                     new_state_dict[key] = state_dict[key]
 
             loss_fn.load_state_dict(new_state_dict)
+
+
 
         max_lr = 0.0003
         self.scheduler.max_lrs = self.scheduler._format_param(
@@ -280,10 +293,10 @@ class HIBLightningModule(BaseLightningModule):
             self.epoch + 1, current_time
         )
 
-        loss_path = path / loss_name
-
         if prefix is not None:
             loss_name = prefix + "_" + loss_name
+
+        loss_path = path / loss_name
 
         print(f"Saving loss @ {str(path)}")
         torch.save(self.loss_fn.state_dict(), loss_path)
