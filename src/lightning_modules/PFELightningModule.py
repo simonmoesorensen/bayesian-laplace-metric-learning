@@ -35,7 +35,8 @@ class PFELightningModule(BaseLightningModule):
 
     def train_step(self, X, y):
         mu, std = self.forward(X)
-        pdist = torch.distributions.Normal(mu, std)
+        cov = torch.diag_embed(std.square())
+        pdist = torch.distributions.MultivariateNormal(mu, cov)
         sample = self.to_device(pdist.rsample())
 
         pairs = self.miner(sample, y)
@@ -50,7 +51,8 @@ class PFELightningModule(BaseLightningModule):
     def val_step(self, X, y):
         mu, std = self.forward(X)
 
-        pdist = torch.distributions.Normal(mu, std)
+        cov = torch.diag_embed(std.square())
+        pdist = torch.distributions.MultivariateNormal(mu, cov)
         sample = self.to_device(pdist.rsample())
 
         pairs = self.miner(sample, y)
@@ -64,7 +66,8 @@ class PFELightningModule(BaseLightningModule):
     def test_step(self, X, y):
         mu, std = self.forward(X)
 
-        pdist = torch.distributions.Normal(mu, std)
+        cov = torch.diag_embed(std.square())
+        pdist = torch.distributions.MultivariateNormal(mu, cov)
         sample = self.to_device(pdist.rsample())
 
         return mu, std, sample

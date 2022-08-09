@@ -100,7 +100,7 @@ class HIBLightningModule(BaseLightningModule):
         ap, pos, an, neg = ap.view(-1), pos.view(-1), an.view(-1), neg.view(-1)
 
         # Create sample distribution
-        cov = torch.diag_embed(std)
+        cov = torch.diag_embed(std.square())
         pdist = tdist.MultivariateNormal(mu, cov)
 
         # Compare to unit gaussian r(z) ~ N(0, I)
