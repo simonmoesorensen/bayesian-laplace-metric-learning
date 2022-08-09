@@ -61,6 +61,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
             for key in state_dict:
                 if key.startswith("module."):
                     new_state_dict[key[7:]] = state_dict[key]
+                else:
+                    new_state_dict[key] = state_dict[key]
 
             model.load_state_dict(new_state_dict)
 
