@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-
 class L2Norm(nn.Module):
     def forward(self, X):
         return l2_norm(X, axis=1)
@@ -26,8 +25,54 @@ def separate_batchnorm_params(modules):
             continue
         else:
             if "batchnorm" in str(layer.__class__):
-                paras_only_bn.extend([param for param in [*layer.parameters()] if param.requires_grad])
+                paras_only_bn.extend(
+                    [param for param in [*layer.parameters()] if param.requires_grad]
+                )
             else:
-                paras_wo_bn.extend([param for param in [*layer.parameters()] if param.requires_grad])
+                paras_wo_bn.extend(
+                    [param for param in [*layer.parameters()] if param.requires_grad]
+                )
 
     return paras_only_bn, paras_wo_bn
+
+
+def load_model(model, dataset, embedding_size, model_path):
+
+    if model == "DUL":
+        from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL
+
+        if dataset == "MNIST":
+            model = MNIST_DUL(embedding_size=embedding_size)
+        elif dataset == "CIFAR10":
+            model = CIFAR10_DUL(embedding_size=embedding_size)
+        elif dataset == "CASIA":
+            model = Casia_DUL(embedding_size=embedding_size)
+    elif model == "HIB":
+        from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB
+
+        if dataset == "MNIST":
+            model = MNIST_HIB(embedding_size=embedding_size)
+        elif dataset == "CIFAR10":
+            model = CIFAR10_HIB(embedding_size=embedding_size)
+        elif dataset == "CASIA":
+            model = Casia_HIB(embedding_size=embedding_size)
+    elif model == "PFE":
+        from src.baselines.PFE.models import CIFAR10_PFE, MNIST_PFE, Casia_PFE
+
+        if dataset == "MNIST":
+            model = MNIST_PFE(embedding_size=embedding_size)
+        elif dataset == "CIFAR10":
+            model = CIFAR10_PFE(embedding_size=embedding_size)
+        elif dataset == "CASIA":
+            model = Casia_PFE(embedding_size=embedding_size)
+    elif model == "Laplace":
+        # if dataset == "MNIST":
+        #     model = MNIST_Laplace(embedding_size=embedding_size)
+        # elif dataset == "CIFAR10":
+        #     model = CIFAR10_Laplace(embedding_size=embedding_size)
+        # elif dataset == "CASIA":
+        #     model = Casia_Laplace(embedding_size=embedding_size)
+        pass
+
+    model.load_state_dict(torch.load(model_path))
+    return model
