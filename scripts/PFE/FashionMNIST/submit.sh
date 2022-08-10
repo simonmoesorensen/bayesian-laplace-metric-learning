@@ -5,7 +5,7 @@
 #BSUB -q gpuv100
 
 ### -- set the job Name --
-#BSUB -J PFE-mnist
+#BSUB -J PFE-FashionMNIST
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8

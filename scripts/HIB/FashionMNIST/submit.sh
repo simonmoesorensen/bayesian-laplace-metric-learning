@@ -5,7 +5,7 @@
 #BSUB -q gpua100
 
 ### -- set the job Name --
-#BSUB -J HIB-mnist
+#BSUB -J HIB-FashionMNIST
 
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
