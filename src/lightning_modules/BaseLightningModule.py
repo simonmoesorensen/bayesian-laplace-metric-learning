@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 from pathlib import Path, PosixPath
 import time
@@ -354,7 +355,13 @@ class BaseLightningModule(LightningLite, MetricMeter):
             ood_mu.append(mu_dul)
             ood_images.append(img)
 
-        visualize_all(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix)
+        visualize_all(
+            id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
+        )
+
+        # Save metrics
+        with open(vis_path / "metrics.json", "w") as f:
+            json.dump(self.metrics.get_dict(), f)
 
     def forward(self, x):
         return self.model(x)

@@ -9,6 +9,9 @@ class MetricMeter:
     def get(self, meter):
         return self.meters[meter]
 
+    def get_dict(self):
+        return {meter: self.meters[meter].avg for meter in self.meters}
+
     def reset(self, meters):
         assert isinstance(meters, list), "meters must be a list"
 
