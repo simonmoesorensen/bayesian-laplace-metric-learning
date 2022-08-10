@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/PFE/MNIST/run.out
-#BSUB -eo logs/PFE/MNIST/run.err
+#BSUB -oo logs/PFE/FashionMNIST/run.out
+#BSUB -eo logs/PFE/FashionMNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -52,7 +52,7 @@ python3 -m src.baselines.PFE.train \
     --dataset FashionMNIST \
     --name FashionMNIST \
     --batch_size 64 \
-    --embedding_size 128 \
+    --embedding_size 6 \
     --num_epoch 50 \
     --save_freq 10 \
     --gpu_id 0 1\

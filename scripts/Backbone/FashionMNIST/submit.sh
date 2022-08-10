@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/Backbone/MNIST/run.out
-#BSUB -eo logs/Backbone/MNIST/run.err
+#BSUB -oo logs/Backbone/FashionMNIST/run.out
+#BSUB -eo logs/Backbone/FashionMNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -52,7 +52,7 @@ python3 -m src.baselines.Backbone.train \
     --dataset FashionMNIST \
     --name FashionMNIST \
     --batch_size 512 \
-    --embedding_size 4 \
+    --embedding_size 6 \
     --num_epoch 50 \
     --save_freq 25 \
     --gpu_id 0 1\

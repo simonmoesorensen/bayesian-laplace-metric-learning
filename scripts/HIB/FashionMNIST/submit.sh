@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/HIB/MNIST/run.out
-#BSUB -eo logs/HIB/MNIST/run.err
+#BSUB -oo logs/HIB/FashionMNIST/run.out
+#BSUB -eo logs/HIB/FashionMNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -53,11 +53,11 @@ python3 -m src.baselines.HIB.train \
     --name FashionMNIST \
     --batch_size 64 \
     --K 8 \
-    --embedding_size 128 \
+    --embedding_size 3 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 0.0001 \
+    --kl_scale 5e-4 \
     --to_visualize

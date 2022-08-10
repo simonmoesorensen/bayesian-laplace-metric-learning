@@ -5,7 +5,7 @@ python3 -m debugpy --listen 10.66.20.9:1331 ./src/baselines/Backbone/train.py \
     --dataset FashionMNIST \
     --name FashionMNIST \
     --batch_size 512 \
-    --embedding_size 4 \
+    --embedding_size 6 \
     --num_epoch 20 \
     --save_freq 10 \
     --gpu_id 0\

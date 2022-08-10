@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/MNIST/run.out
-#BSUB -eo logs/DUL/MNIST/run.err
+#BSUB -oo logs/DUL/FashionMNIST/run.out
+#BSUB -eo logs/DUL/FashionMNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
