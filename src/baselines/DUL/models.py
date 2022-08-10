@@ -27,6 +27,10 @@ class DUL_Backbone(nn.Module):
         x = self.features(img)
         mu_dul = self.mu_dul_backbone(x)
         logvar_dul = self.logvar_dul_backbone(x)
+
+        # Numerical stability
+        logvar_dul = (1e-6 + logvar_dul.exp()).log()
+
         std_dul = (logvar_dul * 0.5).exp()
 
         mu_dul = l2_norm(mu_dul)

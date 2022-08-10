@@ -24,6 +24,10 @@ class StochasticLayer(nn.Module):
     def forward(self, x):
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
+        
+        # Numerical stability
+        log_var = (1e-6 + log_var.exp()).log()
+
         std = (log_var * 0.5).exp()
 
         mu = l2_norm(mu)
