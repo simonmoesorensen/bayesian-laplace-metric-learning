@@ -2,9 +2,13 @@ from src.lightning_modules.DULLightningModule import DULLightningModule
 import torch.optim as optim
 from pytorch_metric_learning import losses, miners
 
-from src.data_modules.MNISTDataModule import MNISTDataModule
-from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
-from src.data_modules.CasiaDataModule import CasiaDataModule
+from src.data_modules import (
+    FashionMNISTDataModule,
+    MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
+)
+
 from pytorch_metric_learning import distances
 
 from src.baselines.DUL.config import parse_args
@@ -27,6 +31,9 @@ def run(dul_args):
     elif dul_args.dataset == "Casia":
         model = Casia_DUL(embedding_size=dul_args.embedding_size)
         data_module = CasiaDataModule
+    elif dul_args.dataset == "FashionMNIST":
+        model = MNIST_DUL(embedding_size=dul_args.embedding_size)
+        data_module = FashionMNISTDataModule
 
     data_module = data_module(
         dul_args.data_dir, dul_args.batch_size, dul_args.num_workers
@@ -60,8 +67,8 @@ def run(dul_args):
     )
 
     miner = miners.BatchEasyHardMiner(
-        pos_strategy='easy',
-        neg_strategy='semihard',
+        pos_strategy="easy",
+        neg_strategy="semihard",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
