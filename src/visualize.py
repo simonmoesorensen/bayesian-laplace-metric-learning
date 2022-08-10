@@ -45,7 +45,7 @@ def visualize_top_5(
         plt.xticks([])
         plt.yticks([])
         plt.imshow(id_images[top_5_id[col], 0])
-        plt.title(f"ID muvar={id_sigma_mu[top_5_id[col]]:.2E}")
+        plt.title(f"ID V={id_sigma_mu[top_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var ID")
         counter += 1
@@ -55,7 +55,7 @@ def visualize_top_5(
         plt.xticks([])
         plt.yticks([])
         plt.imshow(id_images[bot_5_id[col], 0])
-        plt.title(f"ID muvar={id_sigma_mu[bot_5_id[col]]:.2E}")
+        plt.title(f"ID V={id_sigma_mu[bot_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var ID")
         counter += 1
@@ -65,7 +65,7 @@ def visualize_top_5(
         plt.xticks([])
         plt.yticks([])
         plt.imshow(ood_images[top_5_ood[col], 0])
-        plt.title(f"OOD muvar={ood_sigma_mu[top_5_ood[col]]:.2E}")
+        plt.title(f"OOD V={ood_sigma_mu[top_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var OOD")
         counter += 1
@@ -75,7 +75,7 @@ def visualize_top_5(
         plt.xticks([])
         plt.yticks([])
         plt.imshow(ood_images[bot_5_ood[col], 0])
-        plt.title(f"OOD muvar={ood_sigma_mu[bot_5_ood[col]]:.2E}")
+        plt.title(f"OOD V={ood_sigma_mu[bot_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var OOD")
         counter += 1
