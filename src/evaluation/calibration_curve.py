@@ -14,7 +14,6 @@ Example:
 """
 
 import argparse
-from tkinter import Grid
 
 from src.utils import load_model
 from pathlib import Path
