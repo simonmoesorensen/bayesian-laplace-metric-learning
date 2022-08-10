@@ -355,6 +355,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             ood_mu.append(mu_dul)
             ood_images.append(img)
 
+        # Visualize
         visualize_all(
             id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
         )
@@ -363,12 +364,14 @@ class BaseLightningModule(LightningLite, MetricMeter):
         with open(vis_path / "metrics.json", "w") as f:
             json.dump(self.metrics.get_dict(), f)
 
+        # Save hparams
+        with open(vis_path / "hparams.json", "w") as f:
+            json.dump(self.get_hparams(), f)
+
     def forward(self, x):
         return self.model(x)
 
-    def log_hyperparams(self):
-        print("Logging hyperparameters")
-
+    def get_hparams(self):
         hparams = vars(self.args)
         hparams["name"] = self.name
         hparams["epoch"] = self.epoch
@@ -383,6 +386,11 @@ class BaseLightningModule(LightningLite, MetricMeter):
             elif isinstance(val, list):
                 hparams[key] = str(val)
 
+        return hparams
+
+    def log_hyperparams(self):
+        print("Logging hyperparameters")
+        hparams = self.get_hparams()
         self.writer.add_hparams(
             hparam_dict=hparams,
             metric_dict={
