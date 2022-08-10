@@ -5,6 +5,7 @@ from pytorch_metric_learning import losses, miners
 from src.data_modules.MNISTDataModule import MNISTDataModule
 from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
 from src.data_modules.CasiaDataModule import CasiaDataModule
+from pytorch_metric_learning import distances
 
 from src.baselines.DUL.config import parse_args
 from src.baselines.DUL.models import MNIST_DUL, CIFAR10_DUL, Casia_DUL
@@ -54,10 +55,13 @@ def run(dul_args):
     #     embedding_size=dul_args.embedding_size,
     # )
 
-    loss = losses.ContrastiveLoss()
+    loss = losses.ContrastiveLoss(
+        distance=distances.LpDistance(normalize_embeddings=True, p=2, power=1),
+    )
 
-    miner = miners.MultiSimilarityMiner(
-        epsilon=0.1,
+    miner = miners.BatchEasyHardMiner(
+        pos_strategy='easy',
+        neg_strategy='semihard',
     )
 
     trainer = DULLightningModule(
