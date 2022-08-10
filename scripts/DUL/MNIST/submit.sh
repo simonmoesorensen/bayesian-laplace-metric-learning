@@ -52,7 +52,7 @@ python3 -m src.baselines.DUL.train \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \
-    --embedding_size 32 \
+    --embedding_size 2 \
     --arcface_scale 64 \
     --arcface_margin 28.6 \
     --num_epoch 25 \
@@ -60,4 +60,5 @@ python3 -m src.baselines.DUL.train \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
-    --to_visualize
+    --to_visualize \
+    --kl_scale 1e-4

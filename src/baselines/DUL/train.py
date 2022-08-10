@@ -56,7 +56,7 @@ def run(dul_args):
     # )
 
     loss = losses.ContrastiveLoss(
-        distance=distances.LpDistance(normalize_embeddings=True, p=2, power=1),
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
     miner = miners.BatchEasyHardMiner(
