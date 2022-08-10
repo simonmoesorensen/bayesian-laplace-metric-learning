@@ -6,7 +6,7 @@ import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
@@ -26,11 +26,7 @@ class DULLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-        # REQUIRED FOR ARCFACE LOSS
-        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
-
-        # Required for ARCFACE loss
-        knn_func = CustomKNN(CosineSimilarity())
+        knn_func = CustomKNN(distances.LpDistance())
 
         # Metric calculation
         self.metric_calc = AccuracyCalculator(
@@ -42,10 +38,6 @@ class DULLightningModule(BaseLightningModule):
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")
-
-    def optimizer_step(self):
-        super().optimizer_step()
-        self.loss_optimizer.step()
 
     def epoch_start(self):
         self.metrics.reset(
