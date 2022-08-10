@@ -84,3 +84,5 @@ def sample_nn_weights(parameters, posterior_scale, n_samples=16):
     samples = torch.randn(n_samples, n_params, device=parameters.device)
     samples = samples * posterior_scale.reshape(1, n_params)
     return parameters.reshape(1, n_params) + samples
+
+

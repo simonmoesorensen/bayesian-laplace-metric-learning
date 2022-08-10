@@ -37,14 +37,14 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    latent_dim = 2
+    latent_dim = 128
     epochs = 30
     lr = 3e-4
     batch_size = 128
     margin = 0.2
     normalize_encoding = False
 
-    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size)
+    id_module = data.CIFAR10DataModule("/work3/s174433/datasets", batch_size, 4)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import hmean
+from scipy.stats import hmean, mode
 from matplotlib.patches import Ellipse
 import seaborn as sns
 
@@ -14,7 +14,9 @@ def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="
     if ax is None:
         _, ax = plt.subplots()
 
-    indices = np.random.choice(np.arange(mu.shape[0]), size=limit)
+    # np.random.seed(0)
+    # indices = np.random.choice(np.arange(mu.shape[0]), size=limit, )
+    indices = np.arange(limit)
 
     ax.scatter(
         mu[indices, latent1],
@@ -49,13 +51,19 @@ def plot_histogram(sigma_sq, mean="arithmetic", ax=None, color="b", label=None):
         mean_sigma_sq = np.mean(sigma_sq, axis=1)
     else:
         raise NotImplementedError
+    
+    print(f"mean={mean_sigma_sq.mean():.5f}, "
+          f"std={mean_sigma_sq.std():.5f}, "
+          f"min={mean_sigma_sq.min():.5f}, "
+          f"max={mean_sigma_sq.max():.5f}, "
+          f"mode={mode(mean_sigma_sq, keepdims=False).mode:.5f}, "
+          f"median={np.median(mean_sigma_sq, keepdims=False):.5f}")
 
     sns.kdeplot(mean_sigma_sq, ax=ax, color=color, label=label)
     ax.set(xlabel="Variance")
 
 
 def plot_ood(mu_id, var_id, mu_ood, var_ood):
-    # fig, ax = plt.subplots(ncols=2, figsize=(5, 3))
     fig, ax = plt.subplots(ncols=2, figsize=(7, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
     plot_histogram(var_id, color=c_id, label="ID", ax=ax[1])
@@ -68,16 +76,16 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood):
 
 
 if __name__ == "__main__":
-    id_title = "FashionMNIST"
+    # id_title = "FashionMNIST"
     # id_title = "MNIST"
-    # id_title = "CIFAR-10"
+    id_title = "CIFAR-10"
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    ood_title = "MNIST"
+    # ood_title = "MNIST"
     # ood_title = "FashionMNIST"
-    # ood_title = "SVHN"
+    ood_title = "SVHN"
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 

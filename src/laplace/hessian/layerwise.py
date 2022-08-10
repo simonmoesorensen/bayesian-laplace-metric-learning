@@ -57,7 +57,7 @@ class HessianCalculator:
 
 class RmseHessianCalculator(HessianCalculator):
     def compute_batch(self, feature_maps):
-        z = self.feature_maps[-1]
+        z = feature_maps[-1]
         bs, output_size = z.shape
 
         # Saves the product of the Jacobians wrt layer input
@@ -71,8 +71,8 @@ class RmseHessianCalculator(HessianCalculator):
                     h_k = torch.einsum(
                         "bi,bj,bj->bij",
                         diag_elements,
-                        self.feature_maps[k],
-                        self.feature_maps[k],
+                        feature_maps[k],
+                        feature_maps[k],
                     )
                     h_k = h_k.view(bs, -1)
                     if self.model[k].bias is not None:
@@ -88,17 +88,17 @@ class RmseHessianCalculator(HessianCalculator):
                     jacobian_x = self.model[k].weight.expand((bs, *self.model[k].weight.shape))
                 elif isinstance(self.model[k], torch.nn.Tanh):
                     jacobian_x = torch.diag_embed(
-                        torch.ones(self.feature_maps[k + 1].shape, device=self.device) - self.feature_maps[k + 1] ** 2
+                        torch.ones(feature_maps[k + 1].shape, device=self.device) - feature_maps[k + 1] ** 2
                     )
                 elif isinstance(self.model[k], torch.nn.ReLU):
-                    jacobian_x = torch.diag_embed((self.feature_maps[k + 1] > 0).float())
+                    jacobian_x = torch.diag_embed((feature_maps[k + 1] > 0).float())
                 else:
                     raise NotImplementedError
 
                 # TODO: make more efficent by using row vectors
                 tmp = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x, tmp, jacobian_x)
 
-        return torch.cat(hessian, dim=1).sum(dim=0)
+        return torch.cat(hessian, dim=1)
 
 
 class FixedContrastiveHessianCalculator(HessianCalculator):
@@ -108,6 +108,10 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         self.alpha = alpha
         self.num_classes = num_classes
         self.rmse_hessian_calculator = RmseHessianCalculator(device)
+    
+    def init_model(self, model):
+        super().init_model(model)
+        self.rmse_hessian_calculator.init_model(model)
 
     def compute_batch(
         self,
@@ -130,16 +134,12 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
 
         # Set to zero for non-matches outside mask
-        hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0, 1), hessian)
+        hessian[zero_mask] = 0
 
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
-        hessian = torch.einsum(
-            "b,bm->bm",
-            torch.where(negative_mask, -1 / (self.num_classes - 1), 1),
-            hessian,
-        )
+        hessian[negative_mask] = -1 / (self.num_classes - 1) * hessian[negative_mask]
 
-        return hessian
+        return hessian.sum(dim=0)
 
     def compute_batch_pairs(self, hard_pairs) -> Tensor:
         ap, p, an, n = hard_pairs
@@ -165,6 +165,10 @@ class ContrastiveHessianCalculator(HessianCalculator):
         self.num_classes = num_classes
         self.force_positive = force_positive
 
+        self.total_pairs = 0
+        self.zeros = 0
+        self.negatives = 0
+
     def compute_batch(
         self, feature_maps1: List[Tensor], feature_maps2: List[Tensor], y: Tensor, *args, **kwargs
     ) -> Tensor:
@@ -179,6 +183,10 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
         zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
+        
+        self.zeros += zero_mask.sum().detach().item()
+        self.negatives += negative_mask.sum().detach().item()
+        self.total_pairs += bs
 
         # Saves the product of the Jacobians wrt layer input
         tmp1 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))

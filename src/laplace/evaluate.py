@@ -30,17 +30,17 @@ if __name__ == "__main__":
 
     method = "post_hoc"
 
-    latent_dim = 2
+    latent_dim = 128
     batch_size = 512
     normalize_encoding = False
 
-    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size, 4)
+    id_module = data.CIFAR10DataModule("/work3/s174433/datasets", batch_size, 4)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    ood_module = data.MNISTDataModule("/work3/s174433/datasets", batch_size, 4)
+    ood_module = data.SVHNDataModule("/work3/s174433/datasets", batch_size, 4)
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 

@@ -83,16 +83,16 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
 
 if __name__ == "__main__":
-    id_title = "FashionMNIST"
+    # id_title = "FashionMNIST"
     # id_title = "MNIST"
-    # id_title = "CIFAR-10"
+    id_title = "CIFAR-10"
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    ood_title = "MNIST"
+    # ood_title = "MNIST"
     # ood_title = "FashionMNIST"
-    # ood_title = "SVHN"
+    ood_title = "SVHN"
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 

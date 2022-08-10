@@ -23,6 +23,7 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision.models import resnet50
 from torchvision.utils import save_image
 from tqdm import tqdm
+from pytorch_lightning import LightningDataModule
 
 from src import data, models
 from src.laplace.evaluate import evaluate_laplace
@@ -39,7 +40,7 @@ from src.visualization.plot_roc import compute_and_plot_roc_curves
 
 sns.set_theme(style="ticks")
 
-def run_posthoc(latent_dim: int):
+def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -51,39 +52,37 @@ def run_posthoc(latent_dim: int):
 
     method = "post_hoc"
 
-    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size)
+    id_module = module_id("/work3/s174433/datasets", batch_size)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    model = models.ConvNet(latent_dim, normalize_encoding).to(device)
+    model = model_module(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     logging.info("Finding MAP solution.")
     train_metric(model, train_loader, epochs, lr, margin, device)
     torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict.pt")
-    # # torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict_normalized.pt")
     # model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt"))
 
-    k = 10
+    k = 5
     results = test_model(train_loader.dataset, id_loader.dataset, model, device, k=k)
     logging.info(f"MAP MAP@{k}: {results['mean_average_precision']:.2f}")
     logging.info(f"MAP Accuracy: {100*results['precision_at_1']:.2f}%")
 
     batch_size = 16
 
-    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size, 4)
-    id_module.prepare_data()
+    id_module = module_id("/work3/s174433/datasets", batch_size, 4)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    # model = models.ConvNet(latent_dim, normalize_encoding).to(device)
-    # inference_model = model.linear
-    # model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
+    model = model_module(latent_dim, normalize_encoding).to(device)
+    inference_model = model.linear
+    model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
 
     # model.eval()
 
@@ -93,13 +92,13 @@ def run_posthoc(latent_dim: int):
 
     batch_size = 512
 
-    id_module = data.FashionMNISTDataModule("/work3/s174433/datasets", batch_size, 4)
+    id_module = module_id("/work3/s174433/datasets", batch_size, 4)
     id_module.setup()
     train_loader = id_module.train_dataloader()
     id_loader = id_module.test_dataloader()
     id_label = id_module.name.lower()
 
-    ood_module = data.MNISTDataModule("/work3/s174433/datasets", batch_size, 4)
+    ood_module = module_ood("/work3/s174433/datasets", batch_size, 4)
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
 
@@ -125,16 +124,16 @@ def run_posthoc(latent_dim: int):
     np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy", mean_ood.numpy())
     np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", variance_ood.numpy())
 
-    id_title = "FashionMNIST"
+    # id_title = "FashionMNIST"
     # id_title = "MNIST"
-    # id_title = "CIFAR-10"
+    id_title = id_module.name
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    ood_title = "MNIST"
+    # ood_title = "MNIST"
     # ood_title = "FashionMNIST"
-    # ood_title = "SVHN"
+    ood_title = ood_module.name
     # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 
@@ -164,7 +163,8 @@ def run_posthoc(latent_dim: int):
 
 if __name__ == "__main__":
 
-    run_posthoc(2)
+    # run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet)
+    run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet)
 
     # auroc = {}
     # for d in range(2, 32+1, 2):
