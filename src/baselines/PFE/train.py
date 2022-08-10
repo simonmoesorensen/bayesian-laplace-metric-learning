@@ -2,17 +2,24 @@ from src.lightning_modules.PFELightningModule import PFELightningModule
 import torch.optim as optim
 from pytorch_metric_learning import miners, distances
 
-from src.data_modules.MNISTDataModule import MNISTDataModule
-from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
-from src.data_modules.CasiaDataModule import CasiaDataModule
-
+from src.data_modules import (
+    FashionMNISTDataModule,
+    MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
+)
 from src.baselines.PFE.config import parse_args
-from src.baselines.PFE.models import MNIST_PFE, CIFAR10_PFE, Casia_PFE
-from src.baselines.PFE.losses import MLSLoss
-
+from src.baselines.PFE.models import (
+    MNIST_PFE,
+    CIFAR10_PFE,
+    Casia_PFE,
+    FashionMNIST_PFE,
+)
 from src.utils import (
     separate_batchnorm_params,
 )
+
+from src.baselines.PFE.losses import MLSLoss
 
 
 def run(PFE_args):
@@ -30,6 +37,9 @@ def run(PFE_args):
         model = Casia_PFE(embedding_size=PFE_args.embedding_size)
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
+    elif PFE_args.dataset == "FashionMNIST":
+        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size)
+        data_module = FashionMNISTDataModule
 
     data_module = data_module(
         PFE_args.data_dir,
@@ -61,7 +71,7 @@ def run(PFE_args):
 
     # Get all positive pairs for the loss
     miner = miners.BatchEasyHardMiner(
-        pos_strategy="all", 
+        pos_strategy="all",
         neg_strategy="hard",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )

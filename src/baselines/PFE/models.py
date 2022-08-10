@@ -2,7 +2,11 @@ from torchvision.models import resnet18, resnet34, resnet50
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 import torch
-from src.baselines.Backbone.models import CIFAR10_Backbone, Casia_Backbone, MNIST_Backbone
+from src.baselines.Backbone.models import (
+    CIFAR10_Backbone,
+    Casia_Backbone,
+    MNIST_Backbone,
+)
 
 
 class UncertaintyModule(nn.Module):
@@ -79,6 +83,22 @@ def MNIST_PFE(embedding_size=128):
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/mnist.pth"))
+
+    # Wrap in PFE framework
+    model_PFE = UncertaintyModule(backbone, embedding_size)
+
+    return model_PFE
+
+
+def FashionMNIST_PFE(embedding_size=128):
+    """
+    Construct a fashion mnist model for PFE.
+    """
+    # Embedding dimension
+    backbone = MNIST_Backbone(embedding_size=embedding_size)
+    backbone.load_state_dict(
+        torch.load("src/baselines/PFE/pretrained/fashion_mnist.pth")
+    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)

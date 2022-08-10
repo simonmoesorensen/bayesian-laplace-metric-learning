@@ -2,9 +2,12 @@ from src.lightning_modules.HIBLightningModule import HIBLightningModule
 import torch.optim as optim
 from pytorch_metric_learning import miners, distances
 
-from src.data_modules.MNISTDataModule import MNISTDataModule
-from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
-from src.data_modules.CasiaDataModule import CasiaDataModule
+from src.data_modules import (
+    FashionMNISTDataModule,
+    MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
+)
 
 from src.baselines.HIB.config import parse_args
 from src.baselines.HIB.models import MNIST_HIB, CIFAR10_HIB, Casia_HIB
@@ -29,6 +32,9 @@ def run(HIB_args):
         model = Casia_HIB(embedding_size=HIB_args.embedding_size)
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
+    elif HIB_args.dataset == "FashionMNIST":
+        model = MNIST_HIB(embedding_size=HIB_args.embedding_size)
+        data_module = FashionMNISTDataModule
 
     data_module = data_module(
         HIB_args.data_dir,

@@ -2,9 +2,12 @@ from src.lightning_modules.BackboneLightningModule import BackboneLightningModul
 import torch.optim as optim
 from pytorch_metric_learning import miners, losses, distances
 
-from src.data_modules.MNISTDataModule import MNISTDataModule
-from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
-from src.data_modules.CasiaDataModule import CasiaDataModule
+from src.data_modules import (
+    FashionMNISTDataModule,
+    MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
+)
 
 from src.baselines.Backbone.config import parse_args
 from src.baselines.Backbone.models import (
@@ -33,6 +36,9 @@ def run(Backbone_args):
         model = Casia_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
+    elif Backbone_args.dataset == "FashionMNIST":
+        model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
+        data_module = FashionMNISTDataModule
 
     data_module = data_module(
         Backbone_args.data_dir,
@@ -61,7 +67,7 @@ def run(Backbone_args):
     #     embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes,
     #     distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     # )
-    
+
     loss = losses.ContrastiveLoss(
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )

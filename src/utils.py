@@ -7,7 +7,7 @@ root = Path(__file__).parent.parent
 logs = root / "logs"
 
 models = ["DUL", "HIB", "Backbone", "PFE"]
-datasets = ["MNIST", "CIFAR10", "CASIA"]
+datasets = ["MNIST", "CIFAR10", "CASIA", "FashionMNIST"]
 
 for model in models:
     for dataset in datasets:

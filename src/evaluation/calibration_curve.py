@@ -17,9 +17,12 @@ import argparse
 
 from src.utils import load_model
 from pathlib import Path
-from src.data_modules import MNISTDataModule
-from src.data_modules import CIFAR10DataModule
-from src.data_modules import CasiaDataModule
+from src.data_modules import (
+    MNISTDataModule,
+    CIFAR10DataModule,
+    CASIADataModule,
+    FashionMNISTDataModule,
+)
 from dotenv import load_dotenv
 import os
 import torch
@@ -120,6 +123,8 @@ def run(args):
     elif args.dataset == "CASIA":
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
+    elif args.dataset == "FashionMNIST":
+        data_module = FashionMNISTDataModule
 
     data_module = data_module(
         data_dir,
