@@ -49,7 +49,7 @@ class DULLightningModule(BaseLightningModule):
 
     def loss_step(self, mu, std, y, step):
         variance_dul = std.square()
-        
+
         cov = torch.diag_embed(variance_dul)
         pdist = dist.MultivariateNormal(mu, cov)
         samples = pdist.rsample()
@@ -72,8 +72,8 @@ class DULLightningModule(BaseLightningModule):
 
     def train_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
-        
-        samples, loss = self.loss_step(mu_dul, std_dul, y, step='train')
+
+        samples, loss = self.loss_step(mu_dul, std_dul, y, step="train")
 
         return samples, loss
 
@@ -83,7 +83,7 @@ class DULLightningModule(BaseLightningModule):
     def val_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
 
-        samples, _ = self.loss_step(mu_dul, std_dul, y, step='val')
+        samples, _ = self.loss_step(mu_dul, std_dul, y, step="val")
 
         return mu_dul, std_dul, samples
 
@@ -98,14 +98,14 @@ class DULLightningModule(BaseLightningModule):
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Validation MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
-                loss=self.metrics.get('val_loss'),
-                loss_KL=self.metrics.get('val_loss_kl'),
-                acc=self.metrics.get('val_accuracy'),
-                map_r=self.metrics.get('val_map_r'),
+                loss=self.metrics.get("val_loss"),
+                loss_KL=self.metrics.get("val_loss_kl"),
+                acc=self.metrics.get("val_accuracy"),
+                map_r=self.metrics.get("val_map_r"),
             ),
             flush=True,
         )
-    
+
     def test_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
 

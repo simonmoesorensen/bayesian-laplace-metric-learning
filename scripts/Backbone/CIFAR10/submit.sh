@@ -52,10 +52,10 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.Backbone.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --batch_size 256 \
-    --embedding_size 512 \
-    --num_epoch 200 \
-    --save_freq 25 \
+    --batch_size 512 \
+    --embedding_size 64 \
+    --num_epoch 500 \
+    --save_freq 50 \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \

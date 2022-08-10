@@ -51,8 +51,8 @@ echo "Waiting for debugger to attach..."
 python3 -m src.baselines.Backbone.train \
     --dataset MNIST \
     --name MNIST \
-    --batch_size 128 \
-    --embedding_size 128 \
+    --batch_size 512 \
+    --embedding_size 4 \
     --num_epoch 50 \
     --save_freq 25 \
     --gpu_id 0 1\

@@ -1,6 +1,6 @@
 from src.lightning_modules.BackboneLightningModule import BackboneLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners, losses
+from pytorch_metric_learning import miners, losses, distances
 
 from src.data_modules.MNISTDataModule import MNISTDataModule
 from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
@@ -58,11 +58,17 @@ def run(Backbone_args):
     )
 
     # loss = losses.LargeMarginSoftmaxLoss(
-    #     embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes
+    #     embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes,
+    #     distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     # )
     
-    loss = losses.ContrastiveLoss()
-    miner = miners.PairMarginMiner()
+    loss = losses.ContrastiveLoss(
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+    )
+
+    miner = miners.PairMarginMiner(
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+    )
 
     trainer = BackboneLightningModule(
         accelerator="gpu", devices=len(Backbone_args.gpu_id), strategy="dp"

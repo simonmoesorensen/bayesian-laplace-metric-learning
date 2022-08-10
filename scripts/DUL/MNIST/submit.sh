@@ -45,17 +45,17 @@ cd /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning
 # Load venv
 source /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning/venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1
 
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 -m src.baselines.DUL.train \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \
-    --embedding_size 5 \
-    --num_epoch 25 \
+    --embedding_size 6 \
+    --num_epoch 50 \
     --save_freq 10 \
-    --gpu_id 0\
+    --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
     --to_visualize \

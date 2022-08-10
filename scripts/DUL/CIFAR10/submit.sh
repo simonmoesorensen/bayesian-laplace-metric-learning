@@ -55,7 +55,7 @@ python3 -m src.baselines.DUL.train \
     --embedding_size 64 \
     --num_epoch 1000 \
     --save_freq 50 \
-    --gpu_id 0\
+    --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
     --to_visualize \

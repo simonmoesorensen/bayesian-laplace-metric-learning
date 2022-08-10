@@ -1,6 +1,6 @@
 from src.lightning_modules.PFELightningModule import PFELightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners
+from pytorch_metric_learning import miners, distances
 
 from src.data_modules.MNISTDataModule import MNISTDataModule
 from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
@@ -60,7 +60,11 @@ def run(PFE_args):
     loss = MLSLoss()
 
     # Get all positive pairs for the loss
-    miner = miners.BatchEasyHardMiner(pos_strategy="all", neg_strategy="hard")
+    miner = miners.BatchEasyHardMiner(
+        pos_strategy="all", 
+        neg_strategy="hard",
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+    )
 
     trainer = PFELightningModule(
         accelerator="gpu", devices=len(PFE_args.gpu_id), strategy="dp"

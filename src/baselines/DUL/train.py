@@ -62,6 +62,7 @@ def run(dul_args):
     miner = miners.BatchEasyHardMiner(
         pos_strategy='easy',
         neg_strategy='semihard',
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
     trainer = DULLightningModule(

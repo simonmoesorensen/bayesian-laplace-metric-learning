@@ -1,6 +1,6 @@
 from src.lightning_modules.HIBLightningModule import HIBLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners
+from pytorch_metric_learning import miners, distances
 
 from src.data_modules.MNISTDataModule import MNISTDataModule
 from src.data_modules.CIFAR10DataModule import CIFAR10DataModule
@@ -58,6 +58,7 @@ def run(HIB_args):
     miner = miners.BatchEasyHardMiner(
         pos_strategy='all',
         neg_strategy='all',
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
     trainer = HIBLightningModule(
