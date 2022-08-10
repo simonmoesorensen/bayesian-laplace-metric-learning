@@ -2,7 +2,7 @@ import torch
 from torchvision.models import resnet50, resnet18, resnet152
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
-from baselines.models import EmbeddingNet
+from src.baselines.models import EmbeddingNet
 
 from src.utils import l2_norm
 
@@ -45,7 +45,7 @@ def MNIST_DUL(embedding_size=128):
     """
     # Embedding dimension
     # model = resnet18(num_classes=embedding_size)
-    
+
     # Adapt to 1 channel inputs
     # model.conv1 = Conv2d(
     #     1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
