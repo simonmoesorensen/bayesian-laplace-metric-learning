@@ -44,13 +44,8 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-<<<<<<< HEAD
-        plt.imshow(id_images[top_5_id[col],0])
-        plt.title(f'ID V={id_sigma_l2[top_5_id[col]]:.2f}')
-=======
         plt.imshow(id_images[top_5_id[col], 0])
-        plt.title(f"ID muvar={id_sigma_mu[top_5_id[col]]:.2E}")
->>>>>>> 8aa9051bc38b717085a2fd27e610b4bbcba435f2
+        plt.title(f"ID V={id_sigma_mu[top_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var ID")
         counter += 1
@@ -59,13 +54,8 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-<<<<<<< HEAD
-        plt.imshow(id_images[bot_5_id[col],0])
-        plt.title(f'ID V={id_sigma_l2[bot_5_id[col]]:.2f}')
-=======
         plt.imshow(id_images[bot_5_id[col], 0])
-        plt.title(f"ID muvar={id_sigma_mu[bot_5_id[col]]:.2E}")
->>>>>>> 8aa9051bc38b717085a2fd27e610b4bbcba435f2
+        plt.title(f"ID V={id_sigma_mu[bot_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var ID")
         counter += 1
@@ -74,13 +64,8 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-<<<<<<< HEAD
-        plt.imshow(ood_images[top_5_ood[col],0])
-        plt.title(f'OOD V={ood_sigma_l2[top_5_ood[col]]:.2f}')
-=======
         plt.imshow(ood_images[top_5_ood[col], 0])
-        plt.title(f"OOD muvar={ood_sigma_mu[top_5_ood[col]]:.2E}")
->>>>>>> 8aa9051bc38b717085a2fd27e610b4bbcba435f2
+        plt.title(f"OOD V={ood_sigma_mu[top_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var OOD")
         counter += 1
@@ -89,13 +74,8 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-<<<<<<< HEAD
-        plt.imshow(ood_images[bot_5_ood[col],0])
-        plt.title(f'OOD V={ood_sigma_l2[bot_5_ood[col]]:.2f}')
-=======
         plt.imshow(ood_images[bot_5_ood[col], 0])
-        plt.title(f"OOD muvar={ood_sigma_mu[bot_5_ood[col]]:.2E}")
->>>>>>> 8aa9051bc38b717085a2fd27e610b4bbcba435f2
+        plt.title(f"OOD V={ood_sigma_mu[bot_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var OOD")
         counter += 1
