@@ -34,9 +34,11 @@ from src.laplace.miners import (AllCombinationsMiner, AllPermutationsMiner,
 from src.laplace.post_hoc import post_hoc
 from src.laplace.utils import (generate_predictions_from_samples_rolling,
                                get_sample_accuracy, sample_nn_weights,
-                               test_model)
+                               test_model, test_model_expected_distance)
 from src.visualization.plot_ood import plot_ood
 from src.visualization.plot_roc import compute_and_plot_roc_curves
+from pytorch_metric_learning.utils.inference import CustomKNN
+from pytorch_metric_learning.distances import LpDistance
 
 sns.set_theme(style="ticks")
 
@@ -60,7 +62,6 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
 
     model = model_module(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
-    # model = resnet50(num_classes=latent_dim, pretrained=False).to(device)
 
     logging.info("Finding MAP solution.")
     train_metric(model, train_loader, epochs, lr, margin, device)
@@ -84,8 +85,6 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     inference_model = model.linear
     model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
 
-    # model.eval()
-
     mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device)
     torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_sigma.pt")
@@ -101,16 +100,18 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     ood_module = module_ood("/work3/s174433/datasets", batch_size, 4)
     ood_module.setup()
     ood_loader = ood_module.test_dataloader()
+    ood_label = ood_module.name.lower()
 
     model.load_state_dict(torch.load(f"pretrained/{method}/{id_label}/state_dict.pt", map_location=device))
-
-    id_label = id_module.name.lower()
-    ood_label = ood_module.name.lower()
 
     mu_q = torch.load(f"pretrained/{method}/{id_label}/laplace_mu.pt", map_location=device)
     sigma_q = torch.load(f"pretrained/{method}/{id_label}/laplace_sigma.pt", map_location=device)
 
-    # model.eval()
+    samples = sample_nn_weights(mu_q, sigma_q)
+    accs = get_sample_accuracy(train_loader.dataset, id_loader.dataset, model, inference_model, samples, device)
+    accs = {k: [dic[k] for dic in accs] for k in accs[0]}
+    for key, val in accs.items():
+        print(f"Post-hoc {key}: {val}")
 
     mean_id, variance_id = evaluate_laplace(model, inference_model, id_loader, mu_q, sigma_q, device)
     mean_id = mean_id.detach().cpu()
@@ -118,23 +119,34 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     np.save(f"results/{method}/{id_label}/id_laplace_mu.npy", mean_id.numpy())
     np.save(f"results/{method}/{id_label}/id_laplace_sigma_sq.npy", variance_id.numpy())
 
+    mean_train, variance_train = evaluate_laplace(model, inference_model, train_loader, mu_q, sigma_q, device)
+
+    id_labels = torch.cat([batch[1] for batch in id_loader]).cpu()
+    train_labels = torch.cat([batch[1] for batch in train_loader]).cpu()
+
+    k = 5
+    results = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), knn_func=CustomKNN(LpDistance()), k=k)\
+        .get_accuracy(mean_id, mean_train, id_labels.squeeze(), train_labels.squeeze(), embeddings_come_from_same_source=False)
+    logging.info(f"Post-hoc MAP@{k}: {results['mean_average_precision']:.2f}")
+    logging.info(f"Post-hoc Accuracy: {100*results['precision_at_1']:.2f}%")
+
+    k = 5
+    results = test_model_expected_distance(mean_id, variance_id**2, id_labels, mean_train, variance_train**2, train_labels, k=k)
+    logging.info(f"MAP MAP@{k} with ED: {results['mean_average_precision']:.2f}")
+    logging.info(f"MAP Accuracy with ED: {100*results['precision_at_1']:.2f}%")
+
     mean_ood, variance_ood = evaluate_laplace(model, inference_model, ood_loader, mu_q, sigma_q, device)
     mean_ood = mean_ood.detach().cpu()
     variance_ood = variance_ood.detach().cpu()
     np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy", mean_ood.numpy())
     np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", variance_ood.numpy())
 
-    # id_title = "FashionMNIST"
-    # id_title = "MNIST"
     id_title = id_module.name
     id_label = id_title.lower()
 
     method = "post_hoc"
 
-    # ood_title = "MNIST"
-    # ood_title = "FashionMNIST"
     ood_title = ood_module.name
-    # ood_title = "CIFAR-100"
     ood_label = ood_title.lower()
 
     # mu_id = np.load(f"results/{method}/{id_label}/id_laplace_mu.npy")
@@ -163,8 +175,8 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
 
 if __name__ == "__main__":
 
-    # run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet)
-    run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet)
+    run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet)
+    # run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet)
 
     # auroc = {}
     # for d in range(2, 32+1, 2):

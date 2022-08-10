@@ -16,14 +16,14 @@ class ConvNet(nn.Module):
         )
         linear_layers = [
             # nn.Linear(6272, latent_dim),
-            # nn.Linear(6272, 256),
-            # nn.Tanh(),
-            # nn.Linear(256, 256),
-            # nn.Tanh(),
-            # nn.Linear(256, latent_dim),
-            nn.Linear(6272, 128),
+            nn.Linear(6272, 256),
             nn.Tanh(),
-            nn.Linear(128, latent_dim),
+            nn.Linear(256, 256),
+            nn.Tanh(),
+            nn.Linear(256, latent_dim),
+            # nn.Linear(6272, 128),
+            # nn.Tanh(),
+            # nn.Linear(128, latent_dim),
         ]
 
         # self.conv = nn.Sequential(

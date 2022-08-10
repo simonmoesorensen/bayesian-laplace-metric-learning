@@ -3,7 +3,11 @@ from typing import Tuple
 import torch
 from pytorch_metric_learning import testers
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from pytorch_metric_learning.utils.inference import CustomKNN
+from pytorch_metric_learning.distances import LpDistance
 from torch.nn.utils.convert_parameters import vector_to_parameters
+
+from src.distances import ExpectedSquareL2Distance
 
 
 def get_all_embeddings(dataset, model, data_device):
@@ -23,10 +27,32 @@ def test_model(train_set, test_set, model, data_device, k=10):
     train_embeddings, train_labels = get_all_embeddings(train_set, model, data_device)
     test_embeddings, test_labels = get_all_embeddings(test_set, model, data_device)
 
-    accuracies = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), k=k)\
+    accuracies = AccuracyCalculator(
+        include=("mean_average_precision", "precision_at_1"),
+        knn_func=CustomKNN(LpDistance()),
+        # knn_func=CustomKNN(ExpectedSquareL2Distance()),
+        k=k,
+        )\
         .get_accuracy(
             test_embeddings,
             train_embeddings,
+            test_labels.squeeze(),
+            train_labels.squeeze(),
+            embeddings_come_from_same_source=False,
+        )
+    return accuracies
+
+
+def test_model_expected_distance(test_embeddings_mean, test_embeddings_var, test_labels, train_embeddings_mean, train_embeddings_var, train_labels, k=10):
+    
+    accuracies = AccuracyCalculator(
+        include=("mean_average_precision", "precision_at_1"),
+        knn_func=CustomKNN(ExpectedSquareL2Distance()),
+        k=k,
+        )\
+        .get_accuracy(
+            torch.stack((test_embeddings_mean, test_embeddings_var), dim=-1),
+            torch.stack((train_embeddings_mean, train_embeddings_var), dim=-1),
             test_labels.squeeze(),
             train_labels.squeeze(),
             embeddings_come_from_same_source=False,

@@ -68,61 +68,31 @@ def post_hoc(
     Run post-hoc laplace on a pretrained metric learning model.
     """
 
-    loss_fn = losses.ContrastiveLoss(neg_margin=margin)
     dataset_size = len(train_loader.dataset)
 
     calculator = ContrastiveHessianCalculator(margin=margin, device=device)
     calculator.init_model(inference_model)
     miner = AllCombinationsMiner()
     h = 0
-    # grads = []
-    # mins = []
     with torch.no_grad():
         for x, y in tqdm(train_loader):
             x, y = x.to(device), y.to(device)
-            # x.requires_grad = True
 
             output = model(x)
             hard_pairs = miner(output, y)
 
-            # loss = loss_fn(output, y, hard_pairs)
-            # loss.backward()
-
-            # grads.append(torch.norm(x.grad).detach().cpu().item())
-
             # Total number of possible pairs / number of pairs in our batch
             scaler = dataset_size**2 / x.shape[0] ** 2
             hessian = calculator.compute_batch_pairs(hard_pairs)
-            # mins.append(hessian.min().detach().cpu().item())
             h += hessian * scaler
 
     if (h < 0).sum():
         logging.warning("Found negative values in Hessian.")
 
-    # fig, ax = plt.subplots()
-    # ax.scatter(grads, mins)
-    # ax.set(
-    #     xlabel="Gradient norm",
-    #     ylabel="Hessian min",
-    # )
-    # fig.savefig("grads.png")
-
     h = torch.maximum(h, torch.tensor(0))
 
     logging.info(f"{100 * calculator.zeros / calculator.total_pairs:.2f}% of pairs are zero.")
     logging.info(f"{100 * calculator.negatives / calculator.total_pairs:.2f}% of pairs are negative.")
-
-    # layer_names = [layer.__class__.__name__ for layer in inference_model]
-    # params = [sum(p.numel() for p in layer.parameters()) for layer in inference_model]
-    # params = [p for p in params if p > 0]
-    # cumsum_params = np.array([0] + params)[:-1] + np.array(params) / 2
-
-    # fig, ax = plt.subplots(figsize=(10, 4))
-    # ax.plot(h.detach().cpu().numpy())
-    # ax.set(xlabel="Layer", ylabel="Log-Hessian")
-    # ax.vlines(params, h.detach().cpu().numpy().min() + 1e-6, h.detach().cpu().numpy().max())
-    # fig.savefig("hessian.png")
-    # torch.save(h.detach().cpu(), "hessian_32-2.pt")
 
     mu_q = parameters_to_vector(inference_model.parameters())
     # sigma_q = 1 / (h.sqrt() + 1e-6)
