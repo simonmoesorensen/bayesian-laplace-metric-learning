@@ -1,5 +1,5 @@
 import torch
-from torchvision.models import resnet50
+from torchvision.models import resnet50, resnet18, resnet152
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 
@@ -39,7 +39,7 @@ def MNIST_DUL(embedding_size=128):
     Construct a mnist model for DUL.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = resnet18(num_classes=embedding_size)
 
     # Adapt to 1 channel inputs
     model.conv1 = Conv2d(
@@ -70,7 +70,7 @@ def Casia_DUL(embedding_size=128):
     Construct a Casia Webface model for DUL.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = resnet152(num_classes=embedding_size)
 
     # Wrap in DUL framework
     model_dul = DUL_Backbone(model, embedding_size)

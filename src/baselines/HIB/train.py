@@ -57,7 +57,7 @@ def run(HIB_args):
 
     miner = miners.BatchEasyHardMiner(
         pos_strategy='all',
-        neg_strategy='easy',
+        neg_strategy='all',
     )
 
     trainer = HIBLightningModule(

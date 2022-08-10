@@ -134,14 +134,6 @@ def run(args):
                     embeddings_come_from_same_source=True,
                 )
 
-                # TODO: Make this work like the get_accuracy thing above, but fast.
-                
-                # _, knn_idx = knn_func(lowest_query, 1, lowest_query, True)
-                # pred = lowest_target[knn_idx].squeeze()
-                
-                # acc = torch.eq(pred, lowest_target).sum() / lowest_target.shape[0]
-                # acc_temp.append(acc)
-
                 acc_temp.append(metrics["precision_at_1"])
 
             accuracies.append(torch.tensor(acc_temp))

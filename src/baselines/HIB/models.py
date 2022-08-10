@@ -1,4 +1,4 @@
-from torchvision.models import resnet18, resnet50
+from torchvision.models import resnet18, resnet50, resnet152
 from torch.nn import Conv2d
 import torch.nn as nn
 import torch
@@ -64,7 +64,7 @@ def Casia_HIB(embedding_size=128):
     Construct a Casia Webface model for HIB.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = resnet152(num_classes=embedding_size)
 
     model_HIB = nn.Sequential(model, StochasticLayer(embedding_size=embedding_size))
 
