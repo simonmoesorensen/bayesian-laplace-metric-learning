@@ -57,10 +57,11 @@ def run(Backbone_args):
         lr=Backbone_args.lr,
     )
 
-    loss = losses.LargeMarginSoftmaxLoss(
-        embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes
-    )
-
+    # loss = losses.LargeMarginSoftmaxLoss(
+    #     embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes
+    # )
+    
+    loss = losses.ContrastiveLoss()
     miner = miners.PairMarginMiner()
 
     trainer = BackboneLightningModule(

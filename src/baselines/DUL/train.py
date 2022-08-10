@@ -16,7 +16,7 @@ from src.utils import (
 
 def run(dul_args):
     dul_args.gpu_id = [int(item) for item in dul_args.gpu_id]
-    
+
     if dul_args.dataset == "MNIST":
         model = MNIST_DUL(embedding_size=dul_args.embedding_size)
         data_module = MNISTDataModule
@@ -47,28 +47,25 @@ def run(dul_args):
         eps=1e-8,
     )
 
-    loss = losses.ArcFaceLoss(
-        num_classes=data_module.n_classes,
-        scale=dul_args.arcface_scale,
-        margin=dul_args.arcface_margin,
-        embedding_size=dul_args.embedding_size,
-    )
+    # loss = losses.ArcFaceLoss(
+    #     num_classes=data_module.n_classes,
+    #     scale=dul_args.arcface_scale,
+    #     margin=dul_args.arcface_margin,
+    #     embedding_size=dul_args.embedding_size,
+    # )
+
+    loss = losses.ContrastiveLoss()
 
     miner = miners.MultiSimilarityMiner(
         epsilon=0.1,
     )
 
     trainer = DULLightningModule(
-        accelerator="gpu", 
-        devices=len(dul_args.gpu_id), 
-        strategy="dp")
+        accelerator="gpu", devices=len(dul_args.gpu_id), strategy="dp"
+    )
 
     trainer.init(
-        model=model,
-        loss_fn=loss,
-        miner=miner,
-        optimizer=optimizer,
-        args=dul_args
+        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=dul_args
     )
 
     trainer.add_data_module(data_module)
@@ -76,7 +73,7 @@ def run(dul_args):
     trainer.train()
     trainer.test()
     trainer.log_hyperparams()
-    trainer.save_model(prefix='Final')
+    trainer.save_model(prefix="Final")
 
     return trainer
 

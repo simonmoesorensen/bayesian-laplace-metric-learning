@@ -39,7 +39,8 @@ class PFELightningModule(BaseLightningModule):
         pdist = torch.distributions.MultivariateNormal(mu, cov)
         sample = self.to_device(pdist.rsample())
 
-        pairs = self.miner(sample, y)
+        panc, pos, _, _ = self.miner(sample, y)
+        pairs = (panc, pos, [], [])
 
         var = std.square()
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
@@ -55,7 +56,8 @@ class PFELightningModule(BaseLightningModule):
         pdist = torch.distributions.MultivariateNormal(mu, cov)
         sample = self.to_device(pdist.rsample())
 
-        pairs = self.miner(sample, y)
+        panc, pos, _, _ = self.miner(sample, y)
+        pairs = (panc, pos, [], [])
 
         var = std.square()
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
