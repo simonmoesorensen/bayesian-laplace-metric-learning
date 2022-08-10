@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/HIB/mnist/run.out
-#BSUB -eo logs/HIB/mnist/run.err
+#BSUB -oo logs/HIB/MNIST/run.out
+#BSUB -eo logs/HIB/MNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module

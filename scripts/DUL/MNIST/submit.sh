@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/mnist/run.out
-#BSUB -eo logs/DUL/mnist/run.err
+#BSUB -oo logs/DUL/MNIST/run.out
+#BSUB -eo logs/DUL/MNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -52,9 +52,7 @@ python3 -m src.baselines.DUL.train \
     --dataset MNIST \
     --name MNIST \
     --batch_size 512 \
-    --embedding_size 2 \
-    --arcface_scale 64 \
-    --arcface_margin 28.6 \
+    --embedding_size 5 \
     --num_epoch 25 \
     --save_freq 10 \
     --gpu_id 0\

@@ -31,8 +31,8 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/Backbone/mnist/run.out
-#BSUB -eo logs/Backbone/mnist/run.err
+#BSUB -oo logs/Backbone/MNIST/run.out
+#BSUB -eo logs/Backbone/MNIST/run.err
 # -- end of LSF options --
 
 # Load the cuda module
