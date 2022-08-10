@@ -42,7 +42,7 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.xticks([])
         plt.yticks([])
         plt.imshow(id_images[top_5_id[col],0])
-        plt.title(f'ID, L2 var={id_sigma_l2[top_5_id[col]]:.2f}')
+        plt.title(f'ID V={id_sigma_l2[top_5_id[col]]:.2f}')
         if col == 0:
             plt.ylabel('Top 5 var ID')
         counter += 1
@@ -52,7 +52,7 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.xticks([])
         plt.yticks([])
         plt.imshow(id_images[bot_5_id[col],0])
-        plt.title(f'ID, L2 var={id_sigma_l2[bot_5_id[col]]:.2f}')
+        plt.title(f'ID V={id_sigma_l2[bot_5_id[col]]:.2f}')
         if col == 0:
             plt.ylabel('Bot 5 var ID')
         counter += 1
@@ -62,7 +62,7 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.xticks([])
         plt.yticks([])
         plt.imshow(ood_images[top_5_ood[col],0])
-        plt.title(f'OOD, L2 var={ood_sigma_l2[top_5_ood[col]]:.2f}')
+        plt.title(f'OOD V={ood_sigma_l2[top_5_ood[col]]:.2f}')
         if col == 0:
             plt.ylabel('Top 5 var OOD')
         counter += 1
@@ -72,7 +72,7 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.xticks([])
         plt.yticks([])
         plt.imshow(ood_images[bot_5_ood[col],0])
-        plt.title(f'OOD, L2 var={ood_sigma_l2[bot_5_ood[col]]:.2f}')
+        plt.title(f'OOD V={ood_sigma_l2[bot_5_ood[col]]:.2f}')
         if col == 0:
             plt.ylabel('Bot 5 var OOD')
         counter += 1
