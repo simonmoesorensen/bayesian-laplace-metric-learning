@@ -16,6 +16,8 @@ c_ood = "r"
 
 def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix, n=5):
     """Visualize the top 5 highest and lowest variance images"""
+    model_name, dataset = get_names(vis_path)
+
     # Get l2 norm of ID variances
     id_sigma_l2 = np.linalg.norm(id_sigma, axis=1)
 
@@ -41,6 +43,8 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.yticks([])
         plt.imshow(id_images[top_5_id[col],0])
         plt.title(f'ID, L2 var={id_sigma_l2[top_5_id[col]]:.2f}')
+        if col == 0:
+            plt.ylabel('Top 5 var ID')
         counter += 1
 
     for col in range(columns):
@@ -49,6 +53,8 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.yticks([])
         plt.imshow(id_images[bot_5_id[col],0])
         plt.title(f'ID, L2 var={id_sigma_l2[bot_5_id[col]]:.2f}')
+        if col == 0:
+            plt.ylabel('Bot 5 var ID')
         counter += 1
 
     for col in range(columns):
@@ -57,6 +63,8 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.yticks([])
         plt.imshow(ood_images[top_5_ood[col],0])
         plt.title(f'OOD, L2 var={ood_sigma_l2[top_5_ood[col]]:.2f}')
+        if col == 0:
+            plt.ylabel('Top 5 var OOD')
         counter += 1
 
     for col in range(columns):
@@ -65,7 +73,11 @@ def visualize_top_5(id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, v
         plt.yticks([])
         plt.imshow(ood_images[bot_5_ood[col],0])
         plt.title(f'OOD, L2 var={ood_sigma_l2[bot_5_ood[col]]:.2f}')
+        if col == 0:
+            plt.ylabel('Bot 5 var OOD')
         counter += 1
+
+    plt.suptitle(f'Top and bottom 5 variance images for model {model_name} on dataset {dataset}')
     
     fig.savefig(vis_path / f"{prefix}top_bot_5_var.png")
     
@@ -138,18 +150,20 @@ def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
 
 
 def plot_ood(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
+    model_name, dataset = get_names(vis_path)
     fig, ax = plt.subplots(ncols=2, figsize=(10, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
     plot_histogram(var_id, color=c_id, ax=ax[1])
     plot_samples(mu_ood, var_ood, limit=100, color=c_ood, label="OOD", ax=ax[0])
     plot_histogram(var_ood, color=c_ood, ax=ax[1])
     ax[0].legend()
-    fig.suptitle("ID vs OOD comparison")
+    fig.suptitle(f"ID vs OOD comparison for model {model_name} on dataset {dataset}")
     fig.savefig(vis_path / f"{prefix}ood_comparison.png")
     return fig, ax
 
 
 def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
+    model_name, dataset = get_names(vis_path)
     id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
     ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
     
@@ -168,7 +182,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(fpr, tpr)
     plt.xlabel("FPR")
     plt.ylabel("TPR")
-    plt.title('OOD ROC Curve')
+    plt.title(f'OOD ROC Curve for model {model_name} on dataset {dataset}')
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
     plt.cla()
@@ -191,7 +205,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(recall, precision)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
-    plt.title('OOD Precision-Recall Curve')
+    plt.title(f'OOD Precision-Recall Curve for model {model_name} on dataset {dataset}')
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
     plt.cla()
@@ -227,3 +241,8 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
+
+
+def get_names(vis_path):
+    # returns (model name, dataset trained on)
+    return (vis_path.parts[-4], vis_path.parts[-2])
