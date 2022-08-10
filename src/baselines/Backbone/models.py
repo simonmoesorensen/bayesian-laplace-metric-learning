@@ -1,4 +1,4 @@
-from torchvision.models import resnet50
+from torchvision.models import resnet18, resnet50, resnet152
 from torch.nn import Conv2d
 import torch.nn as nn
 
@@ -10,7 +10,7 @@ def MNIST_Backbone(embedding_size=128):
     Construct a mnist model for Backbone.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = resnet18(num_classes=embedding_size)
 
     # Adapt to 1 channel inputs
     model.conv1 = Conv2d(
@@ -43,7 +43,7 @@ def Casia_Backbone(embedding_size=128):
     Construct a Casia Webface model for Backbone.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = resnet152(num_classes=embedding_size)
 
     norm_layer = L2Norm()
 
