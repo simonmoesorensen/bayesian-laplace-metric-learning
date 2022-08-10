@@ -38,12 +38,8 @@
 # Load the cuda module
 module load python3/3.8.11
 module load cuda/11.7
-
-# Go to directory
-cd /zhome/e2/5/127625/bayesian-laplace-metric-learning
-
 # Load venv
-source /zhome/e2/5/127625/bayesian-laplace-metric-learning/venv/bin/activate
+source venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
