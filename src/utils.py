@@ -50,7 +50,7 @@ def separate_batchnorm_params(modules):
     return paras_only_bn, paras_wo_bn
 
 
-def load_model(model, dataset, embedding_size, model_path):
+def load_model(model, dataset, embedding_size, model_path, **kwargs):
 
     if model == "DUL":
         from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL
@@ -71,7 +71,12 @@ def load_model(model, dataset, embedding_size, model_path):
         elif dataset == "CASIA":
             model = Casia_HIB(embedding_size=embedding_size)
     elif model == "PFE":
-        from src.baselines.PFE.models import CIFAR10_PFE, MNIST_PFE, Casia_PFE
+        from src.baselines.PFE.models import (
+            CIFAR10_PFE,
+            MNIST_PFE,
+            Casia_PFE,
+            FashionMNIST_PFE,
+        )
 
         if dataset == "MNIST":
             model = MNIST_PFE(embedding_size=embedding_size)
@@ -79,6 +84,8 @@ def load_model(model, dataset, embedding_size, model_path):
             model = CIFAR10_PFE(embedding_size=embedding_size)
         elif dataset == "CASIA":
             model = Casia_PFE(embedding_size=embedding_size)
+        elif dataset == "FashionMNIST":
+            model = FashionMNIST_PFE(kwargs['loss'], embedding_size=embedding_size)
     elif model == "Laplace":
         # if dataset == "MNIST":
         #     model = MNIST_Laplace(embedding_size=embedding_size)

@@ -10,10 +10,11 @@ Example:
 
 
     With debugger:
-        python3 -m debugpy --listen 10.66.12.19:1332 src/evaluation/sparsification_curve.py --model PFE --model_path models/PFE_MNIST.pth --dataset MNIST --embedding_size 128
+        python3 -m debugpy --listen 10.66.12.19:1332 src/evaluation/sparsification_curve.py --model PFE --model_path models/PFE/FashionMNIST/contrastive/model.pth --dataset FashionMNIST --embedding_size 6 --loss contrastive
 """
 
 import argparse
+import json
 
 from src.utils import load_model
 from pathlib import Path
@@ -56,7 +57,7 @@ def parse_args():
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["MNIST", "CIFAR10", "CASIA"],
+        choices=["MNIST", "CIFAR10", "CASIA", "FashionMNIST"],
         help="Dataset to use",
         default="MNIST",
     )
@@ -64,14 +65,25 @@ def parse_args():
     parser.add_argument(
         "--embedding_size", type=int, help="Embedding size", default=512
     )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        choices=["contrastive", "largemargin"],
+        help="Loss to use for PFE",
+        default="contrastive",
+    )
 
     return parser.parse_args()
 
 
 def run(args):
     # Load model
-    path = root / args.model_path
-    model = load_model(args.model, args.dataset, args.embedding_size, path)
+    model_file = root / args.model_path
+    path = model_file.parent
+
+    model = load_model(
+        args.model, args.dataset, args.embedding_size, model_file, loss=args.loss
+    )
     model = model.to(device)
     model.eval()
 
@@ -148,6 +160,9 @@ def run(args):
     # Calculate average over batches
     accuracies = accuracies.mean(dim=0).cpu().numpy()
 
+    # Calculate AUSC (Area Under the Sparsification Curve)
+    ausc = np.trapz(accuracies, dx=1 / len(accuracies))
+
     # Plot sparsification curve
     fig, ax = plt.subplots()
 
@@ -162,11 +177,30 @@ def run(args):
         title=f"Sparsification curve for {args.model} on {args.dataset}",
     )
 
-    # Save dir
-    save_dir = root / "outputs" / args.model / "figures" / args.dataset / "evaluation"
-    save_dir.mkdir(parents=True, exist_ok=True)
+    # Add text box with area under the curve
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+    textstr = f"AUSC: {ausc:.2f}"
+    ax.text(
+        0.75,
+        0.35,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=11,
+        verticalalignment="top",
+        bbox=props,
+    )
 
-    fig.savefig(save_dir / "sparsification_curve.png")
+    # Save figure
+    fig.savefig(path / "sparsification_curve.png")
+
+    # Save uncertainty calibration results
+    metrics = {
+        "ausc": float(ausc),
+        "accuracies": accuracies.tolist(),
+        "filter_out_rate": x.tolist(),
+    }
+    with open(path / "uncertainty_metrics.json", "w") as f:
+        json.dump(metrics, f)
 
 
 if __name__ == "__main__":
