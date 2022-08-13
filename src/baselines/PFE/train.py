@@ -38,7 +38,9 @@ def run(PFE_args):
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
     elif PFE_args.dataset == "FashionMNIST":
-        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size)
+        model = FashionMNIST_PFE(
+            loss=PFE_args.loss, embedding_size=PFE_args.embedding_size
+        )
         data_module = FashionMNISTDataModule
 
     data_module = data_module(

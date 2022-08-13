@@ -90,14 +90,17 @@ def MNIST_PFE(embedding_size=128):
     return model_PFE
 
 
-def FashionMNIST_PFE(embedding_size=128):
+def FashionMNIST_PFE(loss, embedding_size=128):
     """
     Construct a fashion mnist model for PFE.
     """
+    if loss not in ['contrastive', 'largemargin']:
+        raise ValueError('loss must be either contrastive or largemargin')
+        
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load("src/baselines/PFE/pretrained/fashion_mnist.pth")
+        torch.load(f"src/baselines/PFE/pretrained/fashion_mnist_{loss}.pth")
     )
 
     # Wrap in PFE framework

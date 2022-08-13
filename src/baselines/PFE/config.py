@@ -53,6 +53,7 @@ def parse_args():
     # ----- hyperparameters
     parser.add_argument("--num_epoch", type=int, default=22)
     parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--loss", type=str, default='contrastive')
 
     args = parser.parse_args()
 
