@@ -61,6 +61,8 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
             model = CIFAR10_DUL(embedding_size=embedding_size)
         elif dataset == "CASIA":
             model = Casia_DUL(embedding_size=embedding_size)
+        elif dataset == "FashionMNIST":
+            model = MNIST_DUL(embedding_size=embedding_size)
     elif model == "HIB":
         from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB
 
@@ -70,6 +72,8 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
             model = CIFAR10_HIB(embedding_size=embedding_size)
         elif dataset == "CASIA":
             model = Casia_HIB(embedding_size=embedding_size)
+        elif dataset == "FashionMNIST":
+            model = MNIST_HIB(embedding_size=embedding_size)
     elif model == "PFE":
         from src.baselines.PFE.models import (
             CIFAR10_PFE,
@@ -94,6 +98,8 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
         # elif dataset == "CASIA":
         #     model = Casia_Laplace(embedding_size=embedding_size)
         pass
-
+    else:
+        raise ValueError(f"{model=} and {dataset=} not found or not supported")
+        
     model.load_state_dict(torch.load(model_path))
     return model

@@ -76,13 +76,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def run(model, model_path, dataset, embedding_size, batch_size, loss):
+def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
     # Load model
     model_file = root / model_path
     path = model_file.parent
 
     model = load_model(
-        model, dataset, embedding_size, model_file, loss=loss
+        model_name, dataset, embedding_size, model_file, loss=loss
     )
     model = model.to(device)
     model.eval()
@@ -174,7 +174,7 @@ def run(model, model_path, dataset, embedding_size, batch_size, loss):
     ax.set(
         xlabel="Filter Out Rate (%)",
         ylabel="Accuracy",
-        title=f"Sparsification curve for {model} on {dataset}",
+        title=f"Sparsification curve for {model_name} on {dataset}",
     )
 
     # Add text box with area under the curve

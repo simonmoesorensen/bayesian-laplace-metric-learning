@@ -113,12 +113,12 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
     return ece, real_probs[bin_sizes > 0], pred_probs[bin_sizes > 0], bin_sizes
 
 
-def run(model_path, model, dataset, embedding_size, batch_size, loss, samples):
+def run(model_name, model_path, dataset, embedding_size, batch_size, loss, samples):
     # Load model
     model_file = root / model_path
     path = model_file.parent
 
-    model = load_model(model, dataset, embedding_size, model_file, loss=loss)
+    model = load_model(model_name, dataset, embedding_size, model_file, loss=loss)
     model = model.to(device)
     model.eval()
 
@@ -235,7 +235,7 @@ def run(model_path, model, dataset, embedding_size, batch_size, loss, samples):
         ylim=[0, 1],
         xlabel="Confidence",
         ylabel="Accuracy",
-        title=f"ECE curve for {model} on {dataset}",
+        title=f"ECE curve for {model_name} on {dataset}",
     )
 
     # Add grid
@@ -259,8 +259,8 @@ if __name__ == "__main__":
     args = parse_args()
     
     run(
-        args.model_path,
         args.model,
+        args.model_path,
         args.dataset,
         args.embedding_size,
         args.batch_size,
