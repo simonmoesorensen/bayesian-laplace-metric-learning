@@ -76,32 +76,32 @@ def parse_args():
     return parser.parse_args()
 
 
-def run(args):
+def run(model, model_path, dataset, embedding_size, batch_size, loss):
     # Load model
-    model_file = root / args.model_path
+    model_file = root / model_path
     path = model_file.parent
 
     model = load_model(
-        args.model, args.dataset, args.embedding_size, model_file, loss=args.loss
+        model, dataset, embedding_size, model_file, loss=loss
     )
     model = model.to(device)
     model.eval()
 
     # Load dataset
     sampler = None
-    if args.dataset == "MNIST":
+    if dataset == "MNIST":
         data_module = MNISTDataModule
-    elif args.dataset == "CIFAR10":
+    elif dataset == "CIFAR10":
         data_module = CIFAR10DataModule
-    elif args.dataset == "CASIA":
+    elif dataset == "CASIA":
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
-    elif args.dataset == "FashionMNIST":
+    elif dataset == "FashionMNIST":
         data_module = FashionMNISTDataModule
 
     data_module = data_module(
         data_dir,
-        args.batch_size,
+        batch_size,
         num_workers=8,
         shuffle=True,
         pin_memory=True,
@@ -174,7 +174,7 @@ def run(args):
     ax.set(
         xlabel="Filter Out Rate (%)",
         ylabel="Accuracy",
-        title=f"Sparsification curve for {args.model} on {args.dataset}",
+        title=f"Sparsification curve for {model} on {dataset}",
     )
 
     # Add text box with area under the curve
@@ -205,4 +205,12 @@ def run(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args)
+    
+    run(
+        args.model,
+        args.model_path,
+        args.dataset,
+        args.embedding_size,
+        args.batch_size,
+        args.loss,
+    )

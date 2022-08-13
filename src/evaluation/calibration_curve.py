@@ -26,7 +26,6 @@ from src.data_modules import (
 from dotenv import load_dotenv
 import os
 import torch
-from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from tqdm import tqdm
 from pytorch_metric_learning.utils import inference
 from pytorch_metric_learning import distances
@@ -114,32 +113,30 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
     return ece, real_probs[bin_sizes > 0], pred_probs[bin_sizes > 0], bin_sizes
 
 
-def run(args):
+def run(model_path, model, dataset, embedding_size, batch_size, loss, samples):
     # Load model
-    model_file = root / args.model_path
+    model_file = root / model_path
     path = model_file.parent
 
-    model = load_model(
-        args.model, args.dataset, args.embedding_size, model_file, loss=args.loss
-    )
+    model = load_model(model, dataset, embedding_size, model_file, loss=loss)
     model = model.to(device)
     model.eval()
 
     # Load dataset
     sampler = None
-    if args.dataset == "MNIST":
+    if dataset == "MNIST":
         data_module = MNISTDataModule
-    elif args.dataset == "CIFAR10":
+    elif dataset == "CIFAR10":
         data_module = CIFAR10DataModule
-    elif args.dataset == "CASIA":
+    elif dataset == "CASIA":
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
-    elif args.dataset == "FashionMNIST":
+    elif dataset == "FashionMNIST":
         data_module = FashionMNISTDataModule
 
     data_module = data_module(
         data_dir,
-        args.batch_size,
+        batch_size,
         num_workers=8,
         shuffle=True,
         pin_memory=True,
@@ -168,7 +165,7 @@ def run(args):
 
             pred_labels = []
 
-            for _ in range(args.samples):
+            for _ in range(samples):
                 # Save space by sampling once every iteration instead of all in one go
                 sample = pdist.sample()
 
@@ -238,7 +235,7 @@ def run(args):
         ylim=[0, 1],
         xlabel="Confidence",
         ylabel="Accuracy",
-        title=f"ECE curve for {args.model} on {args.dataset}",
+        title=f"ECE curve for {model} on {dataset}",
     )
 
     # Add grid
@@ -260,4 +257,14 @@ def run(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    run(args)
+    
+    run(
+        args.model_path,
+        args.model,
+        args.dataset,
+        args.embedding_size,
+        args.batch_size,
+        args.loss,
+        args.samples,
+    )
+        
