@@ -49,7 +49,7 @@ python3 -m src.baselines.HIB.train \
     --name FashionMNIST \
     --batch_size 64 \
     --K 8 \
-    --embedding_size 3 \
+    --embedding_size 6 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\

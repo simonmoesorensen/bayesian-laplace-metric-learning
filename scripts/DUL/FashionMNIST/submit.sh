@@ -50,8 +50,8 @@ python3 -m src.baselines.DUL.train \
     --name FashionMNIST \
     --batch_size 512 \
     --embedding_size 6 \
-    --num_epoch 50 \
-    --save_freq 10 \
+    --num_epoch 100 \
+    --save_freq 20 \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \

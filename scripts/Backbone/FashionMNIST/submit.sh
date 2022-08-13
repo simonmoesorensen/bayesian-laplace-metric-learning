@@ -49,7 +49,7 @@ python3 -m src.baselines.Backbone.train \
     --name FashionMNIST \
     --batch_size 512 \
     --embedding_size 6 \
-    --num_epoch 50 \
+    --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 8 \
