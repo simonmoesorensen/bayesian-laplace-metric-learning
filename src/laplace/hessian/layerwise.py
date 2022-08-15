@@ -108,6 +108,10 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         self.alpha = alpha
         self.num_classes = num_classes
         self.rmse_hessian_calculator = RmseHessianCalculator(device)
+
+        self.total_pairs = 0
+        self.zeros = 0
+        self.negatives = 0
     
     def init_model(self, model):
         super().init_model(model)
@@ -125,6 +129,7 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
+        bs = z1.shape[0]
 
         non_match_mask = (1 - y).bool()
         square_norms: Tensor = torch.einsum("no,no->n", z1 - z2, z1 - z2)
@@ -132,6 +137,10 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
         zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
+        
+        self.zeros += zero_mask.sum().detach().item()
+        self.negatives += negative_mask.sum().detach().item()
+        self.total_pairs += bs
 
         # Set to zero for non-matches outside mask
         hessian[zero_mask] = 0
