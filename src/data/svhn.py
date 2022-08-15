@@ -5,7 +5,7 @@ from torchvision import transforms
 
 
 class SVHNDataModule(LightningDataModule):
-    def __init__(self, data_dir, batch_size, num_workers):
+    def __init__(self, data_dir, batch_size=32, num_workers=0):
         super().__init__()
 
         self.name = "SVHN"
@@ -49,6 +49,7 @@ class SVHNDataModule(LightningDataModule):
             self.df_train,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
+            shuffle=True,
         )
 
     def val_dataloader(self):
@@ -56,6 +57,7 @@ class SVHNDataModule(LightningDataModule):
             self.df_val,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
+            shuffle=False,
         )
 
     def test_dataloader(self):
@@ -63,4 +65,5 @@ class SVHNDataModule(LightningDataModule):
             self.df_test,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
+            shuffle=False,
         )

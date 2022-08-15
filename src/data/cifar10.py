@@ -11,7 +11,7 @@ class CIFAR10DataModule(datamodules.CIFAR10DataModule):
         normalize: bool = False,
         batch_size: int = 32,
         seed: int = 42,
-        shuffle: bool = True,
+        shuffle: bool = False,
         pin_memory: bool = True,
         drop_last: bool = False,
         *args: Any,

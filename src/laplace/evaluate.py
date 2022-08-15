@@ -16,10 +16,8 @@ from src import data, models
 
 
 def evaluate_laplace(net, inference_net, loader, mu_q, sigma_q, device="cpu"):
-    logging.info("Sampling.")
     samples = sample_nn_weights(mu_q, sigma_q)
 
-    logging.info("Generating predictions from samples.")
     pred_mean, pred_var = generate_predictions_from_samples_rolling(loader, samples, net, inference_net, device)
     return pred_mean, pred_var
 
