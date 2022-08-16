@@ -112,7 +112,7 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
 
     data_loader = data_module.test_dataloader()
 
-    knn_func = inference.CustomKNN(distance=distances.LpDistance())
+    knn_func = inference.CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
 
     metric = AccuracyCalculator(
         include=("precision_at_1",),

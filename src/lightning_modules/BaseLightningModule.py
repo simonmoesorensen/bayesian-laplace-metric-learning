@@ -39,7 +39,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Learning rate scheduler options
         base_lr = args.lr
-        max_lr = min(args.lr * 1e3, 0.01)
+        max_lr = args.lr * 10
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
@@ -99,7 +99,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             include=("mean_average_precision", "precision_at_1"),
             k=5,
             device=self.device,
-            knn_func=knn_func
+            knn_func=knn_func,
         )
 
         # Meters
@@ -119,7 +119,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def setup_logger(self, name):
         subdir = get_time()
-        logdir = Path(self.args.log_dir) / name / subdir
+        logdir = Path(self.args.log_dir) / self.args.dataset / name / subdir
         writer = SummaryWriter(logdir)
         return writer
 
@@ -441,7 +441,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
         if prefix is not None:
             name = prefix + "_" + name
 
-        path = Path(self.args.model_save_folder) / self.args.name / name
+        path = (
+            Path(self.args.model_save_folder)
+            / self.args.dataset
+            / self.args.name
+            / name
+        )
 
         path.parent.mkdir(parents=True, exist_ok=True)
 
