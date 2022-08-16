@@ -20,8 +20,15 @@ def visualize_top_5(
     """Visualize the top 5 highest and lowest variance images"""
     model_name, dataset = get_names(vis_path)
 
-    # Get l2 norm of ID variances
+    # Get colormap
+    channels = id_images.shape[1]
 
+    if channels == 1:
+        cmap = "gray"
+    elif channels == 3:
+        cmap = None
+
+    # Get l2 norm of ID variances
     id_sigma_mu = hmean(id_sigma**2, axis=1)
 
     # get top 5 and bottom 5 of  l2 norm of ID variances
@@ -44,7 +51,13 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(id_images[top_5_id[col], 0])
+
+        image = id_images[top_5_id[col]]
+        image = image.transpose(1, 2, 0)
+        # Min max scale image to 0, 1
+        image = (image - image.min()) / (image.max() - image.min())
+
+        plt.imshow(image, cmap=cmap)
         plt.title(f"ID V={id_sigma_mu[top_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var ID")
@@ -54,7 +67,13 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(id_images[bot_5_id[col], 0])
+
+        image = id_images[bot_5_id[col]]
+        image = image.transpose(1, 2, 0)
+        # Min max scale image to 0, 1
+        image = (image - image.min()) / (image.max() - image.min())
+
+        plt.imshow(image, cmap=cmap)
         plt.title(f"ID V={id_sigma_mu[bot_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var ID")
@@ -64,7 +83,13 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(ood_images[top_5_ood[col], 0])
+
+        image = ood_images[top_5_ood[col]]
+        image = image.transpose(1, 2, 0)
+        # Min max scale image to 0, 1
+        image = (image - image.min()) / (image.max() - image.min())
+
+        plt.imshow(image, cmap=cmap)
         plt.title(f"OOD V={ood_sigma_mu[top_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var OOD")
@@ -74,7 +99,13 @@ def visualize_top_5(
         fig.add_subplot(rows, columns, counter + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(ood_images[bot_5_ood[col], 0])
+
+        image = ood_images[bot_5_ood[col]]
+        image = image.transpose(1, 2, 0)
+        # Min max scale image to 0, 1
+        image = (image - image.min()) / (image.max() - image.min())
+
+        plt.imshow(image, cmap=cmap)
         plt.title(f"OOD V={ood_sigma_mu[bot_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var OOD")
