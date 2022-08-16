@@ -255,4 +255,4 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
 
 def get_names(vis_path):
     # returns (model name, dataset trained on)
-    return (vis_path.parts[-4], vis_path.parts[-2])
+    return (vis_path.parts[-5], vis_path.parts[-2])
