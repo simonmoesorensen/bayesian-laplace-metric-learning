@@ -7,9 +7,6 @@ import torch
 import torch.distributions as tdist
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from pytorch_metric_learning.distances import LpDistance
-from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
@@ -61,15 +58,6 @@ class HIBLightningModule(BaseLightningModule):
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
 
         # Required for SOFT CONTRASTIVE loss
-        knn_func = CustomKNN(LpDistance())
-
-        # Metric calculation
-        self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision_at_r", "precision_at_1"),
-            k="max_bin_count",
-            device=self.device,
-            knn_func=knn_func,
-        )
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")

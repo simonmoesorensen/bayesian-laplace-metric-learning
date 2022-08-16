@@ -11,6 +11,8 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from pytorch_metric_learning import distances
+from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.visualize import visualize_all
 from src.metrics.MetricMeter import MetricMeter, AverageMeter
@@ -37,7 +39,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Learning rate scheduler options
         base_lr = args.lr
-        max_lr = min(args.lr * 1e3, 0.1)
+        max_lr = min(args.lr * 1e3, 0.01)
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
@@ -88,11 +90,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
             cycle_momentum=False,
         )
 
+        knn_func = CustomKNN(
+            distances.LpDistance(normalize_embeddings=False, p=2, power=1)
+        )
+
         # Metric calculation
         self.metric_calc = AccuracyCalculator(
             include=("mean_average_precision_at_r", "precision_at_1"),
             k="max_bin_count",
             device=self.device,
+            knn_func=knn_func
         )
 
         # Meters
@@ -343,7 +350,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
         print("Visualizing...")
 
         # Set path
-        vis_path = Path(self.args.vis_dir) / self.name / f"epoch_{self.epoch + 1}"
+        vis_path = (
+            Path(self.args.vis_dir)
+            / self.args.dataset
+            / self.name
+            / f"epoch_{self.epoch + 1}"
+        )
         vis_path.mkdir(parents=True, exist_ok=True)
 
         ood_sigma = []

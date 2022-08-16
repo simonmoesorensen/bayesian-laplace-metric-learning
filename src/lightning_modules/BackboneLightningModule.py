@@ -27,17 +27,6 @@ class BackboneLightningModule(BaseLightningModule):
 
         # self.loss_optimizer = optim.SGD(loss_fn.parameters(), lr=0.01)
 
-        # Avoid FAISS error on Ampere GPUs
-        knn_func = CustomKNN(distances.LpDistance())
-
-        # Metric calculation
-        self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision_at_r", "precision_at_1"),
-            k="max_bin_count",
-            device=self.device,
-            knn_func=knn_func,
-        )
-
     # def optimizer_step(self):
     #     self.loss_optimizer.step()
     #     return super().optimizer_step()
