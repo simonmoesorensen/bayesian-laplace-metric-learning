@@ -92,6 +92,8 @@ class RmseHessianCalculator(HessianCalculator):
                     )
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x = torch.diag_embed((feature_maps[k + 1] > 0).float())
+                elif isinstance(self.model[k], L2Normalize):
+                    jacobian_x = self.model[k]._jacobian_wrt_input(feature_maps[k], feature_maps[k + 1])
                 else:
                     raise NotImplementedError
 

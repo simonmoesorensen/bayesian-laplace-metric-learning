@@ -1,9 +1,9 @@
 import logging
 import os
+import pickle
 import time
 from encodings import normalize_encoding
 from typing import List
-import pickle
 
 import numpy as np
 import pandas as pd
@@ -11,9 +11,11 @@ import seaborn as sns
 import torch
 import torchmetrics
 from matplotlib import pyplot as plt
+from pytorch_lightning import LightningDataModule
 from pytorch_metric_learning import losses, miners
-from pytorch_metric_learning.utils.accuracy_calculator import \
-    AccuracyCalculator
+from pytorch_metric_learning.distances import LpDistance
+from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from pytorch_metric_learning.utils.inference import CustomKNN
 from torch import nn
 from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_parameters
 from torch.optim import Adam
@@ -23,26 +25,24 @@ from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torchvision.models import resnet50
 from torchvision.utils import save_image
 from tqdm import tqdm
-from pytorch_lightning import LightningDataModule
 
 from src import data, models
 from src.laplace.evaluate import evaluate_laplace
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
 from src.laplace.metric_learning import train_metric
-from src.laplace.miners import (AllCombinationsMiner, AllPermutationsMiner,
-                                AllPositiveMiner)
+from src.laplace.miners import AllCombinationsMiner, AllPermutationsMiner, AllPositiveMiner
 from src.laplace.post_hoc import post_hoc
-from src.laplace.utils import (generate_predictions_from_samples_rolling,
-                               get_sample_accuracy, sample_nn_weights,
+from src.laplace.utils import (generate_predictions_from_samples_rolling, get_sample_accuracy, sample_nn_weights,
                                test_model, test_model_expected_distance)
 from src.visualization.plot_ood import plot_ood
 from src.visualization.plot_roc import compute_and_plot_roc_curves
-from pytorch_metric_learning.utils.inference import CustomKNN
-from pytorch_metric_learning.distances import LpDistance
 
 sns.set_theme(style="ticks")
 
-def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
+
+def run_posthoc(
+    latent_dim: int, module_id, module_ood, model_module, method, normalize_encoding=False, pretrained=False
+):
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -50,7 +50,6 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
     lr = 3e-4
     batch_size = 16
     margin = 0.2
-    normalize_encoding = False
 
     id_module = module_id("/work3/s174433/datasets", batch_size)
     id_module.setup()
@@ -68,10 +67,12 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
     model = model_module(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
 
-    logging.info("Finding MAP solution.")
-    train_metric(model, train_loader, epochs, lr, margin, device)
-    torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict.pt")
-    # model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt"))
+    if pretrained:
+        model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt"))
+    else:
+        logging.info("Finding MAP solution.")
+        train_metric(model, train_loader, epochs, lr, margin, device)
+        torch.save(model.state_dict(), f"pretrained/post_hoc/{id_label}/state_dict.pt")
 
     k = 5
     results = test_model(train_loader.dataset, id_loader.dataset, model, device, k=k)
@@ -109,12 +110,21 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
     id_labels = torch.cat([batch[1] for batch in id_loader]).cpu()
     train_labels = torch.cat([batch[1] for batch in train_loader]).cpu()
 
-    results = AccuracyCalculator(include=("mean_average_precision", "precision_at_1"), knn_func=CustomKNN(LpDistance()), k=k)\
-        .get_accuracy(torch.tensor(mu_id), mu_train, id_labels.squeeze(), train_labels.squeeze(), embeddings_come_from_same_source=False)
+    results = AccuracyCalculator(
+        include=("mean_average_precision", "precision_at_1"), knn_func=CustomKNN(LpDistance()), k=k
+    ).get_accuracy(
+        torch.tensor(mu_id),
+        mu_train,
+        id_labels.squeeze(),
+        train_labels.squeeze(),
+        embeddings_come_from_same_source=False,
+    )
     logging.info(f"Post-hoc MAP@{k}: {results['mean_average_precision']:.2f}")
     logging.info(f"Post-hoc Accuracy: {100*results['precision_at_1']:.2f}%")
 
-    results = test_model_expected_distance(torch.tensor(mu_id), torch.tensor(var_id), id_labels, mu_train, var_train, train_labels, k=k)
+    results = test_model_expected_distance(
+        torch.tensor(mu_id), torch.tensor(var_id), id_labels, mu_train, var_train, train_labels, k=k
+    )
     logging.info(f"Post-hoc MAP@{k} with ED: {results['mean_average_precision']:.2f}")
     logging.info(f"Post-hoc Accuracy with ED: {100*results['precision_at_1']:.2f}%")
 
@@ -148,28 +158,115 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
 if __name__ == "__main__":
 
     # run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet, "full")
-    # run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "positives")
-    # run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "fixed")
-    run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "full")
 
-    # auroc = {}
-    # for d in range(2, 32+1, 2):
-    #     tmp = []
-    #     for i in range(3):
-    #         tmp.append(run_posthoc(d))
-    #     auroc[d] = (np.mean(tmp), np.std(tmp))
+    # run_posthoc(
+    #     2,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "positives",
+    #     normalize_encoding=True,
+    #     pretrained=True,
+    # )
+    # run_posthoc(
+    #     2,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "fixed",
+    #     normalize_encoding=True,
+    #     pretrained=True,
+    # )
+    # run_posthoc(
+    #     2,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "full",
+    #     normalize_encoding=True,
+    #     pretrained=True,
+    # )
 
-    # print(auroc)
-    # with open("auroc.pkl", "wb") as f:
-    #     pickle.dump(auroc, f)
+    # run_posthoc(
+    #     16,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "positives",
+    #     normalize_encoding=True,
+    #     pretrained=False,
+    # )
+    # run_posthoc(
+    #     16,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "fixed",
+    #     normalize_encoding=True,
+    #     pretrained=True,
+    # )
+    # run_posthoc(
+    #     16,
+    #     data.FashionMNISTDataModule,
+    #     data.MNISTDataModule,
+    #     models.FashionMNISTConvNet,
+    #     "full",
+    #     normalize_encoding=True,
+    #     pretrained=True,
+    # )
 
-    # df = pd.DataFrame.from_dict(auroc, orient="index").reset_index()
-    # df.columns = ["d", "auroc_mean", "auroc_std"]
-    # print(df)
+    run_posthoc(
+        32,
+        data.FashionMNISTDataModule,
+        data.MNISTDataModule,
+        models.FashionMNISTConvNet,
+        "positives",
+        normalize_encoding=True,
+        pretrained=False,
+    )
+    run_posthoc(
+        32,
+        data.FashionMNISTDataModule,
+        data.MNISTDataModule,
+        models.FashionMNISTConvNet,
+        "fixed",
+        normalize_encoding=True,
+        pretrained=True,
+    )
+    run_posthoc(
+        32,
+        data.FashionMNISTDataModule,
+        data.MNISTDataModule,
+        models.FashionMNISTConvNet,
+        "full",
+        normalize_encoding=True,
+        pretrained=True,
+    )
 
-    # fig, ax = plt.subplots()
-    # ax.errorbar(df["d"], df["auroc_mean"], yerr=df["auroc_std"], fmt="o")
-    # ax.set_xlabel("Latent dimensions")
-    # ax.set_ylabel("AUROC")
-    # fig.tight_layout()
-    # fig.savefig("auroc.png")
+    # # run_posthoc(
+    # #     128,
+    # #     data.FashionMNISTDataModule,
+    # #     data.MNISTDataModule,
+    # #     models.FashionMNISTConvNet,
+    # #     "positives",
+    # #     normalize_encoding=True,
+    # #     pretrained=False,
+    # # )
+    # # run_posthoc(
+    # #     128,
+    # #     data.FashionMNISTDataModule,
+    # #     data.MNISTDataModule,
+    # #     models.FashionMNISTConvNet,
+    # #     "fixed",
+    # #     normalize_encoding=True,
+    # #     pretrained=True,
+    # # )
+    # # run_posthoc(
+    # #     128,
+    # #     data.FashionMNISTDataModule,
+    # #     data.MNISTDataModule,
+    # #     models.FashionMNISTConvNet,
+    # #     "full",
+    # #     normalize_encoding=True,
+    # #     pretrained=True,
+    # # )

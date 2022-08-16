@@ -8,7 +8,7 @@ class CIFAR10DataModule(datamodules.CIFAR10DataModule):
         data_dir: Optional[str] = None,
         val_split: Union[int, float] = 0.2,
         num_workers: int = 0,
-        normalize: bool = False,
+        normalize: bool = True,
         batch_size: int = 32,
         seed: int = 42,
         shuffle: bool = False,
