@@ -11,9 +11,9 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
         batch_size = 512
 
         if config.dataset == 'FashionMNIST':
-            num_epoch = 150
+            gpu_mem = '16'
         elif config.dataset == 'CIFAR10':
-            num_epoch = 500
+            gpu_mem = '32'
 
         name = f"latentdim_{latent_dim}"
         log_dir = root / "outputs" / model / "logs" / config.dataset / name
@@ -28,8 +28,9 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                 "name": name,
                 "batch_size": batch_size,
                 "latent_dim": latent_dim,
-                "num_epoch": num_epoch,
+                "num_epoch": config.num_epoch,
                 "additional_args": "",
+                "gpu_mem": gpu_mem,
             }
         )
 

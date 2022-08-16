@@ -377,25 +377,28 @@ class BaseLightningModule(LightningLite, MetricMeter):
         ood_sigma = []
         ood_mu = []
         ood_images = []
-        for img, y in tqdm(self.ood_loader, desc="OOD"):
-            mu_dul, std_dul = self.ood_step(img, y)
-            ood_sigma.append(std_dul)
-            ood_mu.append(mu_dul)
-            ood_images.append(img)
+        with torch.no_grad():
+            for img, y in tqdm(self.ood_loader, desc="OOD"):
+                mu_dul, std_dul = self.ood_step(img, y)
+                ood_sigma.append(std_dul)
+                ood_mu.append(mu_dul)
+                ood_images.append(img)
 
         # Visualize
         visualize_all(
             id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
         )
 
+        model_name = vis_path.parts[-5]
+
         print("Running calibration curve")
         run_calibration_curve(
-            self.model, self.test_loader, 50, vis_path, "PFE", self.args.dataset
+            self.model, self.test_loader, 50, vis_path, model_name, self.args.dataset
         )
 
         print("Running sparsification curve")
         run_sparsification_curve(
-            self.model, self.test_loader, vis_path, "PFE", self.args.dataset
+            self.model, self.test_loader, vis_path, model_name, self.args.dataset
         )
 
         # Save metrics

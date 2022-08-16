@@ -10,13 +10,15 @@ class Config:
 class FashionMNISTConfig(Config):
     latent_dims = [2, 16, 32]
     dataset = "FashionMNIST"
-    models = ["PFE", "DUL", "HIB"]
+    models = ["PFE", "DUL", "HIB", "MCDropout"]
+    num_epoch = 150
 
 
 class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
-    models = ["PFE", "DUL", "HIB"]
+    models = ["PFE", "DUL", "HIB", "MCDropout"]
+    num_epoch = 500
 
 
 template_text = """
@@ -39,8 +41,8 @@ template_text = """
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=32GB]"
-#BSUB -R "select[gpu32gb]"
+#BSUB -R "rusage[mem={gpu_mem}GB]"
+#BSUB -R "select[gpu{gpu_mem}gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
