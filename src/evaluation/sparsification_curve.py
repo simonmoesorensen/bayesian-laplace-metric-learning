@@ -76,14 +76,12 @@ def parse_args():
     return parser.parse_args()
 
 
-def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
+def load(model_name, model_path, dataset, embedding_size, batch_size, loss):
     # Load model
     model_file = root / model_path
     path = model_file.parent
 
-    model = load_model(
-        model_name, dataset, embedding_size, model_file, loss=loss
-    )
+    model = load_model(model_name, dataset, embedding_size, model_file, loss=loss)
     model = model.to(device)
     model.eval()
 
@@ -112,7 +110,13 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
 
     data_loader = data_module.test_dataloader()
 
-    knn_func = inference.CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
+    run(model, data_loader, path, model_name, dataset)
+
+
+def run(model, data_loader, path, model_name, dataset_name):
+    knn_func = inference.CustomKNN(
+        distance=distances.LpDistance(normalize_embeddings=False)
+    )
 
     metric = AccuracyCalculator(
         include=("precision_at_1",),
@@ -174,7 +178,7 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
     ax.set(
         xlabel="Filter Out Rate (%)",
         ylabel="Accuracy",
-        title=f"Sparsification curve for {model_name} on {dataset}",
+        title=f"Sparsification curve for {model_name} on {dataset_name}",
     )
 
     # Add text box with area under the curve
@@ -205,8 +209,8 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss):
 
 if __name__ == "__main__":
     args = parse_args()
-    
-    run(
+
+    load(
         args.model,
         args.model_path,
         args.dataset,

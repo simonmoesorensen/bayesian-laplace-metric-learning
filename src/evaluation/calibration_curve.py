@@ -113,7 +113,7 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
     return ece, real_probs[bin_sizes > 0], pred_probs[bin_sizes > 0], bin_sizes
 
 
-def run(model_name, model_path, dataset, embedding_size, batch_size, loss, samples):
+def load(model_name, model_path, dataset, embedding_size, batch_size, loss, samples):
     # Load model
     model_file = root / model_path
     path = model_file.parent
@@ -147,7 +147,14 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss, sampl
 
     data_loader = data_module.test_dataloader()
 
-    knn_func = inference.CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
+    # run code
+    run(model, data_loader, samples, path, model_name, dataset)
+
+
+def run(model, data_loader, samples, path, model_name, dataset_name):
+    knn_func = inference.CustomKNN(
+        distance=distances.LpDistance(normalize_embeddings=False)
+    )
 
     predicted = []
     confidences = []
@@ -235,7 +242,7 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss, sampl
         ylim=[0, 1],
         xlabel="Confidence",
         ylabel="Accuracy",
-        title=f"ECE curve for {model_name} on {dataset}",
+        title=f"ECE curve for {model_name} on {dataset_name}",
     )
 
     # Add grid
@@ -257,8 +264,8 @@ def run(model_name, model_path, dataset, embedding_size, batch_size, loss, sampl
 
 if __name__ == "__main__":
     args = parse_args()
-    
-    run(
+
+    load(
         args.model,
         args.model_path,
         args.dataset,
@@ -267,4 +274,3 @@ if __name__ == "__main__":
         args.loss,
         args.samples,
     )
-        
