@@ -19,7 +19,6 @@ class PFELightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-
     def train_step(self, X, y):
         mu, std = self.forward(X)
         cov = torch.diag_embed(std.square())

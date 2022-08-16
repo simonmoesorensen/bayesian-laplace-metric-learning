@@ -38,8 +38,7 @@ def run(PFE_args):
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
     elif PFE_args.dataset == "FashionMNIST":
-        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size
-        )
+        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size)
         data_module = FashionMNISTDataModule
 
     data_module = data_module(
@@ -91,7 +90,6 @@ def run(PFE_args):
     trainer.test()
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")
-
     return trainer
 
 

@@ -17,6 +17,9 @@ from src.visualize import visualize_all
 from src.metrics.MetricMeter import MetricMeter, AverageMeter
 from src.recall_at_k import AccuracyRecall
 
+from src.evaluation.calibration_curve import run as run_calibration_curve
+from src.evaluation.sparsification_curve import run as run_sparsification_curve
+
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
 torch.manual_seed(1234)
@@ -148,7 +151,9 @@ class BaseLightningModule(LightningLite, MetricMeter):
         raise NotImplementedError()
 
     def epoch_start(self):
-        self.metrics.reset(["train_loss", "train_accuracy", "train_map_k", "train_recall_k"])
+        self.metrics.reset(
+            ["train_loss", "train_accuracy", "train_map_k", "train_recall_k"]
+        )
 
     def epoch_end(self):
         self.log(["train_loss", "train_accuracy", "train_map_k", "train_recall_k"])
@@ -176,7 +181,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 loss=self.metrics.get("val_loss"),
                 acc=self.metrics.get("val_accuracy"),
                 map_k=self.metrics.get("val_map_k"),
-                recall_k=self.metrics.get("val_recall_k")
+                recall_k=self.metrics.get("val_recall_k"),
             ),
             flush=True,
         )
@@ -196,7 +201,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 time.asctime(time.localtime(time.time())),
                 acc=self.metrics.get("test_accuracy"),
                 map_k=self.metrics.get("test_map_k"),
-                recall_k=self.metrics.get("test_recall_k")
+                recall_k=self.metrics.get("test_recall_k"),
             ),
             flush=True,
         )
@@ -355,6 +360,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         if self.to_visualize:
             self.visualize(id_mu, id_sigma, id_images, prefix="test_")
 
+
     def visualize(self, id_mu, id_sigma, id_images, prefix):
         print("=" * 60, flush=True)
         print("Visualizing...")
@@ -380,6 +386,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
         # Visualize
         visualize_all(
             id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
+        )
+
+        print("Running calibration curve")
+        run_calibration_curve(
+            self.model, self.test_loader, 50, vis_path, "PFE", self.args.dataset
+        )
+
+        print("Running sparsification curve")
+        run_sparsification_curve(
+            self.model, self.test_loader, vis_path, "PFE", self.args.dataset
         )
 
         # Save metrics
