@@ -18,9 +18,7 @@ class MNIST(nn.Module):
             nn.Flatten(),
         )
         linear_layers = [
-            nn.Linear(4608, 64),
-            nn.Tanh(),
-            nn.Linear(64, embedding_size),
+            nn.Linear(4608, embedding_size),
         ]
         if normalize:
             linear_layers.append(L2Normalize())
@@ -58,9 +56,11 @@ class CIFAR10(nn.Module):
             nn.Flatten(),
         )
         linear_layers = [
-            nn.Linear(6272, 128),
+            nn.Linear(6272, 256),
             nn.Tanh(),
-            nn.Linear(128, embedding_size),
+            nn.Linear(256, 256),
+            nn.Tanh(),
+            nn.Linear(256, embedding_size),
         ]
         # self.conv = nn.Sequential(
         #     nn.Conv2d(3, 32, 3, 1),

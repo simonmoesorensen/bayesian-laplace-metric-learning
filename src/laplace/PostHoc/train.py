@@ -10,7 +10,7 @@ from src.lightning_modules.PostHocLaplaceLightningModule import (
     PostHocLaplaceLightningModule,
 )
 from src.lightning_modules.BackboneLightningModule import BackboneLightningModule
-from src.miners import AllPermutationsMiner
+from src.miners import AllCombinationsMiner, AllPermutationsMiner
 from src.laplace.PostHoc.config import parse_args
 
 
@@ -53,7 +53,7 @@ def run(args):
     map_trainer.test()
 
     # Post-hoc
-    miner = AllPermutationsMiner()
+    miner = AllCombinationsMiner()
     post_hoc_trainer = PostHocLaplaceLightningModule(
         accelerator="gpu", devices=len(args.gpu_id),
     )

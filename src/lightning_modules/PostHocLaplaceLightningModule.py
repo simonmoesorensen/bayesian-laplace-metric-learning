@@ -108,10 +108,8 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             logging.warning("Found negative values in Hessian.")
             self.hessian = self.hessian.clamp(min=0.0)
         
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(self.hessian.detach().cpu().numpy())
-        ax.set(xlabel="Layer", ylabel="Log-Hessian")
-        fig.savefig("outputs/PostHoc/figures/CIFAR10/epoch_1/hessian.png")
+        plt.plot(self.hessian.cpu().numpy())
+        plt.savefig("hessian.png")
 
         self.mu_q: Tensor = parameters_to_vector(self.inference_model.parameters())
         self.sigma_q: Tensor = self.posterior_scale()

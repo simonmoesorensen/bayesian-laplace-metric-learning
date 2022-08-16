@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q gpuv100
 
 ### -- set the job Name --
 #BSUB -J PostHoc-MNIST
@@ -45,14 +45,15 @@ source venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0
 
 python src/laplace/PostHoc/train.py \
-    --dataset MNIST \
-    --name MNIST \
+    --dataset FashionMNIST \
+    --name FashionMNIST \
     --neg_margin 0.2 \
     --batch_size 32 \
-    --embedding_size 128 \
+    --embedding_size 32 \
     --num_epoch 30 \
     --disp_freq 2 \
     --gpu_id 0 \
     --num_workers 12 \
     --shuffle \
+    --model_path  \
     --to_visualize

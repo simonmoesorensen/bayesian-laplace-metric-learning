@@ -49,9 +49,10 @@ python src/laplace/PostHoc/train.py \
     --neg_margin 0.2 \
     --batch_size 32 \
     --embedding_size 128 \
-    --num_epoch 30 \
+    --num_epoch 50 \
     --disp_freq 2 \
     --gpu_id 0 \
     --num_workers 12 \
     --shuffle \
+    --model_path outputs/PostHoc/checkpoints/CIFAR10/Model_Epoch_48_Time_2022-08-16T151828_checkpoint.pth \
     --to_visualize
