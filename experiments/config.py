@@ -39,8 +39,8 @@ template_text = """
 #BSUB -W 24:00
 
 # Request GPU resources
-#BSUB -R "rusage[mem=32GB]"
-#BSUB -R "select[gpu32gb]"
+#BSUB -R "rusage[mem={gpu_mem}GB]"
+#BSUB -R "select[gpu{gpu_mem}gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
