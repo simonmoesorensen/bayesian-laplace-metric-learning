@@ -42,7 +42,7 @@ from pytorch_metric_learning.distances import LpDistance
 
 sns.set_theme(style="ticks")
 
-def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
+def run_posthoc(latent_dim: int, module_id, module_ood, model_module, method):
     logging.getLogger().setLevel(logging.INFO)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -51,8 +51,6 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     batch_size = 16
     margin = 0.2
     normalize_encoding = False
-
-    method = "post_hoc"
 
     id_module = module_id("/work3/s174433/datasets", batch_size)
     id_module.setup()
@@ -67,13 +65,6 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     ood_title = ood_module.name
     ood_label = ood_title.lower()
 
-    # batch_size = 128
-    # id_module = module_id("/work3/s174433/datasets", batch_size)
-    # id_module.setup()
-    # train_loader = id_module.train_dataloader()
-    # id_loader = id_module.test_dataloader()
-    # id_label = id_module.name.lower()
-
     model = model_module(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
 
@@ -87,49 +78,30 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
     logging.info(f"MAP MAP@{k}: {results['mean_average_precision']:.2f}")
     logging.info(f"MAP Accuracy: {100*results['precision_at_1']:.2f}%")
 
-    # batch_size = 16
-    # id_module = module_id("/work3/s174433/datasets", batch_size)
-    # id_module.setup()
-    # train_loader = id_module.train_dataloader()
-    # id_loader = id_module.test_dataloader()
-    # id_label = id_module.name.lower()
-
     model = model_module(latent_dim, normalize_encoding).to(device)
     inference_model = model.linear
     model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
 
-    mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device)
+    mu_q, sigma_q = post_hoc(model, inference_model, train_loader, margin, device, method)
     torch.save(mu_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_mu.pt")
     torch.save(sigma_q.detach().cpu(), f"pretrained/post_hoc/{id_label}/laplace_sigma.pt")
 
-    # batch_size = 512
-    # id_module = module_id("/work3/s174433/datasets", batch_size)
-    # id_module.setup()
-    # train_loader = id_module.train_dataloader()
-    # id_loader = id_module.test_dataloader()
-    # id_label = id_module.name.lower()
+    model.load_state_dict(torch.load(f"pretrained/post_hoc/{id_label}/state_dict.pt", map_location=device))
 
-    # ood_module = module_ood("/work3/s174433/datasets", batch_size)
-    # ood_module.setup()
-    # ood_loader = ood_module.test_dataloader()
-    # ood_label = ood_module.name.lower()
-
-    model.load_state_dict(torch.load(f"pretrained/{method}/{id_label}/state_dict.pt", map_location=device))
-
-    mu_q = torch.load(f"pretrained/{method}/{id_label}/laplace_mu.pt", map_location=device)
-    sigma_q = torch.load(f"pretrained/{method}/{id_label}/laplace_sigma.pt", map_location=device)
+    mu_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_mu.pt", map_location=device)
+    sigma_q = torch.load(f"pretrained/post_hoc/{id_label}/laplace_sigma.pt", map_location=device)
 
     mu_id, var_id = evaluate_laplace(model, inference_model, id_loader, mu_q, sigma_q, device)
     mu_id = mu_id.detach().cpu().numpy()
     var_id = var_id.detach().cpu().numpy()
-    np.save(f"results/{method}/{id_label}/id_laplace_mu.npy", mu_id)
-    np.save(f"results/{method}/{id_label}/id_laplace_sigma_sq.npy", var_id)
+    np.save(f"results/post_hoc/{id_label}/id_laplace_mu.npy", mu_id)
+    np.save(f"results/post_hoc/{id_label}/id_laplace_sigma_sq.npy", var_id)
 
     mu_ood, var_ood = evaluate_laplace(model, inference_model, ood_loader, mu_q, sigma_q, device)
     mu_ood = mu_ood.detach().cpu().numpy()
     var_ood = var_ood.detach().cpu().numpy()
-    np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy", mu_ood)
-    np.save(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", var_ood)
+    np.save(f"results/post_hoc/{id_label}/{ood_label}/ood_laplace_mu.npy", mu_ood)
+    np.save(f"results/post_hoc/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy", var_ood)
 
     mu_train, var_train = evaluate_laplace(model, inference_model, train_loader, mu_q, sigma_q, device)
     mu_train = mu_train.detach().cpu()
@@ -154,26 +126,20 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
         print(f"Post-hoc {key}: {val}")
     vector_to_parameters(mu_q, inference_model.parameters())
 
-    # id_title = id_module.name
-    # id_label = id_title.lower()
-
-    # ood_title = ood_module.name
-    # ood_label = ood_title.lower()
-
-    # mu_id = np.load(f"results/{method}/{id_label}/id_laplace_mu.npy")
-    # var_id = np.load(f"results/{method}/{id_label}/id_laplace_sigma_sq.npy")
-    # mu_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_mu.npy")
-    # var_ood = np.load(f"results/{method}/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
+    # mu_id = np.load(f"results/post_hoc/{id_label}/id_laplace_mu.npy")
+    # var_id = np.load(f"results/post_hoc/{id_label}/id_laplace_sigma_sq.npy")
+    # mu_ood = np.load(f"results/post_hoc/{id_label}/{ood_label}/ood_laplace_mu.npy")
+    # var_ood = np.load(f"results/post_hoc/{id_label}/{ood_label}/ood_laplace_sigma_sq.npy")
 
     fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
     fig.suptitle(f"Trained on {id_title}, OOD {ood_title}")
     fig.tight_layout()
-    fig.savefig(f"results/{method}/{id_label}/{ood_label}/ood_plot.png")
+    fig.savefig(f"results/post_hoc/{id_label}/{ood_label}/ood_plot.png")
 
-    metrics = compute_and_plot_roc_curves(f"results/{method}/{id_label}/{ood_label}/", var_id, var_ood)
+    metrics = compute_and_plot_roc_curves(f"results/post_hoc/{id_label}/{ood_label}/", var_id, var_ood)
     print(metrics)
     # metrics = pd.DataFrame.from_dict({metric: [val] for metric, val in metrics.items()})
-    # metrics_path = f"results/{method}/{id_label}/{ood_label}/ood_metrics.csv"
+    # metrics_path = f"results/post_hoc/{id_label}/{ood_label}/ood_metrics.csv"
     # metrics.to_csv(metrics_path, index=False, header=True)
 
     return metrics["auroc"]
@@ -181,8 +147,10 @@ def run_posthoc(latent_dim: int, module_id, module_ood, model_module):
 
 if __name__ == "__main__":
 
-    run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet)
-    run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet)
+    # run_posthoc(128, data.CIFAR10DataModule, data.SVHNDataModule, models.ConvNet, "full")
+    # run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "positives")
+    # run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "fixed")
+    run_posthoc(128, data.FashionMNISTDataModule, data.MNISTDataModule, models.FashionMNISTConvNet, "full")
 
     # auroc = {}
     # for d in range(2, 32+1, 2):

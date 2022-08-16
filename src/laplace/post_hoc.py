@@ -63,16 +63,26 @@ def post_hoc(
     train_loader: DataLoader,
     margin: float,
     device="cpu",
+    method="full",
 ):
     """
     Run post-hoc laplace on a pretrained metric learning model.
     """
+    if method == "positives":
+        calculator = ContrastiveHessianCalculator(margin=margin, device=device)
+        miner = AllPositiveMiner()
+    elif method == "fixed":
+        calculator = FixedContrastiveHessianCalculator(margin=margin, device=device)
+        miner = AllCombinationsMiner()
+    elif method == "full":
+        calculator = ContrastiveHessianCalculator(margin=margin, device=device)
+        miner = AllCombinationsMiner()
+    else:
+        raise ValueError(f"Unknown method: {method}")
 
     dataset_size = len(train_loader.dataset)
 
-    calculator = ContrastiveHessianCalculator(margin=margin, device=device)
     calculator.init_model(inference_model)
-    miner = AllCombinationsMiner()
     h = 0
     with torch.no_grad():
         for x, y in tqdm(train_loader):
