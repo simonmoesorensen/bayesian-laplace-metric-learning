@@ -2,19 +2,6 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 
-# Create logs folder if not exists
-root = Path(__file__).parent.parent
-logs = root / "logs"
-
-models = ["DUL", "HIB", "Backbone", "PFE"]
-datasets = ["MNIST", "CIFAR10", "CASIA", "FashionMNIST"]
-
-for model in models:
-    for dataset in datasets:
-        path = logs / model / dataset
-        path.mkdir(parents=True, exist_ok=True)
-
-
 class L2Norm(nn.Module):
     def forward(self, X):
         return l2_norm(X, axis=1)
