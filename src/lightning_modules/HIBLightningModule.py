@@ -58,6 +58,15 @@ class HIBLightningModule(BaseLightningModule):
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
 
         # Required for SOFT CONTRASTIVE loss
+        knn_func = CustomKNN(LpDistance())
+
+        # Metric calculation
+        self.metric_calc = AccuracyCalculator(
+            include=("mean_average_precision", "precision_at_1"),
+            k=5,
+            device=self.device,
+            knn_func=knn_func,
+        )
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")
@@ -76,11 +85,11 @@ class HIBLightningModule(BaseLightningModule):
 
     def epoch_start(self):
         self.metrics.reset(
-            ["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"]
+            ["train_loss", "train_loss_kl", "train_accuracy", "train_map_k"]
         )
 
     def epoch_end(self):
-        self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_r"])
+        self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_k"])
 
     def loss_step(self, mu, std, y, step):
         # Matrix of positive pairs
@@ -191,7 +200,7 @@ class HIBLightningModule(BaseLightningModule):
         return samples[0], loss
 
     def val_start(self):
-        self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_r"])
+        self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k"])
 
     def val_step(self, X, y):
         mu, std = self.forward(X)
@@ -201,7 +210,7 @@ class HIBLightningModule(BaseLightningModule):
         return mu, std, samples[0]
 
     def val_end(self):
-        self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_r"])
+        self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
@@ -209,12 +218,12 @@ class HIBLightningModule(BaseLightningModule):
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
+            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("val_loss"),
                 loss_KL=self.metrics.get("val_loss_kl"),
                 acc=self.metrics.get("val_accuracy"),
-                map_r=self.metrics.get("val_map_r"),
+                map_k=self.metrics.get("val_map_k"),
             ),
             flush=True,
         )
@@ -239,7 +248,7 @@ class HIBLightningModule(BaseLightningModule):
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})\t"
+            "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
             "Lr {lr:.4f}\t"
             "a {a:.4f}\t"
             "b {b:.4f}\t".format(
@@ -251,7 +260,7 @@ class HIBLightningModule(BaseLightningModule):
                 loss=self.metrics.get("train_loss"),
                 loss_KL=self.metrics.get("train_loss_kl"),
                 acc=self.metrics.get("train_accuracy"),
-                map_r=self.metrics.get("train_map_r"),
+                map_k=self.metrics.get("train_map_k"),
                 lr=self.optimizer.param_groups[0]["lr"],
                 a=self.loss_fn.A.data.item(),
                 b=self.loss_fn.B.data.item(),

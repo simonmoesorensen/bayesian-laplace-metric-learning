@@ -96,8 +96,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Metric calculation
         self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision_at_r", "precision_at_1"),
-            k="max_bin_count",
+            include=("mean_average_precision", "precision_at_1"),
+            k=5,
             device=self.device,
             knn_func=knn_func
         )
@@ -106,11 +106,11 @@ class BaseLightningModule(LightningLite, MetricMeter):
         self.metrics = MetricMeter(
             meters={
                 "train_accuracy": AverageMeter(),
-                "train_map_r": AverageMeter(),
+                "train_map_k": AverageMeter(),
                 "val_accuracy": AverageMeter(),
-                "val_map_r": AverageMeter(),
+                "val_map_k": AverageMeter(),
                 "test_accuracy": AverageMeter(),
-                "test_map_r": AverageMeter(),
+                "test_map_k": AverageMeter(),
                 "train_loss": AverageMeter(),
                 "val_loss": AverageMeter(),
             },
@@ -145,10 +145,10 @@ class BaseLightningModule(LightningLite, MetricMeter):
         raise NotImplementedError()
 
     def epoch_start(self):
-        self.metrics.reset(["train_loss", "train_accuracy", "train_map_r"])
+        self.metrics.reset(["train_loss", "train_accuracy", "train_map_k"])
 
     def epoch_end(self):
-        self.log(["train_loss", "train_accuracy", "train_map_r"])
+        self.log(["train_loss", "train_accuracy", "train_map_k"])
 
     def train_start(self):
         pass
@@ -157,39 +157,39 @@ class BaseLightningModule(LightningLite, MetricMeter):
         pass
 
     def val_start(self):
-        self.metrics.reset(["val_loss", "val_accuracy", "val_map_r"])
+        self.metrics.reset(["val_loss", "val_accuracy", "val_map_k"])
 
     def val_end(self):
-        self.log(["val_loss", "val_accuracy", "val_map_r"])
+        self.log(["val_loss", "val_accuracy", "val_map_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
             "Time {}\t"
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
+            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("val_loss"),
                 acc=self.metrics.get("val_accuracy"),
-                map_r=self.metrics.get("val_map_r"),
+                map_k=self.metrics.get("val_map_k"),
             ),
             flush=True,
         )
 
     def test_start(self):
-        self.metrics.reset(["test_accuracy", "test_map_r"])
+        self.metrics.reset(["test_accuracy", "test_map_k"])
 
     def test_end(self):
-        self.log(["test_accuracy", "test_map_r"])
+        self.log(["test_accuracy", "test_map_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
             "Time {}\t"
             "Test Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Test MAP@r {map_r.val:.4f} ({map_r.avg:.4f}))".format(
+            "Test MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
                 time.asctime(time.localtime(time.time())),
                 acc=self.metrics.get("test_accuracy"),
-                map_r=self.metrics.get("test_map_r"),
+                map_k=self.metrics.get("test_map_k"),
             ),
             flush=True,
         )
@@ -201,7 +201,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             "Time {}\t"
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@r {map_r.val:.4f} ({map_r.avg:.4f})\t"
+            "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
             "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
@@ -210,7 +210,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("train_loss"),
                 acc=self.metrics.get("train_accuracy"),
-                map_r=self.metrics.get("train_map_r"),
+                map_k=self.metrics.get("train_map_k"),
                 lr=self.optimizer.param_groups[0]["lr"],
             )
         )
@@ -230,7 +230,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             )
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
-            self.metrics.update(f"{step}_map_r", metrics["mean_average_precision_at_r"])
+            self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
 
     def optimizer_step(self):
         self.optimizer.step()
@@ -407,11 +407,11 @@ class BaseLightningModule(LightningLite, MetricMeter):
             hparam_dict=hparams,
             metric_dict={
                 "train_accuracy": self.metrics.get("train_accuracy").avg,
-                "train_map_r": self.metrics.get("train_map_r").avg,
+                "train_map_k": self.metrics.get("train_map_k").avg,
                 "val_accuracy": self.metrics.get("val_accuracy").avg,
-                "val_map_r": self.metrics.get("val_map_r").avg,
+                "val_map_k": self.metrics.get("val_map_k").avg,
                 "test_accuracy": self.metrics.get("test_accuracy").avg,
-                "test_map_r": self.metrics.get("test_map_r").avg,
+                "test_map_k": self.metrics.get("test_map_k").avg,
             },
             run_name=".",
         )

@@ -1,12 +1,8 @@
 import datetime
 import logging
-import torch.optim as optim
 
 import torch
 from matplotlib import pyplot as plt
-from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
-from pytorch_metric_learning import distances
-from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
