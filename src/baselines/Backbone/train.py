@@ -52,31 +52,14 @@ def run(Backbone_args):
     # Don't apply weight decay to batchnorm layers
     params_w_bn, params_no_bn = separate_batchnorm_params(model)
 
-    optimizer = optim.Adam(
-        [
-            {
-                "params": params_no_bn,
-                "weight_decay": Backbone_args.weight_decay,
-            },
-            {"params": params_w_bn},
-        ],
-        lr=Backbone_args.lr,
+    optimizer = optim.Adam(model.parameters(), lr=Backbone_args.lr)
+
+    loss = losses.ContrastiveLoss(
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
-    loss = losses.LargeMarginSoftmaxLoss(
-        embedding_size=Backbone_args.embedding_size, num_classes=data_module.n_classes
-    )
-
-    # loss = losses.ContrastiveLoss(
-    #     distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    # )
-
-    # miner = miners.PairMarginMiner(
-    #     distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    # )
-    
     miner = miners.PairMarginMiner(
-        distance=distances.CosineSimilarity(),
+        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
     trainer = BackboneLightningModule(
