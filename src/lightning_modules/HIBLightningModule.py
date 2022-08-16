@@ -26,14 +26,15 @@ class HIBLightningModule(BaseLightningModule):
         loss_path = None
 
         if args.model_path and not args.loss_path:
-            loss_path = args.model_path.replace('Model', 'Loss', 1)
-            
-        
+            loss_path = args.model_path.replace("Model", "Loss", 1)
+
         elif args.model_path and args.loss_path:
             loss_path = args.loss_path
 
         elif not args.model_path and args.loss_path:
-            raise Exception('You can not specify a loss path without a model path! Use --model_path to specify the model path.')
+            raise Exception(
+                "You can not specify a loss path without a model path! Use --model_path to specify the model path."
+            )
 
         if loss_path is not None:
             state_dict = self.load(loss_path)
@@ -47,8 +48,6 @@ class HIBLightningModule(BaseLightningModule):
 
             loss_fn.load_state_dict(new_state_dict)
 
-
-
         max_lr = 0.0003
         self.scheduler.max_lrs = self.scheduler._format_param(
             "max_lr", optimizer, max_lr
@@ -56,17 +55,6 @@ class HIBLightningModule(BaseLightningModule):
 
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
-
-        # Required for SOFT CONTRASTIVE loss
-        knn_func = CustomKNN(LpDistance())
-
-        # Metric calculation
-        self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision", "precision_at_1"),
-            k=5,
-            device=self.device,
-            knn_func=knn_func,
-        )
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")
@@ -283,8 +271,9 @@ class HIBLightningModule(BaseLightningModule):
         model_path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"Saving model @ {str(path)}")
-        self.save(content=self.model.module.module.state_dict(), filepath=str(model_path))
-
+        self.save(
+            content=self.model.module.module.state_dict(), filepath=str(model_path)
+        )
 
         loss_name = "Loss_Epoch_{}_Time_{}_checkpoint.pth".format(
             self.epoch + 1, current_time
