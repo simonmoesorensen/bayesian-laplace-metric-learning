@@ -41,17 +41,15 @@ module load python3/3.9.6
 module load cuda/11.3
 source venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1
-
-echo "Waiting for debugger to attach..."
+export CUDA_VISIBLE_DEVICES=0
 
 python src/laplace/PostHoc/train.py \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --neg_margin 0.2 \
     --batch_size 32 \
-    --embedding_size 32 \
-    --num_epoch 15 \
+    --embedding_size 128 \
+    --num_epoch 30 \
     --disp_freq 2 \
     --gpu_id 0 \
     --num_workers 12 \

@@ -33,8 +33,6 @@ def parse_args():
     parser.add_argument("--model_path", type=str, default=None)
 
     # ----- model & training details
-    parser.add_argument("--head_name", type=str, default="ArcFace")
-    parser.add_argument("--loss_name", type=str, default="Softmax")
     parser.add_argument("--embedding_size", type=int, default=32)
     parser.add_argument("--weight_decay", type=float, default=0)
     parser.add_argument("--momentum", type=float, default=0.9)

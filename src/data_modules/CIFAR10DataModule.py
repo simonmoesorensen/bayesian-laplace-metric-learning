@@ -24,10 +24,10 @@ class CIFAR10DataModule(BaseDataModule):
         self.transform = transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.49139968, 0.48215841, 0.44653091),
-                    (0.24703223, 0.24348513, 0.26158784),
-                ),
+                # transforms.Normalize(
+                #     (0.49139968, 0.48215841, 0.44653091),
+                #     (0.24703223, 0.24348513, 0.26158784),
+                # ),
                 # transforms.RandomCrop((32, 32), padding=4),
                 # transforms.RandomHorizontalFlip(0.5),
             ]

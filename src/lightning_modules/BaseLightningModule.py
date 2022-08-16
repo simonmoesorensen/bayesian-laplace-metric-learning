@@ -56,19 +56,6 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         self.to_visualize = args.to_visualize
 
-        # Load model
-        if args.model_path:
-            state_dict = self.load(args.model_path)
-
-            new_state_dict = {}
-            for key in state_dict:
-                if key.startswith("module."):
-                    new_state_dict[key[7:]] = state_dict[key]
-                elif key.startswith("_module."):
-                    new_state_dict[key[8:]] = state_dict[key]
-
-            model.load_state_dict(new_state_dict)
-
         # Data
         self.batch_size = args.batch_size
 
@@ -79,6 +66,19 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
+
+        # Load model
+        if args.model_path:
+            self.model.load_state_dict(self.load(args.model_path))
+            # state_dict = self.load(args.model_path)
+            # new_state_dict = {}
+            # for key in state_dict:
+            #     if key.startswith("module."):
+            #         new_state_dict[key[7:]] = state_dict[key]
+            #     elif key.startswith("_module."):
+            #         new_state_dict[key[8:]] = state_dict[key]
+
+            # self.model.load_state_dict(new_state_dict)
 
         # Scheduler
         self.scheduler = lr_scheduler.CyclicLR(
@@ -369,7 +369,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         hparams["name"] = self.name
         hparams["epoch"] = self.epoch
         hparams["miner"] = self.miner.__class__.__name__
-        hparams["model"] = self.model.module.module.__class__.__name__
+        hparams["model"] = self.model.module.__class__.__name__
         hparams["optimizer"] = self.optimizer.__class__.__name__
         hparams["loss_fn"] = self.loss_fn.__class__.__name__
 

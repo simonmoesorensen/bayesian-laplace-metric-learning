@@ -31,19 +31,16 @@
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
-#BSUB -oo logs/DUL/mnist/run.out
-#BSUB -eo logs/DUL/mnist/run.err
+##BSUB -oo logs/DUL/mnist/run.out
+##BSUB -eo logs/DUL/mnist/run.err
 # -- end of LSF options --
 
 # Load the cuda module
 module load python3/3.8.11
 module load cuda/11.7
 
-# Go to directory
-cd /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning
-
 # Load venv
-source /zhome/d1/9/127646/Documents/bayesian-laplace-metric-learning/venv/bin/activate
+source venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0
 

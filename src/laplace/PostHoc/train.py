@@ -55,7 +55,7 @@ def run(args):
     # Post-hoc
     miner = AllPermutationsMiner()
     post_hoc_trainer = PostHocLaplaceLightningModule(
-        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
+        accelerator="gpu", devices=len(args.gpu_id),
     )
     post_hoc_trainer.init(model, loss, miner, optimizer, args)
     post_hoc_trainer.add_data_module(data_module)

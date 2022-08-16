@@ -1,8 +1,10 @@
+import logging
 from typing import Tuple
 import torch
 from torch import Tensor
 from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_parameters
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 from src.hessian.layerwise import (
@@ -50,7 +52,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.n_posterior_samples = args.posterior_samples
         self.scale = 1.0
         self.prior_prec = 1.0
-        self.inference_model = getattr(self.model.module.module, args.inference_model)
+        self.inference_model = getattr(self.model.module, args.inference_model)
 
         if args.hessian_calculator == "fixed":
             self.hessian_calculator = FixedContrastiveHessianCalculator(
@@ -63,8 +65,10 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.hessian_calculator.init_model(self.inference_model)
 
     def train_start(self) -> None:
-        self.hessian = 0
-        self.scaler: float = len(self.train_loader.dataset) ** 2 / self.batch_size**2
+        n_params = sum(p.numel() for p in self.inference_model.parameters())
+        self.hessian = torch.zeros((n_params,), device=self.device)
+        self.scaler: float = (len(self.train_loader.dataset)**2) / (self.batch_size**2)
+        print(self.scaler)
 
     def train(self) -> None:
         print(f"Training")
@@ -100,6 +104,15 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         return hessian
 
     def train_end(self) -> None:
+        if (self.hessian < 0).sum():
+            logging.warning("Found negative values in Hessian.")
+            self.hessian = self.hessian.clamp(min=0.0)
+        
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(self.hessian.detach().cpu().numpy())
+        ax.set(xlabel="Layer", ylabel="Log-Hessian")
+        fig.savefig("outputs/PostHoc/figures/CIFAR10/epoch_1/hessian.png")
+
         self.mu_q: Tensor = parameters_to_vector(self.inference_model.parameters())
         self.sigma_q: Tensor = self.posterior_scale()
 
