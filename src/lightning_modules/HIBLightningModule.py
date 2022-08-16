@@ -206,12 +206,14 @@ class HIBLightningModule(BaseLightningModule):
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
+            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Validation Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("val_loss"),
                 loss_KL=self.metrics.get("val_loss_kl"),
                 acc=self.metrics.get("val_accuracy"),
                 map_k=self.metrics.get("val_map_k"),
+                recall_k=self.metrics.get("val_recall_k"),
             ),
             flush=True,
         )
@@ -237,6 +239,7 @@ class HIBLightningModule(BaseLightningModule):
             "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Training Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})\t"
             "Lr {lr:.4f}\t"
             "a {a:.4f}\t"
             "b {b:.4f}\t".format(
@@ -252,6 +255,7 @@ class HIBLightningModule(BaseLightningModule):
                 lr=self.optimizer.param_groups[0]["lr"],
                 a=self.loss_fn.A.data.item(),
                 b=self.loss_fn.B.data.item(),
+                recall_k=self.metrics.get("train_recall_k"),
             )
         )
 

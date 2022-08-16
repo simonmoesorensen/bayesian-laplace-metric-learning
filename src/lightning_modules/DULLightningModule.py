@@ -28,11 +28,11 @@ class DULLightningModule(BaseLightningModule):
 
     def epoch_start(self):
         self.metrics.reset(
-            ["train_loss", "train_loss_kl", "train_accuracy", "train_map_k"]
+            ["train_loss", "train_loss_kl", "train_accuracy", "train_map_k", "train_recall_k"]
         )
 
     def epoch_end(self):
-        self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_k"])
+        self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_k", "train_recall_k"])
 
     def loss_step(self, mu, std, y, step):
         variance_dul = std.square()
@@ -65,7 +65,7 @@ class DULLightningModule(BaseLightningModule):
         return samples, loss
 
     def val_start(self):
-        self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k"])
+        self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"])
 
     def val_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
@@ -75,7 +75,7 @@ class DULLightningModule(BaseLightningModule):
         return mu_dul, std_dul, samples
 
     def val_end(self):
-        self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k"])
+        self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
@@ -83,12 +83,14 @@ class DULLightningModule(BaseLightningModule):
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
+            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Validation Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("val_loss"),
                 loss_KL=self.metrics.get("val_loss_kl"),
                 acc=self.metrics.get("val_accuracy"),
                 map_k=self.metrics.get("val_map_k"),
+                recall_k=self.metrics.get("val_recall_k"),
             ),
             flush=True,
         )
@@ -115,6 +117,7 @@ class DULLightningModule(BaseLightningModule):
             "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Training Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})\t"
             "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
@@ -125,6 +128,7 @@ class DULLightningModule(BaseLightningModule):
                 loss_KL=self.metrics.get("train_loss_kl"),
                 acc=self.metrics.get("train_accuracy"),
                 map_k=self.metrics.get("train_map_k"),
+                recall_k=self.metrics.get("train_recall_k"),
                 lr=self.optimizer.param_groups[0]["lr"],
             )
         )
