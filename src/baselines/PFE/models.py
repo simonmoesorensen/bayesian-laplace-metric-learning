@@ -21,18 +21,14 @@ class UncertaintyModule(nn.Module):
         for param in backbone.parameters():
             param.requires_grad = False
 
-        resnet = backbone[0]
-        l2norm = backbone[1]
-
-        backbone_no_last_layer = list(resnet.children())[:-1]
-        last_layer_size = resnet.fc.in_features
+        backbone_no_last_layer = list(backbone.children())[:-1]
+        last_layer_size = backbone.linear[0].in_features
 
         # Define bottleneck as model without the last layer
         self.bottleneck = nn.Sequential(*backbone_no_last_layer)
 
         # Use pretrained last layer (fully connected, l2norm) to compute mu
-        self.fc_mu = resnet.fc
-        self.l2_norm = l2norm
+        self.fc_mu = backbone.linear  # backbone.linear has L2Norm layer
 
         self.fc_var1 = nn.Sequential(
             nn.Linear(last_layer_size, embedding_size),
@@ -44,7 +40,7 @@ class UncertaintyModule(nn.Module):
             nn.BatchNorm1d(embedding_size),
         )
 
-        # Scale and shift parameters from original code
+        # Scale and shift parameters from paper
         self.beta = nn.Parameter(torch.zeros(embedding_size) - 7, requires_grad=True)
         self.gamma = nn.Parameter(torch.ones(embedding_size) * 1e-4, requires_grad=True)
 
@@ -59,7 +55,6 @@ class UncertaintyModule(nn.Module):
 
         # Trainable (mu and var)
         mu = self.fc_mu(mu.view(mu.size(0), -1))
-        mu = self.l2_norm(mu)
 
         # Get log var
         log_var = self.bottleneck(x)
