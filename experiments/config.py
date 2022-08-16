@@ -10,13 +10,15 @@ class Config:
 class FashionMNISTConfig(Config):
     latent_dims = [2, 16, 32]
     dataset = "FashionMNIST"
-    models = ["PFE", "DUL", "HIB"]
+    models = ["PFE", "DUL", "HIB", "MCDropout"]
+    num_epoch = 150
 
 
 class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
-    models = ["PFE", "DUL", "HIB"]
+    models = ["PFE", "DUL", "HIB", "MCDropout"]
+    num_epoch = 500
 
 
 template_text = """
