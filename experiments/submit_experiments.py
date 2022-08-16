@@ -37,7 +37,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                     "batch_size": batch_size,
                     "latent_dim": latent_dim,
                     "num_epoch": config.num_epoch,
-                    "additional_args": "",
+                    "additional_args": additional_args,
                     "gpu_mem": gpu_mem
                 }
             )
