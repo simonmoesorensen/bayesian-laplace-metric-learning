@@ -10,12 +10,12 @@ from pytorch_lightning.lite import LightningLite
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm
-from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 
 from src.visualize import visualize_all
 from src.metrics.MetricMeter import MetricMeter, AverageMeter
+from src.recall_at_k import AccuracyRecall
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -95,8 +95,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
         )
 
         # Metric calculation
-        self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision", "precision_at_1"),
+        self.metric_calc = AccuracyRecall(
+            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
             k=5,
             device=self.device,
             knn_func=knn_func,
@@ -107,10 +107,13 @@ class BaseLightningModule(LightningLite, MetricMeter):
             meters={
                 "train_accuracy": AverageMeter(),
                 "train_map_k": AverageMeter(),
+                "train_recall_k": AverageMeter(),
                 "val_accuracy": AverageMeter(),
                 "val_map_k": AverageMeter(),
+                "val_recall_k": AverageMeter(),
                 "test_accuracy": AverageMeter(),
                 "test_map_k": AverageMeter(),
+                "test_recall_k": AverageMeter(),
                 "train_loss": AverageMeter(),
                 "val_loss": AverageMeter(),
             },
@@ -145,10 +148,10 @@ class BaseLightningModule(LightningLite, MetricMeter):
         raise NotImplementedError()
 
     def epoch_start(self):
-        self.metrics.reset(["train_loss", "train_accuracy", "train_map_k"])
+        self.metrics.reset(["train_loss", "train_accuracy", "train_map_k", "train_recall_k"])
 
     def epoch_end(self):
-        self.log(["train_loss", "train_accuracy", "train_map_k"])
+        self.log(["train_loss", "train_accuracy", "train_map_k", "train_recall_k"])
 
     def train_start(self):
         pass
@@ -157,39 +160,43 @@ class BaseLightningModule(LightningLite, MetricMeter):
         pass
 
     def val_start(self):
-        self.metrics.reset(["val_loss", "val_accuracy", "val_map_k"])
+        self.metrics.reset(["val_loss", "val_accuracy", "val_map_k", "val_recall_k"])
 
     def val_end(self):
-        self.log(["val_loss", "val_accuracy", "val_map_k"])
+        self.log(["val_loss", "val_accuracy", "val_map_k", "val_recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
             "Time {}\t"
             "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
+            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Validation Recall@k {recall_k.val:4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
                 loss=self.metrics.get("val_loss"),
                 acc=self.metrics.get("val_accuracy"),
                 map_k=self.metrics.get("val_map_k"),
+                recall_k=self.metrics.get("val_recall_k")
             ),
             flush=True,
         )
 
     def test_start(self):
-        self.metrics.reset(["test_accuracy", "test_map_k"])
+        self.metrics.reset(["test_accuracy", "test_map_k", "test_recall_k"])
 
     def test_end(self):
-        self.log(["test_accuracy", "test_map_k"])
+        self.log(["test_accuracy", "test_map_k", "test_recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
             "Time {}\t"
             "Test Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Test MAP@k {map_k.val:.4f} ({map_k.avg:.4f}))".format(
+            "Test MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Test Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
                 acc=self.metrics.get("test_accuracy"),
                 map_k=self.metrics.get("test_map_k"),
+                recall_k=self.metrics.get("test_recall_k")
             ),
             flush=True,
         )
@@ -202,6 +209,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
             "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
             "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
             "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
+            "Training Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})\t"
             "Lr {lr:.4f}".format(
                 epoch + 1,
                 self.args.num_epoch,
@@ -211,6 +219,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 loss=self.metrics.get("train_loss"),
                 acc=self.metrics.get("train_accuracy"),
                 map_k=self.metrics.get("train_map_k"),
+                recall_k=self.metrics.get("train_recall_k"),
                 lr=self.optimizer.param_groups[0]["lr"],
             )
         )
@@ -231,6 +240,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
             self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
+            self.metrics.update(f"{step}_recall_k", metrics["recall_at_k"])
 
     def optimizer_step(self):
         self.optimizer.step()
@@ -408,10 +418,13 @@ class BaseLightningModule(LightningLite, MetricMeter):
             metric_dict={
                 "train_accuracy": self.metrics.get("train_accuracy").avg,
                 "train_map_k": self.metrics.get("train_map_k").avg,
+                "train_recall_k": self.metrics.get("train_recall_k").avg,
                 "val_accuracy": self.metrics.get("val_accuracy").avg,
                 "val_map_k": self.metrics.get("val_map_k").avg,
+                "val_recall_k": self.metrics.get("val_recall_k").avg,
                 "test_accuracy": self.metrics.get("test_accuracy").avg,
                 "test_map_k": self.metrics.get("test_map_k").avg,
+                "test_recall_k": self.metrics.get("test_recall_k").avg,
             },
             run_name=".",
         )
