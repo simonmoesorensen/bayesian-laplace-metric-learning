@@ -97,7 +97,7 @@ def FashionMNIST_PFE(embedding_size=128):
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load("src/baselines/PFE/pretrained/fashion_mnist.pth")
+        torch.load(f"src/baselines/PFE/pretrained/fashion_mnist_latent_{embedding_size}.pth")
     )
 
     # Wrap in PFE framework
@@ -112,7 +112,9 @@ def CIFAR10_PFE(embedding_size=128):
     """
     # Embedding dimension
     backbone = CIFAR10_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/cifar10.pth"))
+    backbone.load_state_dict(
+        torch.load(f"src/baselines/PFE/pretrained/cifar10_latent_{embedding_size}.pth")
+    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
