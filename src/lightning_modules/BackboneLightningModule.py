@@ -32,8 +32,8 @@ class BackboneLightningModule(BaseLightningModule):
 
         # Metric calculation
         self.metric_calc = AccuracyCalculator(
-            include=("mean_average_precision_at_r", "precision_at_1"),
-            k="max_bin_count",
+            include=("precision_at_1", "mean_average_precision"),
+            k=5,
             device=self.device,
             knn_func=knn_func,
         )
