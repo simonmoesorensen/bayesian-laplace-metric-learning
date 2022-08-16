@@ -18,7 +18,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
             if model == "DUL":
                 additional_args = "--kl_scale 1e-4"
             elif model == "HIB":
-                additional_args = "--kl_scale 1e-4"
+                additional_args = "--kl_scale 1e-4 --K 8"
                 batch_size = 64
             else:
                 additional_args = ""
@@ -36,8 +36,8 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                     "name": name,
                     "batch_size": batch_size,
                     "latent_dim": latent_dim,
-                    "additional_args": additional_args,
-                    "num_epoch": num_epoch
+                    "num_epoch": num_epoch,
+                    "additional_args": "",
                 }
             )
 
@@ -46,16 +46,12 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
             with open(submit_file, 'w') as f:
                 f.write(submit_script)
 
+            print('Submitting job:', submit_file)
+            # Execute code in terminal
             normal = subprocess.run(
                 f"bsub < {submit_file}",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=True,
-                # text=True,
                 shell=True
             )
-            break
-            # Execute code in terminal
-
-
-print(template_text)
