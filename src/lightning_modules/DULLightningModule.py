@@ -23,8 +23,14 @@ class DULLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
+        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
+
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")
+
+    def optimizer_step(self):
+        super().optimizer_step()
+        self.loss_optimizer.step()
 
     def epoch_start(self):
         self.metrics.reset(

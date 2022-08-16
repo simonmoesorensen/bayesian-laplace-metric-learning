@@ -38,8 +38,12 @@ def parse_args():
     parser.add_argument("--model_path", type=str, default=None)
 
     # ----- model & training details
-    parser.add_argument("--arcface_scale", type=int, help="Suggested value 64")
-    parser.add_argument("--arcface_margin", type=float, help="Suggested value 28.6")
+    parser.add_argument(
+        "--arcface_scale", type=int, default=64, help="Suggested value 64"
+    )
+    parser.add_argument(
+        "--arcface_margin", type=float, default=28.6, help="Suggested value 28.6"
+    )
     parser.add_argument("--embedding_size", type=int, default=512)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--momentum", type=float, default=0.9)

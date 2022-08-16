@@ -55,17 +55,12 @@ def run(dul_args):
         eps=1e-8,
     )
 
-    if dul_args.arcface_scale and dul_args.arcface_margin:
-        loss = losses.ArcFaceLoss(
-            num_classes=data_module.n_classes,
-            scale=dul_args.arcface_scale,
-            margin=dul_args.arcface_margin,
-            embedding_size=dul_args.embedding_size,
-        )
-    else:
-        loss = losses.ContrastiveLoss(
-            distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-        )
+    loss = losses.ArcFaceLoss(
+        num_classes=data_module.n_classes,
+        scale=dul_args.arcface_scale,
+        margin=dul_args.arcface_margin,
+        embedding_size=dul_args.embedding_size,
+    )
 
     miner = miners.BatchEasyHardMiner(
         pos_strategy="easy",
