@@ -11,7 +11,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
         batch_size = 512
 
         if config.dataset == 'FashionMNIST':
-            num_epoch = 100
+            num_epoch = 150
         elif config.dataset == 'CIFAR10':
             num_epoch = 500
 
