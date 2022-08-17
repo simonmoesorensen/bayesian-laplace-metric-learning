@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--name", type=str, default="MNIST")
 
     # ----- random seed for reproducing
-    parser.add_argument("--random_seed", type=int, default=42)
+    parser.add_argument("--random_seed", type=int, default=3407)
 
     # ----- directory (train & test)
     parser.add_argument("--dataset", type=str)
