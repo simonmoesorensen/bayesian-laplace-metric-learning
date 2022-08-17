@@ -22,7 +22,6 @@ from src.evaluation.sparsification_curve import run as run_sparsification_curve
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
-torch.manual_seed(1234)
 
 
 def get_time():
@@ -39,6 +38,8 @@ class BaseLightningModule(LightningLite, MetricMeter):
         print("=" * 60)
         for k in args.__dict__:
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
+
+        torch.manual_seed(args.random_seed)
 
         # Learning rate scheduler options
         base_lr = args.lr
