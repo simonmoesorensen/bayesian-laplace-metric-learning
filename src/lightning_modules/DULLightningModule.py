@@ -12,7 +12,6 @@ import torch.distributions as dist
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
-torch.manual_seed(1234)
 
 
 def get_time():
