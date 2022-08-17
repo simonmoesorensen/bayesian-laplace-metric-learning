@@ -9,12 +9,12 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/HIB/train.py \
     --dataset CIFAR10 \
     --name train_script \
     --batch_size 256 \
-    --K 3 \
-    --embedding_size 512 \
-    --num_epoch 20 \
-    --save_freq 1 \
+    --K 8 \
+    --embedding_size 16 \
+    --num_epoch 10 \
+    --save_freq 11 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
-    --kl_scale 1e-4 \
+    --kl_scale 1e-6 \
     --to_visualize
