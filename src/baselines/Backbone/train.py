@@ -52,7 +52,18 @@ def run(Backbone_args):
     # Don't apply weight decay to batchnorm layers
     params_w_bn, params_no_bn = separate_batchnorm_params(model)
 
-    optimizer = optim.Adam(model.parameters(), lr=Backbone_args.lr)
+    optimizer = optim.Adam(
+        [
+            {
+                "params": params_no_bn,
+                "weight_decay": Backbone_args.weight_decay,
+            },
+            {"params": params_w_bn},
+        ],
+        lr=Backbone_args.lr,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+    )
 
     loss = losses.ContrastiveLoss(
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
