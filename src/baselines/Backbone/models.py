@@ -1,31 +1,7 @@
 import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 from src.utils import L2Norm
-from torch.nn import Conv2d
-from torchvision.models import resnet18, resnet34, resnet152
-
-
-class Embedder(nn.Module):
-    def __init__(self, backbone, embedding_size) -> None:
-        super().__init__()
-
-        no_last_layer = list(backbone.children())[:-1]
-        last_layer_size = backbone.fc.in_features
-
-        norm_layer = L2Norm()
-
-        self.backbone = nn.Sequential(*no_last_layer)
-
-        self.norm_model = nn.Sequential(
-            nn.Linear(last_layer_size, embedding_size),
-            norm_layer,
-        )
-
-    def forward(self, x):
-        out = self.backbone(x)
-        out = out.view(out.size(0), -1)
-
-        return self.norm_model(out)
+from torchvision.models import resnet152
 
 
 def MNIST_Backbone(embedding_size=128):

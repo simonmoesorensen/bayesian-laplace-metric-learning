@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import torch
 import torch.distributions as tdist
@@ -31,7 +31,8 @@ class HIBLightningModule(BaseLightningModule):
 
         elif not args.model_path and args.loss_path:
             raise Exception(
-                "You can not specify a loss path without a model path! Use --model_path to specify the model path."
+                "You can not specify a loss path without a model path!"
+                " Use --model_path to specify the model path."
             )
 
         if loss_path is not None:
