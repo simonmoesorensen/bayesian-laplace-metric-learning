@@ -28,49 +28,11 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
             else:
                 additional_args = ""
 
-            if model in ["DUL", "HIB"]:
-                # Run multiple experiments on random seed for DUL and HIB
-                # as they are unstable
-                for seed in config.seeds:
-                    name = f"latentdim_{latent_dim}_seed_{seed}"
-                    log_dir = root / "outputs" / model / "logs" / config.dataset / name
-                    log_dir.mkdir(parents=True, exist_ok=True)
-                    additional_args += f" --random_seed {seed}"
-
-                    submit_script = template_text.format(
-                        **{
-                            "job_name": f"{model}-{config.dataset}-{name}",
-                            "logs_dir": log_dir,
-                            "model": model,
-                            "dataset": config.dataset,
-                            "name": name,
-                            "batch_size": batch_size,
-                            "latent_dim": latent_dim,
-                            "num_epoch": config.num_epoch,
-                            "additional_args": additional_args,
-                            "gpu_mem": gpu_mem,
-                        }
-                    )
-
-                    submit_file = log_dir / "script.sh"
-
-                    with open(submit_file, "w") as f:
-                        f.write(submit_script)
-
-                    print("Submitting job:", submit_file)
-                    # Execute code in terminal
-                    normal = subprocess.run(
-                        f"bsub < {submit_file}",
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        check=True,
-                        shell=True,
-                    )
-            else:
-                # Other models run once
-                name = f"latentdim_{latent_dim}"
+            for seed in config.seeds:
+                name = f"latentdim_{latent_dim}_seed_{seed}"
                 log_dir = root / "outputs" / model / "logs" / config.dataset / name
                 log_dir.mkdir(parents=True, exist_ok=True)
+                additional_args_seed = additional_args + f" --random_seed {seed}"
 
                 submit_script = template_text.format(
                     **{
@@ -82,7 +44,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                         "batch_size": batch_size,
                         "latent_dim": latent_dim,
                         "num_epoch": config.num_epoch,
-                        "additional_args": additional_args,
+                        "additional_args": additional_args_seed,
                         "gpu_mem": gpu_mem,
                     }
                 )
