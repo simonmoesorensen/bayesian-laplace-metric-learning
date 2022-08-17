@@ -1,24 +1,22 @@
 import datetime
 import json
 import logging
-from pathlib import Path, PosixPath
 import time
+from pathlib import Path, PosixPath
 
 import torch
+import torch.optim.lr_scheduler as lr_scheduler
 from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
-from torch.utils.tensorboard import SummaryWriter
-import torch.optim.lr_scheduler as lr_scheduler
-from tqdm import tqdm
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
-
-from src.visualize import get_names, visualize_all
-from src.metrics.MetricMeter import MetricMeter, AverageMeter
-from src.recall_at_k import AccuracyRecall
-
 from src.evaluation.calibration_curve import run as run_calibration_curve
 from src.evaluation.sparsification_curve import run as run_sparsification_curve
+from src.metrics.MetricMeter import AverageMeter, MetricMeter
+from src.recall_at_k import AccuracyRecall
+from src.visualize import get_names, visualize_all
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)

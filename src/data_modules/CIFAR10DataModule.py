@@ -1,7 +1,6 @@
 import torchvision.datasets as d
-from torchvision import transforms
-
 from src.data_modules.BaseDataModule import BaseDataModule
+from torchvision import transforms
 
 
 class CIFAR10DataModule(BaseDataModule):

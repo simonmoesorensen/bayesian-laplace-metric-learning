@@ -1,24 +1,19 @@
-from src.lightning_modules.BackboneLightningModule import BackboneLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners, losses, distances
-
-from src.data_modules import (
-    FashionMNISTDataModule,
-    MNISTDataModule,
-    CIFAR10DataModule,
-    CasiaDataModule,
-)
-
+from pytorch_metric_learning import distances, losses, miners
 from src.baselines.Backbone.config import parse_args
 from src.baselines.Backbone.models import (
-    MNIST_Backbone,
-    CIFAR10_Backbone,
     Casia_Backbone,
+    CIFAR10_Backbone,
+    MNIST_Backbone,
 )
-
-from src.utils import (
-    separate_batchnorm_params,
+from src.data_modules import (
+    CasiaDataModule,
+    CIFAR10DataModule,
+    FashionMNISTDataModule,
+    MNISTDataModule,
 )
+from src.lightning_modules.BackboneLightningModule import BackboneLightningModule
+from src.utils import separate_batchnorm_params
 
 
 def run(Backbone_args):

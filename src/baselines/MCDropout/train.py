@@ -1,18 +1,9 @@
-from src.lightning_modules.MCDropoutLightningModule import MCDropoutLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners, losses, distances
-
-from src.data_modules import (
-    FashionMNISTDataModule,
-    MNISTDataModule,
-    CIFAR10DataModule,
-)
-
+from pytorch_metric_learning import distances, losses, miners
 from src.baselines.MCDropout.config import parse_args
-from src.baselines.MCDropout.models import (
-    MNIST_MCDropout,
-    CIFAR10_MCDropout,
-)
+from src.baselines.MCDropout.models import CIFAR10_MCDropout, MNIST_MCDropout
+from src.data_modules import CIFAR10DataModule, FashionMNISTDataModule, MNISTDataModule
+from src.lightning_modules.MCDropoutLightningModule import MCDropoutLightningModule
 
 
 def run(MCDropout_args):

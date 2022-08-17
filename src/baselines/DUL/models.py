@@ -1,10 +1,9 @@
 import torch
-from torchvision.models import resnet50, resnet18, resnet152
-from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
-
 from src.utils import l2_norm
+from torch.nn import BatchNorm1d
+from torchvision.models import resnet152
 
 
 class DUL_Backbone(nn.Module):

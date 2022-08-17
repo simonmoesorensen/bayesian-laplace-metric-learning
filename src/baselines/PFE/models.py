@@ -1,12 +1,9 @@
-from torchvision.models import resnet18, resnet34, resnet50
-from torch.nn import Conv2d, BatchNorm1d
-import torch.nn as nn
 import torch
-from src.baselines.Backbone.models import (
-    CIFAR10_Backbone,
-    Casia_Backbone,
-    MNIST_Backbone,
-)
+import torch.nn as nn
+from src.baselines.Backbone.models import Casia_Backbone, CIFAR10_Backbone
+from torchvision.models import resnet18, resnet34, resnet50
+
+from .nn import Conv2d
 
 
 class UncertaintyModule(nn.Module):
