@@ -198,7 +198,7 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
     plot_samples(mu_ood, var_ood, limit=100, color=c_ood, label="OOD", ax=ax[0])
     plot_histogram(var_ood, color=c_ood, ax=ax[1])
     ax[0].legend()
-    fig.suptitle(f"ID vs OOD comparison for model {model_name} on dataset {dataset}")
+    fig.suptitle(f"ID vs OOD comparison for model {model_name} ({run_name}) on dataset {dataset}")
     fig.savefig(vis_path / f"{prefix}ood_comparison.png")
     return fig, ax
 

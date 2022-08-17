@@ -13,7 +13,7 @@ from tqdm import tqdm
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 
-from src.visualize import visualize_all
+from src.visualize import get_names, visualize_all
 from src.metrics.MetricMeter import MetricMeter, AverageMeter
 from src.recall_at_k import AccuracyRecall
 
@@ -411,17 +411,23 @@ class BaseLightningModule(LightningLite, MetricMeter):
             id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
         )
 
-        model_name = vis_path.parts[-5]
+        model_name, dataset_name, run_name = get_names(vis_path)
 
         print("Running calibration curve")
         ece = run_calibration_curve(
-            self.model, self.test_loader, 50, vis_path, model_name, self.args.dataset
+            self.model,
+            self.test_loader,
+            50,
+            vis_path,
+            model_name,
+            dataset_name,
+            run_name,
         )
         self.additional_metrics.update(f"{prefix}ece", ece)
 
         print("Running sparsification curve")
         ausc = run_sparsification_curve(
-            self.model, self.test_loader, vis_path, model_name, self.args.dataset
+            self.model, self.test_loader, vis_path, model_name, dataset_name, run_name
         )
         self.additional_metrics.update(f"{prefix}ausc", ausc)
 
@@ -435,7 +441,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         metrics = self.metrics.get_dict()
         with open(vis_path / "metrics.json", "w") as f:
             json.dump(metrics, f)
-        
+
         additional_metrics = self.additional_metrics.get_dict()
         with open(vis_path / "additional_metrics.json", "w") as f:
             json.dump(additional_metrics, f)

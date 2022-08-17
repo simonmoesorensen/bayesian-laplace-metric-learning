@@ -32,6 +32,8 @@ from pytorch_metric_learning import distances
 import numpy as np
 import matplotlib.pyplot as plt
 
+from src.visualize import get_names
+
 load_dotenv()
 
 root = Path(__file__).parent.parent.parent.absolute()
@@ -151,7 +153,7 @@ def load(model_name, model_path, dataset, embedding_size, batch_size, loss, samp
     run(model, data_loader, samples, path, model_name, dataset)
 
 
-def run(model, data_loader, samples, path, model_name, dataset_name):
+def run(model, data_loader, samples, path, model_name, dataset_name, run_name=''):
     knn_func = inference.CustomKNN(
         distance=distances.LpDistance(normalize_embeddings=False)
     )
@@ -242,7 +244,7 @@ def run(model, data_loader, samples, path, model_name, dataset_name):
         ylim=[0, 1],
         xlabel="Confidence",
         ylabel="Accuracy",
-        title=f"ECE curve for {model_name} on {dataset_name}",
+        title=f"ECE curve for {model_name} ({run_name}) on {dataset_name}",
     )
 
     # Add grid
