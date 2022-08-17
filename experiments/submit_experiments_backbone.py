@@ -1,19 +1,22 @@
-from config import FashionMNISTConfig, CIFAR10Config, template_text
 import subprocess
 from pathlib import Path
 
+from config import CIFAR10Config, FashionMNISTConfig, template_text
+
 root = Path(__file__).parent.parent
 
-model = 'Backbone'
+model = "Backbone"
 # Submit FashionMNIST experiments
 for config in [FashionMNISTConfig, CIFAR10Config]:
     for latent_dim in config.latent_dims:
         batch_size = 512
 
-        if config.dataset == 'FashionMNIST':
-            gpu_mem = '16'
-        elif config.dataset == 'CIFAR10':
-            gpu_mem = '32'
+        if config.dataset == "FashionMNIST":
+            gpu_mem = "16"
+            num_epoch = 50
+        elif config.dataset == "CIFAR10":
+            gpu_mem = "32"
+            num_epoch = 150
 
         name = f"latentdim_{latent_dim}"
         log_dir = root / "outputs" / model / "logs" / config.dataset / name
@@ -34,17 +37,17 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
             }
         )
 
-        submit_file = log_dir / 'script.sh'
+        submit_file = log_dir / "script.sh"
 
-        with open(submit_file, 'w') as f:
+        with open(submit_file, "w") as f:
             f.write(submit_script)
 
-        print('Submitting job:', submit_file)
+        print("Submitting job:", submit_file)
         # Execute code in terminal
         normal = subprocess.run(
             f"bsub < {submit_file}",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,
-            shell=True
+            shell=True,
         )
