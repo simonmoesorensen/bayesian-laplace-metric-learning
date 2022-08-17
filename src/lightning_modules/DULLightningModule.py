@@ -4,9 +4,8 @@ import time
 
 import torch
 import torch.distributions as dist
-import torch.distributions as dist
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
-from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 logging.getLogger(__name__).setLevel(logging.INFO)
 

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
+from utils import L2Norm
 
 
 class SampleNet(nn.Module):
@@ -29,9 +30,11 @@ class MCDropoutHead(SampleNet):
     def __init__(self, backbone):
         super().__init__()
         self.backbone = backbone
+        self.norm = L2Norm()
 
     def pass_through(self, x):
-        return self.backbone(x)
+        x = self.backbone(x)
+        return self.norm(x)
 
 
 def MNIST_MCDropout(embedding_size=128):

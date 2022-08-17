@@ -22,9 +22,7 @@ class CIFAR10ConvNet(nn.Module):
             nn.Linear(256, latent_dim),
         ]
 
-        norm_layer = L2Norm()
-
-        self.linear = nn.Sequential(*linear_layers, norm_layer)
+        self.linear = nn.Sequential(*linear_layers)
 
     def forward(self, x):
         x = self.conv(x)
@@ -47,9 +45,8 @@ class FashionMNISTConvNet(nn.Module):
         linear_layers = [
             nn.Linear(4608, latent_dim),
         ]
-        norm_layer = L2Norm()
 
-        self.linear = nn.Sequential(*linear_layers, norm_layer)
+        self.linear = nn.Sequential(*linear_layers)
 
     def forward(self, x):
         x = self.conv(x)
