@@ -11,9 +11,8 @@ class WeightClipper:
         self.frequency = frequency
 
     def __call__(self, module):
-        # filter the variables to get the ones you want
         if hasattr(module, "A"):
-            module.A.data = module.A.data.clamp(min=1e-6)
+            module.A.data = module.A.data.clamp(min=0.01)
 
 
 class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
