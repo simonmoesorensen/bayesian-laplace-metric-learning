@@ -17,4 +17,5 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/DUL/train.py \
     --num_workers 8 \
     --shuffle \
     --to_visualize \
-    --kl_scale 1e-4
+    --kl_scale 1e-7 \
+    --random_seed 23

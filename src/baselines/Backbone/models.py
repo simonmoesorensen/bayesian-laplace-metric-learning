@@ -10,7 +10,8 @@ def MNIST_Backbone(embedding_size=128):
     """
     model = FashionMNISTConvNet(latent_dim=embedding_size)
 
-    model_norm = nn.Sequential(model, L2Norm())
+    l2norm = L2Norm()
+    model_norm = nn.Sequential(model, l2norm)
 
     return model_norm
 
@@ -21,7 +22,8 @@ def CIFAR10_Backbone(embedding_size=128):
     """
     model = CIFAR10ConvNet(latent_dim=embedding_size)
 
-    model_norm = nn.Sequential(model, L2Norm())
+    l2norm = L2Norm()
+    model_norm = nn.Sequential(model, l2norm)
 
     return model_norm
 
@@ -33,6 +35,7 @@ def Casia_Backbone(embedding_size=128):
     # Embedding dimension
     model = resnet152(num_classes=embedding_size)
 
-    model_norm = nn.Sequential(model, L2Norm())
+    l2norm = L2Norm()
+    model_norm = nn.Sequential(model, l2norm)
 
     return model_norm

@@ -5,6 +5,7 @@ class Config:
     latent_dims: List[int]
     dataset: str
     models: List[str]
+    seeds: List[int] = [42, 43, 44, 45, 46]
 
 
 class FashionMNISTConfig(Config):
