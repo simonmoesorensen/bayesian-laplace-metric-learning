@@ -2,7 +2,7 @@ import torch
 from torchvision.models import resnet50, resnet18, resnet152
 from torch.nn import Conv2d, BatchNorm1d
 import torch.nn as nn
-from src.baselines.models import EmbeddingNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 
 from src.utils import l2_norm
 
@@ -44,14 +44,7 @@ def MNIST_DUL(embedding_size=128):
     Construct a mnist model for DUL.
     """
     # Embedding dimension
-    model = resnet18(num_classes=embedding_size)
-
-    # Adapt to 1 channel inputs
-    model.conv1 = Conv2d(
-        1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-    )
-
-    # model = EmbeddingNet(embedding_size=embedding_size, img_size=28, n_channels=1)
+    model = FashionMNISTConvNet(latent_dim=embedding_size)
 
     # Wrap in DUL framework
     model_dul = DUL_Backbone(model, embedding_size)
@@ -64,7 +57,7 @@ def CIFAR10_DUL(embedding_size=128):
     Construct a cifar10 model for DUL.
     """
     # Embedding dimension
-    model = EmbeddingNet(embedding_size=embedding_size, img_size=32)
+    model = CIFAR10ConvNet(latent_dim=embedding_size)
 
     # Wrap in DUL framework
     model_dul = DUL_Backbone(model, embedding_size)

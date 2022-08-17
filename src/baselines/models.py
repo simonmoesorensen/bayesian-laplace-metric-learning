@@ -1,26 +1,59 @@
 import torch
 import torch.nn as nn
+from src.utils import L2Norm
 
 
-class EmbeddingNet(nn.Module):
-    def __init__(self, embedding_size, img_size, n_channels=3):
-        super(EmbeddingNet, self).__init__()
-        self.convnet = nn.Sequential(nn.Conv2d(n_channels, 16, 3, 1), nn.ReLU(),
-                                     nn.MaxPool2d(1, stride=2),
-                                     nn.Conv2d(16, 32, 3, 1), nn.ReLU(),
-                                     nn.MaxPool2d(1, stride=2),
-                                     nn.Conv2d(32, 64, 5), nn.ReLU(),
-                                     nn.MaxPool2d(1, stride=2))
+class CIFAR10ConvNet(nn.Module):
+    def __init__(self, latent_dim=128):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(3, 16, 3, 1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 3, 1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Dropout2d(0.25),
+            nn.Flatten(),
+        )
+        linear_layers = [
+            nn.Linear(6272, 256),
+            nn.Tanh(),
+            nn.Linear(256, 256),
+            nn.Tanh(),
+            nn.Linear(256, latent_dim),
+        ]
 
-        # Calculate output size of convnet
-        dummy_input = torch.rand(1, n_channels, img_size, img_size)
-        dummy_output = self.convnet(dummy_input)
-        output_size = dummy_output.view(1, -1).size(1)
+        norm_layer = L2Norm()
 
-        self.fc = nn.Sequential(nn.Linear(output_size, embedding_size))
+        self.linear = nn.Sequential(*linear_layers, norm_layer)
 
     def forward(self, x):
-        output = self.convnet(x)
-        output = output.view(output.size()[0], -1)
-        output = self.fc(output)
-        return output
+        x = self.conv(x)
+        x = self.linear(x)
+        return x
+
+
+class FashionMNISTConvNet(nn.Module):
+    def __init__(self, latent_dim=32):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 16, 3, 1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 3, 1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Dropout2d(0.25),
+            nn.Flatten(),
+        )
+        linear_layers = [
+            nn.Linear(4608, latent_dim),
+        ]
+        norm_layer = L2Norm()
+
+        self.linear = nn.Sequential(*linear_layers, norm_layer)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.linear(x)
+        return x
+
