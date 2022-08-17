@@ -269,7 +269,7 @@ class HIBLightningModule(BaseLightningModule):
         if prefix is not None:
             model_name = prefix + "_" + model_name
 
-        path = Path(self.args.model_save_folder) / self.args.name
+        path = Path(self.args.model_save_folder) / self.args.dataset / self.args.name
         model_path = path / model_name
 
         model_path.parent.mkdir(parents=True, exist_ok=True)
