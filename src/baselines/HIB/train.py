@@ -1,5 +1,4 @@
 import torch.optim as optim
-from pytorch_metric_learning import distances, miners
 from src.baselines.HIB.config import parse_args
 from src.baselines.HIB.losses import SoftContrastiveLoss
 from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB
@@ -56,11 +55,8 @@ def run(HIB_args):
 
     loss = SoftContrastiveLoss()
 
-    miner = miners.BatchEasyHardMiner(
-        pos_strategy="all",
-        neg_strategy="all",
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    )
+    # HIB uses own sampling method
+    miner = None
 
     trainer = HIBLightningModule(
         accelerator="gpu", devices=len(HIB_args.gpu_id), strategy="dp"
