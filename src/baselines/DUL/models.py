@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from src.baselines import CIFAR10ConvNet, FashionMNISTConvNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 from src.utils import l2_norm
 from torch.nn import BatchNorm1d
 from torchvision.models import resnet152
