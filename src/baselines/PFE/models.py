@@ -19,14 +19,18 @@ class UncertaintyModule(nn.Module):
         for param in backbone.parameters():
             param.requires_grad = False
 
-        backbone_no_last_layer = list(backbone.children())[:-1]
-        last_layer_size = backbone.linear[0].in_features
+        # Conv part
+        backbone_no_last_layer = list(backbone.children())[:-1][0].conv
+        # Linear part without last layer
+        backbone_no_last_layer.append(list(backbone.children())[:-1][0].linear[:-1])
+
+        last_layer_size = backbone[0].linear[-1].in_features
 
         # Define bottleneck as model without the last layer
         self.bottleneck = nn.Sequential(*backbone_no_last_layer)
 
-        # Use pretrained last layer (fully connected, l2norm) to compute mu
-        self.fc_mu = backbone.linear  # backbone.linear has L2Norm layer
+        # Use pretrained last layer (fully connected) to compute mu with l2norm
+        self.fc_mu = nn.Sequential(backbone[0].linear[-1], backbone[1])
 
         self.fc_var1 = nn.Sequential(
             nn.Linear(last_layer_size, embedding_size),
