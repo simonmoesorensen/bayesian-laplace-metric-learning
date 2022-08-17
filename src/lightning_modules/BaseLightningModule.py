@@ -123,6 +123,20 @@ class BaseLightningModule(LightningLite, MetricMeter):
             batch_size=self.batch_size,
         )
 
+        self.additional_metrics = MetricMeter(
+            meters={
+                "val_ece": AverageMeter(),
+                "val_ausc": AverageMeter(),
+                "val_auroc": AverageMeter(),
+                "val_auprc": AverageMeter(),
+                "test_ece": AverageMeter(),
+                "test_ausc": AverageMeter(),
+                "test_auroc": AverageMeter(),
+                "test_auprc": AverageMeter(),
+            },
+            batch_size=self.batch_size,
+        )
+
     def setup_logger(self, name):
         subdir = get_time()
         logdir = Path(self.args.log_dir) / self.args.dataset / name / subdir
@@ -134,6 +148,15 @@ class BaseLightningModule(LightningLite, MetricMeter):
             self.writer.add_scalar(
                 f"{metric}",
                 self.metrics.get(metric).avg,
+                global_step=self.epoch + 1,
+                new_style=True,
+            )
+
+    def log_additional(self, metrics):
+        for metric in metrics:
+            self.writer.add_scalar(
+                f"{metric}",
+                self.additional_metrics.get(metric).avg,
                 global_step=self.epoch + 1,
                 new_style=True,
             )
@@ -360,7 +383,6 @@ class BaseLightningModule(LightningLite, MetricMeter):
         if self.to_visualize:
             self.visualize(id_mu, id_sigma, id_images, prefix="test_")
 
-
     def visualize(self, id_mu, id_sigma, id_images, prefix):
         print("=" * 60, flush=True)
         print("Visualizing...")
@@ -392,22 +414,46 @@ class BaseLightningModule(LightningLite, MetricMeter):
         model_name = vis_path.parts[-5]
 
         print("Running calibration curve")
-        run_calibration_curve(
+        ece = run_calibration_curve(
             self.model, self.test_loader, 50, vis_path, model_name, self.args.dataset
         )
+        self.additional_metrics.update(f"{prefix}ece", ece)
 
         print("Running sparsification curve")
-        run_sparsification_curve(
+        ausc = run_sparsification_curve(
             self.model, self.test_loader, vis_path, model_name, self.args.dataset
         )
+        self.additional_metrics.update(f"{prefix}ausc", ausc)
+
+        # Read ood metrics
+        with open(vis_path / "ood_metrics.json", "r") as f:
+            ood_metrics = json.load(f)
+            self.additional_metrics.update(f"{prefix}auroc", ood_metrics["auroc"])
+            self.additional_metrics.update(f"{prefix}auprc", ood_metrics["auprc"])
 
         # Save metrics
+        metrics = self.metrics.get_dict()
         with open(vis_path / "metrics.json", "w") as f:
-            json.dump(self.metrics.get_dict(), f)
+            json.dump(metrics, f)
+        
+        additional_metrics = self.additional_metrics.get_dict()
+        with open(vis_path / "additional_metrics.json", "w") as f:
+            json.dump(additional_metrics, f)
 
         # Save hparams
         with open(vis_path / "hparams.json", "w") as f:
             json.dump(self.get_hparams(), f)
+
+        # Save additional metrics for tensorboard in log_hyperparams
+        add_metrics = [
+            f"{prefix}ece",
+            f"{prefix}ausc",
+            f"{prefix}auroc",
+            f"{prefix}auprc",
+        ]
+
+        # Update tensorboard
+        self.log_additional(add_metrics)
 
     def forward(self, x):
         return self.model(x)
@@ -431,20 +477,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def log_hyperparams(self):
         print("Logging hyperparameters")
+        metrics = self.metrics.get_dict()
+        additional_metrics = self.additional_metrics.get_dict()
+
+        # Join metrics
+        metrics.update(additional_metrics)
+
         hparams = self.get_hparams()
         self.writer.add_hparams(
             hparam_dict=hparams,
-            metric_dict={
-                "train_accuracy": self.metrics.get("train_accuracy").avg,
-                "train_map_k": self.metrics.get("train_map_k").avg,
-                "train_recall_k": self.metrics.get("train_recall_k").avg,
-                "val_accuracy": self.metrics.get("val_accuracy").avg,
-                "val_map_k": self.metrics.get("val_map_k").avg,
-                "val_recall_k": self.metrics.get("val_recall_k").avg,
-                "test_accuracy": self.metrics.get("test_accuracy").avg,
-                "test_map_k": self.metrics.get("test_map_k").avg,
-                "test_recall_k": self.metrics.get("test_recall_k").avg,
-            },
+            metric_dict=metrics,
             run_name=".",
         )
 

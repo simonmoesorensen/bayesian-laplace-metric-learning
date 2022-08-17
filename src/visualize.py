@@ -264,6 +264,13 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # compute false positive rate at 80
     num_id = len(id_sigma)
 
+    # compute auroc
+    auroc = torchmetrics.AUROC(num_classes=1)
+    auroc_score = auroc(
+        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+    )
+    metrics["auroc"] = float(auroc_score.numpy())
+    
     for p in range(0, 100, 10):
         # if there is no difference in variance
         try:
@@ -272,14 +279,6 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
             metrics[f"fpr{p}"] = "none"
         else:
             continue
-
-    # compute auroc
-    auroc = torchmetrics.AUROC(num_classes=1)
-    auroc_score = auroc(
-        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
-    )
-    metrics["auroc"] = float(auroc_score.numpy())
-    print(f"Metrics: {metrics}")
 
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:

@@ -261,6 +261,7 @@ def run(model, data_loader, samples, path, model_name, dataset_name):
     with open(path / "calibration_curve.json", "w") as f:
         json.dump(metrics, f)
 
+    return float(ece)
 
 if __name__ == "__main__":
     args = parse_args()
