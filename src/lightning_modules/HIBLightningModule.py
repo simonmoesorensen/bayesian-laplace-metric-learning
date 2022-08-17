@@ -53,7 +53,7 @@ class HIBLightningModule(BaseLightningModule):
         )
 
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
-        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
+        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.001)
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")

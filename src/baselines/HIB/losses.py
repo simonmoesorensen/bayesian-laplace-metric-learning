@@ -22,11 +22,11 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
         self.add_to_recordable_attributes(list_of_names=["A", "B"], is_stat=False)
         self.weight_clipper = WeightClipper()
 
-        self.A = torch.nn.Parameter(torch.Tensor(1))
+        self.A = torch.nn.Parameter(torch.ones(1))
         # Constrain A to be positive
         self.weight_init_func(self.A)
 
-        self.B = torch.nn.Parameter(torch.Tensor(1))
+        self.B = torch.nn.Parameter(torch.zeros(1))
         self.weight_init_func(self.B)
 
     def cast_params(self, device):
