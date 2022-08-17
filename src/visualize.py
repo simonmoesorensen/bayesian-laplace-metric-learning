@@ -246,7 +246,9 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(recall, precision)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
-    plt.title(f"OOD Precision-Recall Curve for model {model_name} ({run_name}) on dataset {dataset}")
+    plt.title(
+        f"OOD Precision-Recall Curve for model {model_name} ({run_name}) on dataset {dataset}"
+    )
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
     plt.cla()
