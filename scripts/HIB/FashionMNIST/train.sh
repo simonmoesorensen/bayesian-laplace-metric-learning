@@ -7,7 +7,7 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/HIB/train.py \
     --dataset FashionMNIST \
-    --name FashionMNIST \
+    --name train_script \
     --batch_size 128 \
     --K 8 \
     --embedding_size 6 \

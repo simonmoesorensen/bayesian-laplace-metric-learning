@@ -7,7 +7,7 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/MCDropout/train.py \
     --dataset CIFAR10 \
-    --name CIFAR10 \
+    --name train_script \
     --batch_size 64 \
     --embedding_size 16 \
     --num_epoch 2 \

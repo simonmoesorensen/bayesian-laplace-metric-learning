@@ -10,7 +10,7 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/DUL/train.py \
     --dataset CIFAR10 \
-    --name CIFAR10 \
+    --name train_script \
     --batch_size 512 \
     --embedding_size 64 \
     --num_epoch 50 \

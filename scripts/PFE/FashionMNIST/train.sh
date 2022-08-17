@@ -5,9 +5,9 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1332 ./src/baselines/PFE/train.py \
+python3 -m debugpy --listen $node_ip:1331 ./src/baselines/PFE/train.py \
     --dataset FashionMNIST \
-    --name FashionMNIST \
+    --name train_script \
     --batch_size 128 \
     --embedding_size 2 \
     --num_epoch 1 \

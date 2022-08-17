@@ -7,7 +7,7 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/PFE/train.py \
     --dataset MNIST \
-    --name MNIST \
+    --name train_script \
     --batch_size 128 \
     --embedding_size 128 \
     --num_epoch 10 \
