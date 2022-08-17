@@ -1,15 +1,22 @@
+from src.lightning_modules.DULLightningModule import DULLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import distances, losses, miners
-from src.baselines.DUL.config import parse_args
-from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL
+from pytorch_metric_learning import losses, miners
+
 from src.data_modules import (
-    CasiaDataModule,
-    CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
 )
-from src.lightning_modules.DULLightningModule import DULLightningModule
-from src.utils import separate_batchnorm_params
+
+from pytorch_metric_learning import distances
+
+from src.baselines.DUL.config import parse_args
+from src.baselines.DUL.models import MNIST_DUL, CIFAR10_DUL, Casia_DUL
+
+from src.utils import (
+    separate_batchnorm_params,
+)
 
 
 def run(dul_args):

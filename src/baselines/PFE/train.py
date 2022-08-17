@@ -1,16 +1,25 @@
+from src.lightning_modules.PFELightningModule import PFELightningModule
 import torch.optim as optim
-from pytorch_metric_learning import distances, miners
-from src.baselines.PFE.config import parse_args
-from src.baselines.PFE.losses import MLSLoss
-from src.baselines.PFE.models import CIFAR10_PFE, MNIST_PFE, Casia_PFE, FashionMNIST_PFE
+from pytorch_metric_learning import miners, distances
+
 from src.data_modules import (
-    CasiaDataModule,
-    CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CIFAR10DataModule,
+    CasiaDataModule,
 )
-from src.lightning_modules.PFELightningModule import PFELightningModule
-from src.utils import separate_batchnorm_params
+from src.baselines.PFE.config import parse_args
+from src.baselines.PFE.models import (
+    MNIST_PFE,
+    CIFAR10_PFE,
+    Casia_PFE,
+    FashionMNIST_PFE,
+)
+from src.utils import (
+    separate_batchnorm_params,
+)
+
+from src.baselines.PFE.losses import MLSLoss
 
 
 def run(PFE_args):

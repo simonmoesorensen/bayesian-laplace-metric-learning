@@ -1,4 +1,7 @@
+import torch
+
 from pytorch_metric_learning import reducers
+
 from pytorch_metric_learning.losses import BaseMetricLossFunction
 
 
@@ -42,7 +45,9 @@ class MLSLoss(BaseMetricLossFunction):
         sigma_sq_fuse = sigma_sq_X + sigma_sq_Y
 
         # From equation (3) in the paper
-        diffs = ((X - Y).square() / (1e-10 + sigma_sq_fuse)) + sigma_sq_fuse.log()
+        diffs = (
+            ((X - Y).square() / (1e-10 + sigma_sq_fuse)) + sigma_sq_fuse.log()
+        )
 
         return diffs.sum(axis=2)
 

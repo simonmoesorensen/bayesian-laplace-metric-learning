@@ -3,10 +3,12 @@ import logging
 import time
 
 import torch
-import torch.distributions as dist
 from matplotlib import pyplot as plt
-from src.lightning_modules.BaseLightningModule import BaseLightningModule
 from tqdm import tqdm
+
+from src.lightning_modules.BaseLightningModule import BaseLightningModule
+
+import torch.distributions as dist
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -31,25 +33,11 @@ class DULLightningModule(BaseLightningModule):
 
     def epoch_start(self):
         self.metrics.reset(
-            [
-                "train_loss",
-                "train_loss_kl",
-                "train_accuracy",
-                "train_map_k",
-                "train_recall_k",
-            ]
+            ["train_loss", "train_loss_kl", "train_accuracy", "train_map_k", "train_recall_k"]
         )
 
     def epoch_end(self):
-        self.log(
-            [
-                "train_loss",
-                "train_loss_kl",
-                "train_accuracy",
-                "train_map_k",
-                "train_recall_k",
-            ]
-        )
+        self.log(["train_loss", "train_loss_kl", "train_accuracy", "train_map_k", "train_recall_k"])
 
     def loss_step(self, mu, std, y, step):
         variance_dul = std.square()
@@ -82,9 +70,7 @@ class DULLightningModule(BaseLightningModule):
         return samples, loss
 
     def val_start(self):
-        self.metrics.reset(
-            ["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"]
-        )
+        self.metrics.reset(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"])
 
     def val_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
@@ -94,9 +80,7 @@ class DULLightningModule(BaseLightningModule):
         return mu_dul, std_dul, samples
 
     def val_end(self):
-        self.log(
-            ["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"]
-        )
+        self.log(["val_loss", "val_loss_kl", "val_accuracy", "val_map_k", "val_recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(

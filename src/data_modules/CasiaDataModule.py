@@ -1,13 +1,14 @@
+from torchvision import transforms
+import torchvision.datasets as d
+from torch.utils.data import Subset, random_split, DataLoader, sampler
 import zipfile
-
 import numpy as np
 import torch
-import torchvision.datasets as d
-from src.data_modules.BaseDataModule import BaseDataModule
-from src.data_modules.gdrive import download_file_from_google_drive
-from torch.utils.data import DataLoader, Subset, random_split, sampler
-from torchvision import transforms
+
 from tqdm import tqdm
+
+from src.data_modules.gdrive import download_file_from_google_drive
+from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class CasiaDataModule(BaseDataModule):
@@ -127,7 +128,7 @@ class CasiaDataModule(BaseDataModule):
         self.dataset_ood = d.CIFAR10(
             self.data_dir, train=False, transform=ood_transforms
         )
-
+        
         # OOD noise
         ood_noise_transforms = transforms.Compose(
             [
@@ -147,7 +148,10 @@ class CasiaDataModule(BaseDataModule):
         ood_size = 10000
         print(f"OOD set size: {ood_size}")
 
-        self.dataset_ood, _ = random_split(ood_full, [ood_size, size - ood_size])
+        self.dataset_ood, _ = random_split(
+            ood_full,
+            [ood_size, size - ood_size]
+        )
 
         if self.sampler == "WeightedRandomSampler":
             weights_file = self.data_dir / "casia_weights.tensor"

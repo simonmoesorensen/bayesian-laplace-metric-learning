@@ -1,5 +1,6 @@
 import torch
-
+import torch.nn as nn
+from pathlib import Path
 
 class L2Norm(nn.Module):
     def forward(self, X):
@@ -61,10 +62,13 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
         elif dataset == "FashionMNIST":
             model = MNIST_HIB(embedding_size=embedding_size)
     elif model == "PFE":
-        from src.baselines.PFE.models import (CIFAR10_PFE, MNIST_PFE,
-                                              Casia_PFE, FashionMNIST_PFE,
-                                              from, import,
-                                              src.baselines.PFE.models)
+        from src.baselines.PFE.models import (
+            CIFAR10_PFE,
+            MNIST_PFE,
+            Casia_PFE,
+            FashionMNIST_PFE,
+        )
+
         if dataset == "MNIST":
             model = MNIST_PFE(embedding_size=embedding_size)
         elif dataset == "CIFAR10":
@@ -72,7 +76,7 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
         elif dataset == "CASIA":
             model = Casia_PFE(embedding_size=embedding_size)
         elif dataset == "FashionMNIST":
-            model = FashionMNIST_PFE(kwargs["loss"], embedding_size=embedding_size)
+            model = FashionMNIST_PFE(kwargs['loss'], embedding_size=embedding_size)
     elif model == "Laplace":
         # if dataset == "MNIST":
         #     model = MNIST_Laplace(embedding_size=embedding_size)
@@ -83,6 +87,6 @@ def load_model(model, dataset, embedding_size, model_path, **kwargs):
         pass
     else:
         raise ValueError(f"{model=} and {dataset=} not found or not supported")
-
+        
     model.load_state_dict(torch.load(model_path))
     return model

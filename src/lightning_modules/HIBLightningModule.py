@@ -1,13 +1,14 @@
 import datetime
 import logging
 import time
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import torch
 import torch.distributions as tdist
 from matplotlib import pyplot as plt
-from src.lightning_modules.BaseLightningModule import BaseLightningModule
 from tqdm import tqdm
+
+from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)

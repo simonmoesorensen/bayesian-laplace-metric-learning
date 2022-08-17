@@ -1,6 +1,7 @@
 import torchvision.datasets as d
-from src.data_modules.BaseDataModule import BaseDataModule
 from torchvision import transforms
+
+from src.data_modules.BaseDataModule import BaseDataModule
 
 
 class MNISTDataModule(BaseDataModule):

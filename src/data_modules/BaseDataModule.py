@@ -1,8 +1,8 @@
-import numpy as np
-import torch
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, random_split, Subset
+import numpy as np
 from tqdm import tqdm
+import torch
 
 
 class BaseDataModule(LightningDataModule):

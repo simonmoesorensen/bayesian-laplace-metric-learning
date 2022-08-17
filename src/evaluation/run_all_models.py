@@ -15,7 +15,6 @@ Example:
 
 import json
 from pathlib import Path
-
 from src.evaluation.calibration_curve import load as run_calibration_curve
 from src.evaluation.sparsification_curve import load as run_sparsification_curve
 

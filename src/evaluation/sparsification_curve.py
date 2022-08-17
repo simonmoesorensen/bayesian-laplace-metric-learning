@@ -15,24 +15,24 @@ Example:
 
 import argparse
 import json
-import os
-from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from dotenv import load_dotenv
-from pytorch_metric_learning import distances
-from pytorch_metric_learning.utils import inference
-from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from src.utils import load_model
+from pathlib import Path
 from src.data_modules import (
-    CasiaDataModule,
+    MNISTDataModule,
     CIFAR10DataModule,
     FashionMNISTDataModule,
-    MNISTDataModule,
+    CasiaDataModule,
 )
-from src.utils import load_model
+from dotenv import load_dotenv
+import os
+import torch
 from tqdm import tqdm
+from pytorch_metric_learning.utils import inference
+from pytorch_metric_learning import distances
+import numpy as np
+import matplotlib.pyplot as plt
+from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
 load_dotenv()
 
@@ -113,7 +113,7 @@ def load(model_name, model_path, dataset, embedding_size, batch_size, loss):
     run(model, data_loader, path, model_name, dataset)
 
 
-def run(model, data_loader, path, model_name, dataset_name, run_name=""):
+def run(model, data_loader, path, model_name, dataset_name, run_name=''):
     knn_func = inference.CustomKNN(
         distance=distances.LpDistance(normalize_embeddings=False)
     )
@@ -207,7 +207,6 @@ def run(model, data_loader, path, model_name, dataset_name, run_name=""):
         json.dump(metrics, f)
 
     return float(ausc)
-
 
 if __name__ == "__main__":
     args = parse_args()

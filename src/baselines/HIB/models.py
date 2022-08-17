@@ -1,8 +1,10 @@
-import torch
+from torchvision.models import resnet18, resnet50, resnet152
+from torch.nn import Conv2d
 import torch.nn as nn
+import torch
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
+
 from src.utils import l2_norm
-from torchvision.models import resnet152
 
 
 class StochasticLayer(nn.Module):
@@ -23,7 +25,7 @@ class StochasticLayer(nn.Module):
     def forward(self, x):
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
-
+        
         # Numerical stability
         log_var = (1e-6 + log_var.exp()).log()
 

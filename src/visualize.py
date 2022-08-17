@@ -1,13 +1,12 @@
-import json
-
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.stats import hmean
+from matplotlib.patches import Ellipse
 import seaborn as sns
 import torch
 import torchmetrics
-from matplotlib.patches import Ellipse
-from scipy.stats import hmean
+import json
+import pandas as pd
 
 sns.set()
 
@@ -199,9 +198,7 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
     plot_samples(mu_ood, var_ood, limit=100, color=c_ood, label="OOD", ax=ax[0])
     plot_histogram(var_ood, color=c_ood, ax=ax[1])
     ax[0].legend()
-    fig.suptitle(
-        f"ID vs OOD comparison for model {model_name} ({run_name}) on dataset {dataset}"
-    )
+    fig.suptitle(f"ID vs OOD comparison for model {model_name} ({run_name}) on dataset {dataset}")
     fig.savefig(vis_path / f"{prefix}ood_comparison.png")
     return fig, ax
 
@@ -273,7 +270,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
         torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
     )
     metrics["auroc"] = float(auroc_score.numpy())
-
+    
     for p in range(0, 100, 10):
         # if there is no difference in variance
         try:

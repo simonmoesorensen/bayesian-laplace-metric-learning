@@ -3,6 +3,7 @@ import logging
 
 import torch
 from matplotlib import pyplot as plt
+
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 plt.switch_backend("agg")
@@ -12,13 +13,11 @@ logging.getLogger(__name__).setLevel(logging.INFO)
 def get_time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")
 
-
 def enable_dropout(model):
-    """Function to enable the dropout layers during test-time"""
+    """ Function to enable the dropout layers during test-time """
     for m in model.modules():
-        if m.__class__.__name__.startswith("Dropout"):
+        if m.__class__.__name__.startswith('Dropout'):
             m.train()
-
 
 class MCDropoutLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
