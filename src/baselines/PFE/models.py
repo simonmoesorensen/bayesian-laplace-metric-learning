@@ -1,10 +1,8 @@
-from torchvision.models import resnet18, resnet34, resnet50
-from torch.nn import Conv2d, BatchNorm1d
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from src.baselines.Backbone.models import (
-    CIFAR10_Backbone,
     Casia_Backbone,
+    CIFAR10_Backbone,
     MNIST_Backbone,
 )
 

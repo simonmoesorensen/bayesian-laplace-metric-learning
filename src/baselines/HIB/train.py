@@ -1,21 +1,16 @@
-from src.lightning_modules.HIBLightningModule import HIBLightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners, distances
-
+from pytorch_metric_learning import distances, miners
+from src.baselines.HIB.config import parse_args
+from src.baselines.HIB.losses import SoftContrastiveLoss
+from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB
 from src.data_modules import (
+    CasiaDataModule,
+    CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
-    CIFAR10DataModule,
-    CasiaDataModule,
 )
-
-from src.baselines.HIB.config import parse_args
-from src.baselines.HIB.models import MNIST_HIB, CIFAR10_HIB, Casia_HIB
-from src.baselines.HIB.losses import SoftContrastiveLoss
-
-from src.utils import (
-    separate_batchnorm_params,
-)
+from src.lightning_modules.HIBLightningModule import HIBLightningModule
+from src.utils import separate_batchnorm_params
 
 
 def run(HIB_args):
@@ -62,8 +57,8 @@ def run(HIB_args):
     loss = SoftContrastiveLoss()
 
     miner = miners.BatchEasyHardMiner(
-        pos_strategy='all',
-        neg_strategy='all',
+        pos_strategy="all",
+        neg_strategy="all",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 

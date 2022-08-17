@@ -1,9 +1,8 @@
-from torchvision.models import resnet18, resnet34, resnet152
-from torch.nn import Conv2d
 import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
-
 from src.utils import L2Norm
+from torch.nn import Conv2d
+from torchvision.models import resnet18, resnet34, resnet152
 
 
 class Embedder(nn.Module):

@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from src.utils import L2Norm
 
@@ -56,4 +55,3 @@ class FashionMNISTConvNet(nn.Module):
         x = self.conv(x)
         x = self.linear(x)
         return x
-

@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 
 
@@ -40,7 +40,7 @@ def MNIST_MCDropout(embedding_size=128):
     """
     model = FashionMNISTConvNet(latent_dim=embedding_size)
     model_mc = MCDropoutHead(model)
-    
+
     return model_mc
 
 

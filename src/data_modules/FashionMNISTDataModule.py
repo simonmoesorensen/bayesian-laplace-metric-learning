@@ -1,7 +1,6 @@
 import torchvision.datasets as d
-from torchvision import transforms
-
 from src.data_modules.BaseDataModule import BaseDataModule
+from torchvision import transforms
 
 
 class FashionMNISTDataModule(BaseDataModule):
@@ -49,6 +48,4 @@ class FashionMNISTDataModule(BaseDataModule):
             ]
         )
 
-        self.dataset_ood = d.MNIST(
-            self.data_dir, train=False, transform=ood_transforms
-        )
+        self.dataset_ood = d.MNIST(self.data_dir, train=False, transform=ood_transforms)

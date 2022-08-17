@@ -3,7 +3,6 @@ import logging
 
 import torch
 from matplotlib import pyplot as plt
-
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 plt.switch_backend("agg")

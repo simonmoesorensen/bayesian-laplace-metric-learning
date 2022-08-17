@@ -1,24 +1,8 @@
-import logging
-import pickle
-from tqdm import tqdm
-
-import numpy as np
 import torch
-from torch import nn
-from pytorch_metric_learning import miners
-from pytorch_metric_learning import losses
-from pytorch_metric_learning.utils.accuracy_calculator import (
-    AccuracyCalculator,
-)
-from torch import nn
-from torch.utils.data import DataLoader
-from torch.nn.utils import parameters_to_vector, vector_to_parameters
-from torch.optim import Adam
-
-from src.hessian.layerwise import ContrastiveHessianCalculator
-from src.models.utils import test_model
 from pytorch_metric_learning import testers
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
+from src.models.utils import test_model
+from torch.nn.utils import vector_to_parameters
 
 
 def get_all_embeddings(dataset, model, data_device):
