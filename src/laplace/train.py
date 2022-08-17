@@ -1,3 +1,5 @@
+import logging
+
 import torch
 
 from src.laplace.config import parse_args
@@ -45,7 +47,7 @@ def run(args):
     inference_model = getattr(model, args.inference_model)
 
     mu_q, sigma_q = post_hoc(
-        model, inference_model, data_module.train_dataloader(), margin=args.margin, device=device, method="full"
+        model, inference_model, data_module.train_dataloader(), margin=args.margin, device=device, method=args.hessian
     )
 
     mu_id, var_id = evaluate_laplace(model, inference_model, data_module.test_dataloader(), mu_q, sigma_q, device)
@@ -59,6 +61,9 @@ def run(args):
     fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
     fig.tight_layout()
     fig.savefig(f"ood_plot.png")
+
+    metrics = compute_and_plot_roc_curves(".", var_id, var_ood)
+    print(metrics)
 
 
 from typing import Tuple
@@ -116,6 +121,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import hmean, mode
 from matplotlib.patches import Ellipse
 import seaborn as sns
+import torchmetrics
 sns.set_theme(style="ticks")
 c_id = "b"
 c_ood = "r"
@@ -176,6 +182,74 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood):
     ax[1].set_ylabel(None)
     ax[1].legend()
     return fig, ax
+def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
+
+    id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
+    ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
+
+    id_sigma, ood_sigma = id_sigma.sum(axis=1), ood_sigma.sum(axis=1)
+
+    pred = np.concatenate([id_sigma, ood_sigma])
+    target = np.concatenate([[0] * len(id_sigma), [1] * len(ood_sigma)])
+
+    # plot roc curve
+    roc = torchmetrics.ROC(num_classes=1)
+    fpr, tpr, thresholds = roc(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    ax.plot(fpr, tpr)
+    ax.set(
+        xlabel="False Positive Rate",
+        ylabel="True Positive Rate",
+    )
+    fig.tight_layout()
+    fig.savefig(f"{path}/{pre_fix}ood_roc_curve.png")
+
+    # save data
+    # data = pd.DataFrame(
+    #     np.concatenate([pred[:, None], target[:, None]], axis=1),
+    #     columns=["sigma", "labels"],
+    # )
+    # data.to_csv(f"figures/{path}/{pre_fix}ood_roc_curve_data.csv")
+
+    # plot precision recall curve
+    pr_curve = torchmetrics.PrecisionRecallCurve(pos_label=1)
+    precision, recall, thresholds = pr_curve(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    ax.plot(recall, precision)
+    ax.set(
+        xlabel="Recall",
+        ylabel="Precision",
+    )
+    fig.tight_layout()
+    fig.savefig(f"{path}/{pre_fix}ood_precision_recall_curve.png")
+
+    metrics = {}
+
+    # compute auprc (area under precission recall curve)
+    auc = torchmetrics.AUC(reorder=True)
+    auprc_score = auc(recall, precision)
+    metrics["auprc"] = float(auprc_score.numpy())
+
+    # compute false positive rate at 80
+    # num_id = len(id_sigma)
+    # for p in range(0, 100, 10):
+    #     # if there is no difference in variance
+    #     try:
+    #         metrics[f"fpr{p}"] = float(fpr[int(p / 100.0 * num_id)].numpy())
+    #     except:
+    #         metrics[f"fpr{p}"] = "none"
+    #     else:
+    #         continue
+
+    # compute auroc
+    auroc = torchmetrics.AUROC(num_classes=1)
+    auroc_score = auroc(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+    metrics["auroc"] = float(auroc_score.numpy())
+
+    return metrics
 
 if __name__ == "__main__":
+    logging.getLogger().setLevel(logging.INFO)
     run(parse_args())

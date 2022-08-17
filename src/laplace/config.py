@@ -11,13 +11,13 @@ log_dir = baseline_dir / "logs"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Post-hoc Laplace approximation")
-    parser.add_argument("--name", type=str, default="CIFAR10")
+    parser.add_argument("--name", type=str, default="FashionMNIST")
 
     # ----- random seed for reproducing
     parser.add_argument("--random_seed", type=int, default=6666)
 
     # ----- directory (train & test)
-    parser.add_argument("--dataset", type=str, default="CIFAR10")
+    parser.add_argument("--dataset", type=str, default="FashionMNIST")
     parser.add_argument("--data_dir", type=str, default=data_dir)
     parser.add_argument("--vis_dir", type=str, default=vis_dir)
     parser.add_argument("--model_save_folder", type=str, default=save_dir)
@@ -30,8 +30,8 @@ def parse_args():
 
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
-    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-17T113743_checkpoint.pth")
-    parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-17T105615_checkpoint.pth")
+    parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-17T132914_checkpoint.pth")
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-17T132556_checkpoint.pth")
 
     # ----- model & training details
     parser.add_argument("--embedding_size", type=int, default=32)
@@ -47,9 +47,9 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=16)
 
     # ----- laplace details
-    parser.add_argument("--margin", type=float, default=0.2)
+    parser.add_argument("--margin", type=float, default=1.0)
     parser.add_argument("--inference_model", type=str, default="linear")
-    parser.add_argument("--hessian_calculator", type=str, default="")
+    parser.add_argument("--hessian", type=str, default="full")
     parser.add_argument("--posterior_samples", type=int, default=12)
 
     # ----- hyperparameters
