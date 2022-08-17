@@ -39,6 +39,8 @@ def run(Backbone_args):
     elif Backbone_args.dataset == "FashionMNIST":
         model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = FashionMNISTDataModule
+    else:
+        raise ValueError("Dataset not supported")
 
     data_module = data_module(
         Backbone_args.data_dir,
