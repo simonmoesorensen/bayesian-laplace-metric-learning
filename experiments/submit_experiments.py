@@ -18,7 +18,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
             if model == "DUL":
                 additional_args = "--kl_scale 1e-4"
             elif model == "HIB":
-                additional_args = "--kl_scale 1e-4 --K 8"
+                additional_args = "--kl_scale 1e-6 --K 8"
                 batch_size = 64
             else:
                 additional_args = ""
