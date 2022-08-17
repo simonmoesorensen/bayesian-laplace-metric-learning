@@ -10,7 +10,7 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Backbone/train.py \
     --batch_size 512 \
     --embedding_size 16 \
     --num_epoch 50 \
-    --save_freq 25 \
+    --save_freq 10 \
     --gpu_id 0 1\
     --num_workers 8 \
     --shuffle \
