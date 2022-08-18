@@ -42,7 +42,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         # Learning rate scheduler options
         base_lr = args.lr
-        max_lr = args.lr * 10
+        max_lr = args.lr # * 10
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
@@ -417,7 +417,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         hparams["name"] = self.name
         hparams["epoch"] = self.epoch
         hparams["miner"] = self.miner.__class__.__name__
-        hparams["model"] = self.model.module.module.__class__.__name__
+        hparams["model"] = self.model.module.__class__.__name__
         hparams["optimizer"] = self.optimizer.__class__.__name__
         hparams["loss_fn"] = self.loss_fn.__class__.__name__
 
@@ -483,4 +483,4 @@ class BaseLightningModule(LightningLite, MetricMeter):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"Saving model @ {str(path)}")
-        self.save(content=self.model.module.module.state_dict(), filepath=str(path))
+        self.save(content=self.model.module.state_dict(), filepath=str(path))

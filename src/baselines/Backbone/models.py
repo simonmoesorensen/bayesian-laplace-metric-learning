@@ -3,8 +3,7 @@ from torch.nn import Conv2d
 import torch.nn as nn
 from src.baselines.models import EmbeddingNet
 
-from src.utils import L2Norm
-
+from src.layers import L2Normalize
 
 class Embedder(nn.Module):
     def __init__(self, backbone, embedding_size) -> None:
@@ -13,7 +12,7 @@ class Embedder(nn.Module):
         no_last_layer = list(backbone.children())[:-1]
         last_layer_size = backbone.fc.in_features
 
-        norm_layer = L2Norm()
+        norm_layer = L2Normalize()
 
         self.backbone = nn.Sequential(*no_last_layer)
 
@@ -49,10 +48,10 @@ class ConvNet(nn.Module):
             nn.Linear(256, latent_dim),
         ]
 
-        # norm_layer = L2Norm()
+        norm_layer = L2Normalize()
 
-        # self.linear = nn.Sequential(*linear_layers, norm_layer)
-        self.linear = nn.Sequential(*linear_layers)
+        self.linear = nn.Sequential(*linear_layers, norm_layer)
+        # self.linear = nn.Sequential(*linear_layers)
 
     def forward(self, x):
         x = self.conv(x)
@@ -75,10 +74,10 @@ class FashionMNISTConvNet(nn.Module):
         linear_layers = [
             nn.Linear(4608, latent_dim),
         ]
-        # norm_layer = L2Norm()
+        norm_layer = L2Normalize()
 
-        # self.linear = nn.Sequential(*linear_layers, norm_layer)
-        self.linear = nn.Sequential(*linear_layers)
+        self.linear = nn.Sequential(*linear_layers, norm_layer)
+        # self.linear = nn.Sequential(*linear_layers)
 
     def forward(self, x):
         x = self.conv(x)
@@ -99,9 +98,9 @@ def MNIST_Backbone(embedding_size=128):
     # )
 
     model = FashionMNISTConvNet(latent_dim=embedding_size)
-    # norm_layer = L2Norm()
+    # norm_layer = L2Normalize()
 
-    # norm_model = nn.Sequential(model, norm_layer)
+    norm_model = nn.Sequential(model)
 
     return model
 
@@ -130,9 +129,9 @@ def Casia_Backbone(embedding_size=128):
     # Embedding dimension
     model = resnet152(num_classes=embedding_size)
 
-    # norm_layer = L2Norm()
+    norm_layer = L2Normalize()
 
-    # norm_model = nn.Sequential(model, norm_layer)
-    norm_model = nn.Sequential(model)
+    norm_model = nn.Sequential(model, norm_layer)
+    # norm_model = nn.Sequential(model)
 
     return norm_model

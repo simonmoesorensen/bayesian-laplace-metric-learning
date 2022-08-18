@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q gpuv100
 
 ### -- set the job Name --
 #BSUB -J Backbone-CIFAR10
@@ -20,19 +20,6 @@
 #BSUB -R "rusage[mem=40GB]"
 #BSUB -R "select[gpu40gb]"
 
-### -- set the email address --
-# please uncomment the following line and put in your e-mail address,
-# if you want to receive e-mail notifications on a non-default address
-#BSUB -u moe.simon@gmail.com
-### -- send notification at start --
-#BSUB -B
-### -- send notification at completion--
-#BSUB -N
-### -- Specify the output and error file. %J is the job-id --
-### -- -o and -e mean append, -oo and -eo mean overwrite --
-
-#BSUB -oo logs/Backbone/CIFAR10/run.out
-#BSUB -eo logs/Backbone/CIFAR10/run.err
 # -- end of LSF options --
 
 # Load the cuda module
@@ -41,18 +28,17 @@ module load cuda/11.7
 # Load venv
 source venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1
-
-echo "Waiting for debugger to attach..."
+export CUDA_VISIBLE_DEVICES=0
 
 python3 -m src.baselines.Backbone.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 512 \
-    --embedding_size 64 \
+    --embedding_size 32 \
     --num_epoch 500 \
     --save_freq 50 \
-    --gpu_id 0 1\
+    --gpu_id 0 \
     --num_workers 8 \
+    --disp_freq 2 \
     --shuffle \
     --to_visualize

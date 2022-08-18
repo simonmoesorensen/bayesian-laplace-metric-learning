@@ -57,12 +57,14 @@ def run(Backbone_args):
     optimizer = optim.Adam(model.parameters(), lr=Backbone_args.lr)
 
     loss = losses.ContrastiveLoss(
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+        # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+        # neg_margin=0.2, pos_margin=0.,
     )
 
-    miner = miners.PairMarginMiner(
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    )
+    # miner = miners.PairMarginMiner(
+    #     # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+    # )
+    miner = miners.MultiSimilarityMiner()
 
     trainer = BackboneLightningModule(
         accelerator="gpu", devices=len(Backbone_args.gpu_id), strategy="dp"

@@ -30,11 +30,20 @@ def parse_args():
 
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
-    parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-17T132914_checkpoint.pth")
-    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-17T132556_checkpoint.pth")
+    parser.add_argument("--model_path", type=str, default=None)
+    # parser.add_argument("--model_path", type=str, default="pretrained/cifar-10/state_dict.pt")
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-17T165525_checkpoint.pth")
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-17T181538_checkpoint.pth")
+    # 32 dim FashionMNIST
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-18T153444_checkpoint.pth")
+    # 16 dim FashionMNIST
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-18T154748_checkpoint.pth")
+    # 2 dim FashionMNIST
+    # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-18T160018_checkpoint.pth")
+
 
     # ----- model & training details
-    parser.add_argument("--embedding_size", type=int, default=32)
+    parser.add_argument("--embedding_size", type=int, default=2)
     parser.add_argument("--weight_decay", type=float, default=0)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--to_visualize", default=False, action="store_true")
