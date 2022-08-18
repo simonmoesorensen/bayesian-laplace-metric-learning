@@ -49,6 +49,7 @@ def run(args):
     mu_q, sigma_q = post_hoc(
         model, inference_model, data_module.train_dataloader(), margin=args.margin, device=device, method=args.hessian
     )
+    torch.save(sigma_q, f"sigma_q_{args.dataset}_{args.embedding_size}_{args.hessian}.pt")
 
     mu_id, var_id = evaluate_laplace(model, inference_model, data_module.test_dataloader(), mu_q, sigma_q, device)
     mu_id = mu_id.detach().cpu().numpy()
