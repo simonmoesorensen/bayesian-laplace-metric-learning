@@ -57,16 +57,35 @@ for path in experiments:
 
 df = pd.DataFrame.from_records(records)
 
-# Choose the seed with best accuracy
+
+# Group over all seeds (choose best seed for visualization purposes)
 df_grouped = df.groupby(["model_name", "dataset", "latent_dim"]).apply(
     lambda x: x.loc[x.acc.idxmax()]
 )
+
+# Calculate mean and std of metrics
+metrics = ["acc", "map@5", "recall@5", "auroc", "auprc", "ausc", "ece"]
+
+df_stats = (
+    df[metrics + ["model_name", "dataset", "latent_dim"]]
+    .groupby(["model_name", "dataset", "latent_dim"])
+    .agg(["mean", "std"])
+)
+
+# Join mean and std to one column with format: metric +- std
+for metric in metrics:
+    df_grouped[metric] = (
+        df_stats[metric]["mean"].round(3).astype(str)
+        + " ± "
+        + df_stats[metric]["std"].round(3).astype(str)
+    )
+
 
 # Remove results folder if exists
 if results_dir.exists():
     shutil.rmtree(results_dir)
 
-# Copy seed figures to results folder
+# Copy best seed figures to results folder
 best_paths = df_grouped.path.values
 df_grouped = df_grouped.drop(columns=["path"])
 
@@ -115,10 +134,10 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                     }
                 )
 
-df_grouped = df_grouped.append(missing_data)
+df_grouped = pd.concat([df_grouped, pd.DataFrame.from_records(missing_data)])
 
 # Sort values
-df_grouped.sort_values(["dataset", "model_name", "latent_dim"], inplace=True)
+df_grouped.sort_values(["dataset", "latent_dim", "model_name"], inplace=True)
 
 # Set column order to match the table in the paper
 df_grouped = df_grouped[
