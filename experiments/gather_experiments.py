@@ -7,9 +7,14 @@ import json
 from pathlib import Path
 import pandas as pd
 from config import CIFAR10Config, FashionMNISTConfig
+import shutil
 
 # Find all figure folders in outputs/
 outputs_dir = Path("outputs")
+results_dir = Path("results")
+github_prefix = (
+    "https://github.com/simonmoesorensen/bayesian-laplace-metric-learning/tree/main/"
+)
 
 experiments = [
     path
@@ -45,15 +50,44 @@ for path in experiments:
         "auprc": additional_metrics["test_auprc"],
         "ausc": additional_metrics["test_ausc"],
         "ece": additional_metrics["test_ece"],
+        "path": path,
     }
 
     records.append(data)
 
 df = pd.DataFrame.from_records(records)
 
+# Choose the seed with best accuracy
 df_grouped = df.groupby(["model_name", "dataset", "latent_dim"]).apply(
     lambda x: x.loc[x.acc.idxmax()]
 )
+
+# Remove results folder if exists
+if results_dir.exists():
+    shutil.rmtree(results_dir)
+
+# Copy seed figures to results folder
+best_paths = df_grouped.path.values
+df_grouped = df_grouped.drop(columns=["path"])
+
+figure_paths = []
+for path in best_paths:
+    print("Copying {} to {}".format(path, results_dir))
+    # Remove 'outputs' from the path
+    new_path = Path(*path.parts[1:])
+    new_path = results_dir / new_path
+    new_path.mkdir(parents=True, exist_ok=True)
+
+    # Only copy .png files
+    for file in path.glob("**/*.png"):
+        shutil.copy(file, new_path)
+
+    figure_paths.append(github_prefix + str(new_path))
+
+# Add figure paths to the dataframe
+df_grouped["figure_path"] = figure_paths
+
+# Add success rate of runs
 df_grouped["success_rate"] = (
     df.groupby(["model_name", "dataset", "latent_dim"]).count()["seed"] / 5
 )
@@ -82,17 +116,47 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                 )
 
 df_grouped = df_grouped.append(missing_data)
-print(df_grouped)
+
+# Sort values
 df_grouped.sort_values(["dataset", "model_name", "latent_dim"], inplace=True)
 
+# Set column order to match the table in the paper
+df_grouped = df_grouped[
+    [
+        "dataset",
+        "seed",
+        "model_name",
+        "latent_dim",
+        "l2_norm",
+        "figure_path",
+        "acc",
+        "map@5",
+        "recall@5",
+        "auroc",
+        "auprc",
+        "ausc",
+        "ece",
+        "success_rate",
+    ]
+]
+
+print(df_grouped)
+# Save results per dataset
 for config in [FashionMNISTConfig, CIFAR10Config]:
     df_save = df_grouped.query("dataset == @config.dataset")
-
+    df_save = df_save.drop(columns=["dataset"])
     df_save.to_csv(
-        outputs_dir / f"experiments_{config.dataset}.csv",
+        results_dir / f"experiments_{config.dataset}.csv",
         index=False,
         float_format="%.4f",
         encoding="utf-8",
         sep=",",
         decimal=".",
     )
+
+# Print total sum size of all files in results folder in MB
+total_size = 0
+for file in results_dir.glob("**/*"):
+    total_size += file.stat().st_size
+
+print("Total size of results folder: {:.3f} MB".format(total_size / (1024 * 1024.0)))
