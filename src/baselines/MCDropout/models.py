@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
-from utils import L2Norm
+from src.utils import L2Norm
 
 
 class SampleNet(nn.Module):
