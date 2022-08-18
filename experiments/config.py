@@ -4,21 +4,19 @@ from typing import List
 class Config:
     latent_dims: List[int]
     dataset: str
-    models: List[str]
+    models: List[str] = ["PFE", "DUL", "HIB", "MCDropout"]
     seeds: List[int] = [42, 43, 44, 45, 46]
 
 
 class FashionMNISTConfig(Config):
     latent_dims = [2, 16, 32]
     dataset = "FashionMNIST"
-    models = ["PFE", "DUL", "HIB", "MCDropout"]
     num_epoch = 150
 
 
 class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
-    models = ["PFE", "DUL", "HIB", "MCDropout"]
     num_epoch = 500
 
 
