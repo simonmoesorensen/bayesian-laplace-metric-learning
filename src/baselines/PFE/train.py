@@ -19,17 +19,25 @@ def run(PFE_args):
     sampler = None
 
     if PFE_args.dataset == "MNIST":
-        model = MNIST_PFE(embedding_size=PFE_args.embedding_size)
+        model = MNIST_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = MNISTDataModule
     elif PFE_args.dataset == "CIFAR10":
-        model = CIFAR10_PFE(embedding_size=PFE_args.embedding_size)
+        model = CIFAR10_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = CIFAR10DataModule
     elif PFE_args.dataset == "Casia":
-        model = Casia_PFE(embedding_size=PFE_args.embedding_size)
+        model = Casia_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
     elif PFE_args.dataset == "FashionMNIST":
-        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size)
+        model = FashionMNIST_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = FashionMNISTDataModule
 
     data_module = data_module(

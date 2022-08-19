@@ -15,4 +15,5 @@ python3 -m debugpy --listen $node_ip:1331 ./src/baselines/PFE/train.py \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
-    --to_visualize
+    --to_visualize \
+    --random_seed 42

@@ -73,7 +73,7 @@ class UncertaintyModule(nn.Module):
         return mu, std
 
 
-def MNIST_PFE(embedding_size=128):
+def MNIST_PFE(embedding_size=128, seed=42):
     """
     Construct a mnist model for PFE.
     """
@@ -87,7 +87,7 @@ def MNIST_PFE(embedding_size=128):
     return model_PFE
 
 
-def FashionMNIST_PFE(embedding_size=128):
+def FashionMNIST_PFE(embedding_size=128, seed=42):
     """
     Construct a fashion mnist model for PFE.
     """
@@ -95,7 +95,8 @@ def FashionMNIST_PFE(embedding_size=128):
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
         torch.load(
-            f"src/baselines/PFE/pretrained/fashion_mnist_latent_{embedding_size}.pth"
+            "src/baselines/PFE/pretrained/"
+            f"fashion_mnist_latent_{embedding_size}_seed_{seed}.pth"
         )
     )
 
@@ -105,14 +106,17 @@ def FashionMNIST_PFE(embedding_size=128):
     return model_PFE
 
 
-def CIFAR10_PFE(embedding_size=128):
+def CIFAR10_PFE(embedding_size=128, seed=42):
     """
     Construct a cifar10 model for PFE.
     """
     # Embedding dimension
     backbone = CIFAR10_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(f"src/baselines/PFE/pretrained/cifar10_latent_{embedding_size}.pth")
+        torch.load(
+            "src/baselines/PFE/pretrained/"
+            f"cifar10_latent_{embedding_size}_seed_{seed}.pth"
+        )
     )
 
     # Wrap in PFE framework
@@ -121,7 +125,7 @@ def CIFAR10_PFE(embedding_size=128):
     return model_PFE
 
 
-def Casia_PFE(embedding_size=128):
+def Casia_PFE(embedding_size=128, seed=42):
     """
     Construct a Casia Webface model for PFE.
     """
