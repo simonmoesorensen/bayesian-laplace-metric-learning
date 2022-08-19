@@ -79,7 +79,12 @@ def MNIST_PFE(embedding_size=128, seed=42):
     """
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/mnist.pth"))
+    backbone.load_state_dict(
+        torch.load(
+            "src/baselines/PFE/pretrained/MNIST/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        )
+    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
@@ -95,8 +100,8 @@ def FashionMNIST_PFE(embedding_size=128, seed=42):
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
         torch.load(
-            "src/baselines/PFE/pretrained/"
-            f"fashion_mnist_latent_{embedding_size}_seed_{seed}.pth"
+            "src/baselines/PFE/pretrained/FashionMNIST/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
         )
     )
 
@@ -114,8 +119,8 @@ def CIFAR10_PFE(embedding_size=128, seed=42):
     backbone = CIFAR10_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
         torch.load(
-            "src/baselines/PFE/pretrained/"
-            f"cifar10_latent_{embedding_size}_seed_{seed}.pth"
+            "src/baselines/PFE/pretrained/CIFAR10/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
         )
     )
 
@@ -131,7 +136,12 @@ def Casia_PFE(embedding_size=128, seed=42):
     """
     # Embedding dimension
     backbone = Casia_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/casia.pth"))
+    backbone.load_state_dict(
+        torch.load(
+            "src/baselines/PFE/pretrained/CASIA/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        )
+    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
