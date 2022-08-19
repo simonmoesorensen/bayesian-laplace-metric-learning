@@ -2,7 +2,7 @@
 ### General options
 
 ### –- specify queue --
-#BSUB -q gpuv100
+#BSUB -q gpua100
 
 ### -- set the job Name --
 #BSUB -J Backbone-CIFAR10
@@ -10,8 +10,8 @@
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
 
-### -- Select the resources: 2 gpus -- 
-#BSUB -gpu "num=2"
+### -- Select the resources: 1 gpus -- 
+#BSUB -gpu "num=1"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
@@ -34,11 +34,11 @@ python3 -m src.baselines.Backbone.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
     --batch_size 512 \
-    --embedding_size 32 \
+    --embedding_size 64 \
     --num_epoch 500 \
     --save_freq 50 \
     --gpu_id 0 \
     --num_workers 8 \
-    --disp_freq 2 \
     --shuffle \
+    --disp_freq 2 \
     --to_visualize

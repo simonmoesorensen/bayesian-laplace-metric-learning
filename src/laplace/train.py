@@ -1,12 +1,25 @@
+import json
 import logging
+from pathlib import Path
+from unittest import result
 
+import pandas as pd
 import torch
+from pytorch_metric_learning import distances
+from pytorch_metric_learning.utils.inference import CustomKNN
+from torch.utils.data import DataLoader, TensorDataset
 
 from src.laplace.config import parse_args
 from src.baselines.Backbone.models import Casia_Backbone, CIFAR10_Backbone, MNIST_Backbone
 from src.data_modules import CasiaDataModule, CIFAR10DataModule, FashionMNISTDataModule, MNISTDataModule
 from src.laplace.post_hoc import post_hoc
+from src.visualize import visualize_all
+from src.evaluation.calibration_curve import calibration_curves
+from src.recall_at_k import AccuracyRecall
+from src.distances import ExpectedSquareL2Distance
 
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
@@ -39,8 +52,6 @@ def run(args):
         pin_memory=args.pin_memory,
         sampler=sampler,
     )
-
-    device = "cuda"
     model.to(device)
     data_module.setup()
 
@@ -52,20 +63,295 @@ def run(args):
     torch.save(sigma_q, f"sigma_q_{args.dataset}_{args.embedding_size}_{args.hessian}.pt")
 
     mu_id, var_id = evaluate_laplace(model, inference_model, data_module.test_dataloader(), mu_q, sigma_q, device)
-    mu_id = mu_id.detach().cpu().numpy()
-    var_id = var_id.detach().cpu().numpy()
+    mu_id = mu_id.detach().cpu()#.numpy()
+    var_id = var_id.detach().cpu()#.numpy()
+    id_images = torch.cat([x for x, _ in data_module.test_dataloader()], dim=0).detach().cpu()#.numpy()
+    id_labels = torch.cat([y for _, y in data_module.test_dataloader()], dim=0).detach().cpu()#.numpy()
 
     mu_ood, var_ood = evaluate_laplace(model, inference_model, data_module.ood_dataloader(), mu_q, sigma_q, device)
-    mu_ood = mu_ood.detach().cpu().numpy()
-    var_ood = var_ood.detach().cpu().numpy()
+    mu_ood = mu_ood.detach().cpu()#.numpy()
+    var_ood = var_ood.detach().cpu()#.numpy()
+    ood_images = torch.cat([x for x, _ in data_module.ood_dataloader()], dim=0).detach().cpu()#.numpy()
 
-    fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
-    fig.tight_layout()
-    fig.savefig(f"ood_plot.png")
+    mu_train, var_train = evaluate_laplace(model, inference_model, data_module.train_dataloader(), mu_q, sigma_q, device)
+    mu_train = mu_train.detach().cpu()#.numpy()
+    var_train = var_train.detach().cpu()#.numpy()
+    train_labels = torch.cat([y for _, y in data_module.train_dataloader()], dim=0).detach().cpu()#.numpy()
+    results = AccuracyRecall(
+            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+            k=5,
+            device=device,
+            knn_func=CustomKNN(LpDistance()),
+    ).get_accuracy(
+        mu_id,
+        mu_train,
+        id_labels.squeeze(),
+        train_labels.squeeze(),
+        embeddings_come_from_same_source=False,
+    )
+    pd.DataFrame.from_dict(results, orient="index").assign(dim=args.embedding_size).to_csv(f"outputs/PostHoc/figures/{args.dataset}/epoch_1/metrics.csv", mode="a", header=False)
+    results = AccuracyRecall(
+            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+            k=5,
+            device=device,
+            knn_func=CustomKNN(ExpectedSquareL2Distance()),
+    ).get_accuracy(
+        torch.stack((mu_id, var_id), dim=-1),
+        torch.stack((mu_train, var_train), dim=-1),
+        id_labels.squeeze(),
+        train_labels.squeeze(),
+        embeddings_come_from_same_source=False,
+    )
+    pd.DataFrame.from_dict({
+        "mean_average_precision_expected": results["mean_average_precision"],
+        "precision_at_1_expected": results["precision_at_1"],
+        "recall_at_k_expected": results["recall_at_k"],
+        }, orient="index")\
+        .assign(dim=args.embedding_size)\
+        .to_csv(f"outputs/PostHoc/figures/{args.dataset}/epoch_1/metrics.csv", mode="a", header=False)
 
-    metrics = compute_and_plot_roc_curves(".", var_id, var_ood)
-    print(metrics)
 
+    visualize(mu_id, var_id, id_images, id_labels, mu_ood, var_ood, ood_images, args.dataset)
+
+    # mu_id = mu_id.detach().cpu().numpy()
+    # var_id = var_id.detach().cpu().numpy()
+    # mu_ood = mu_ood.detach().cpu().numpy()
+    # var_ood = var_ood.detach().cpu().numpy()
+
+    # fig, ax = plot_ood(mu_id, var_id, mu_ood, var_ood)
+    # fig.tight_layout()
+    # fig.savefig(f"ood_plot.png")
+
+    # metrics = compute_and_plot_roc_curves(".", var_id, var_ood)
+    # print(metrics)
+
+
+
+def visualize(id_mu, id_sigma, id_images, id_targets, ood_mu, ood_sigma, ood_images, dataset):
+    print("=" * 60, flush=True)
+    print("Visualizing...")
+
+    latent_dim = id_mu.shape[1]
+
+    vis_path = (
+        Path("outputs") 
+        / "PostHoc"
+        / "figures"
+        / dataset
+        / "epoch_1"
+    )
+
+    # Visualize
+    visualize_all(
+        id_mu, id_sigma.sqrt(), id_images, ood_mu, ood_sigma.sqrt(), ood_images, vis_path, prefix=f"{latent_dim}"
+    )
+
+    print("Running calibration curve")
+    run_calibration_curve(
+        id_targets, id_mu, id_sigma, 50, vis_path, "post_hoc", dataset
+    )
+
+    print("Running sparsification curve")
+    run_sparsification_curve(
+        id_targets, id_mu, id_sigma, vis_path, "post_hoc", dataset
+    )
+
+    # # Save metrics
+    # with open(vis_path / "metrics.json", "w") as f:
+    #     json.dump(self.metrics.get_dict(), f)
+
+
+def run_sparsification_curve(targets, mus, sigmas, path, model_name, dataset_name):
+    knn_func = CustomKNN(
+        distance=distances.LpDistance(normalize_embeddings=False)
+    )
+
+    metric = AccuracyCalculator(
+        include=("precision_at_1",),
+        k="max_bin_count",
+        device=device,
+        knn_func=knn_func,
+    )
+    latent_dim = mus.shape[-1]
+
+    accuracies = []
+
+    for target, mu, sigma in DataLoader(TensorDataset(targets, mus, sigmas), 128):
+
+        # Start with all images and remove the highest uncertainty image until
+        # there is only 10 images with the lowest uncertainty left
+        acc_temp = []
+
+        for i in range(mu.shape[0], 10, -1):
+            # Find lowest i element in uncertainty
+            _, indices = torch.topk(sigma.sum(dim=1), i, largest=False)
+
+            # Get query elements with lowest uncertainty
+            lowest_query = mu[indices]
+            lowest_target = target[indices]
+
+            # Compute accuracy where high uncertainty elements are removed
+            metrics = metric.get_accuracy(
+                query=lowest_query,
+                reference=lowest_query,
+                query_labels=lowest_target,
+                reference_labels=lowest_target,
+                embeddings_come_from_same_source=True,
+            )
+
+            acc_temp.append(metrics["precision_at_1"])
+
+        accuracies.append(torch.tensor(acc_temp))
+
+    # Ignore last element as it may not have the same batch size
+    accuracies = torch.stack(accuracies[:-1], dim=0)
+    # Calculate average over batches
+    accuracies = accuracies.mean(dim=0).cpu().numpy()
+
+    # Calculate AUSC (Area Under the Sparsification Curve)
+    ausc = np.trapz(accuracies, dx=1 / len(accuracies))
+
+    # Plot sparsification curve
+    fig, ax = plt.subplots()
+
+    # X-axis of % of elements removed
+    x = np.arange(0, accuracies.shape[0]) / accuracies.shape[0] * 100
+
+    ax.plot(x, accuracies)
+
+    ax.set(
+        xlabel="Filter Out Rate (%)",
+        ylabel="Accuracy",
+        title=f"Sparsification curve for {model_name} on {dataset_name}",
+    )
+
+    # Add text box with area under the curve
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+    textstr = f"AUSC: {ausc:.2f}"
+    ax.text(
+        0.75,
+        0.35,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=11,
+        verticalalignment="top",
+        bbox=props,
+    )
+
+    # Save figure
+    fig.savefig(path / "sparsification_curve.png")
+
+    # Save uncertainty calibration results
+    metrics = {
+        "ausc": float(ausc),
+        "accuracies": accuracies.tolist(),
+        "filter_out_rate": x.tolist(),
+    }
+    with open(path / "uncertainty_metrics.json", "w") as f:
+        json.dump(metrics, f)
+    pd.DataFrame.from_dict({"ausc": metrics["ausc"]}, orient="index").assign(dim=latent_dim).to_csv(path / f"metrics.csv", mode="a", header=False)
+def run_calibration_curve(targets, mus, sigmas, samples, path, model_name, dataset_name):
+    knn_func = CustomKNN(
+        distance=distances.LpDistance(normalize_embeddings=False)
+    )
+    latent_dim = mus.shape[-1]
+
+    predicted = []
+    confidences = []
+    for target, mu, sigma in DataLoader(TensorDataset(targets, mus, sigmas), 128):
+        cov = torch.diag_embed(sigma)
+        pdist = torch.distributions.MultivariateNormal(mu, cov)
+
+        pred_labels = []
+
+        for _ in range(samples):
+            # Save space by sampling once every iteration instead of all in one go
+            sample = pdist.sample()
+
+            # knn_func(query, k, reference, shares_datapoints)
+            _, indices = knn_func(sample, 1, sample, True)
+            pred_labels.append(target[indices].squeeze())
+
+        pred_labels = torch.stack(pred_labels, dim=1)
+        pred = torch.mode(pred_labels, dim=1).values
+
+        predicted.append(pred)
+        confidences.append((pred == pred_labels.T).to(torch.float16).mean(dim=0))
+
+    predicted = torch.cat(predicted, dim=0)
+    confidences = torch.cat(confidences, dim=0)
+
+    # Plotting ECE
+    bins = 10
+
+    ece, acc, conf, bin_sizes = calibration_curves(
+        targets=targets,
+        confidences=confidences,
+        preds=predicted,
+        bins=bins,
+        fill_nans=True,
+    )
+
+    fig, ax = plt.subplots()
+
+    # Plot ECE
+    ax.plot(conf, acc, label="ECE")
+
+    # Add histogram of confidences scaled between 0 and 1
+    confidences = confidences.cpu().numpy()
+    ax.hist(
+        confidences,
+        bins=bins,
+        density=True,
+        label="Distribution of confidences",
+        alpha=0.5,
+    )
+
+    # Plot identity line
+    ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), "k--", label="Best fit")
+
+    # Add textbox with ECE value
+    textstr = f"ECE: {ece:.4f}"
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+    ax.text(
+        0.05,
+        0.75,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=14,
+        verticalalignment="top",
+        bbox=props,
+    )
+
+    # Add legend
+    ax.legend()
+
+    # Set axis options
+    ax.set(
+        xlim=[0, 1],
+        ylim=[0, 1],
+        xlabel="Confidence",
+        ylabel="Accuracy",
+        title=f"ECE curve for {model_name} on {dataset_name}",
+    )
+
+    # Add grid
+    ax.grid(True, linestyle="dotted")
+
+    # Save dir
+    fig.savefig(path / "calibration_curve.png")
+
+    # Save metrics
+    metrics = {
+        "ece": float(ece),
+        "acc": acc.tolist(),
+        "conf": conf.tolist(),
+    }
+
+    with open(path / "calibration_curve.json", "w") as f:
+        json.dump(metrics, f)
+    pd.DataFrame.from_dict({"ece": metrics["ece"]}, orient="index").assign(dim=latent_dim).to_csv(path / f"metrics.csv", mode="a", header=False)
+        
 
 from typing import Tuple
 import torch

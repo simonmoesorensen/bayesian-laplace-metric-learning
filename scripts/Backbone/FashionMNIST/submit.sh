@@ -10,8 +10,8 @@
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 8
 
-### -- Select the resources: 2 gpus -- 
-#BSUB -gpu "num=2"
+### -- Select the resources: 1 gpus -- 
+#BSUB -gpu "num=1"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
@@ -34,7 +34,7 @@ python3 -m src.baselines.Backbone.train \
     --dataset FashionMNIST \
     --name FashionMNIST \
     --batch_size 512 \
-    --embedding_size 2 \
+    --embedding_size 16 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 \
