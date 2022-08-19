@@ -18,7 +18,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
         num_epoch = 150
 
     for latent_dim in config.latent_dims:
-        for seed in config.latent_dims:
+        for seed in config.seeds:
             name = f"latentdim_{latent_dim}_seed_{seed}"
             log_dir = root / "outputs" / model / "logs" / config.dataset / name
             log_dir.mkdir(parents=True, exist_ok=True)
