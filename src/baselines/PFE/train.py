@@ -68,10 +68,9 @@ def run(PFE_args):
 
     loss = MLSLoss()
 
-    # Get all positive pairs for the loss
     miner = miners.BatchEasyHardMiner(
         pos_strategy="all",
-        neg_strategy="hard",
+        neg_strategy="all",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 

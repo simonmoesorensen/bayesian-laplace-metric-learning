@@ -38,7 +38,9 @@ def run(MCDropout_args):
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
-    miner = miners.PairMarginMiner(
+    miner = miners.BatchEasyHardMiner(
+        pos_strategy="all",
+        neg_strategy="all",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
