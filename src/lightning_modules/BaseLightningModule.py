@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
+from src.distances import ExpectedSquareL2Distance
 from src.evaluation.calibration_curve import run as run_calibration_curve
 from src.evaluation.sparsification_curve import run as run_sparsification_curve
 from src.metrics.MetricMeter import AverageMeter, MetricMeter
@@ -104,6 +105,15 @@ class BaseLightningModule(LightningLite, MetricMeter):
             knn_func=knn_func,
         )
 
+        knn_func_expected = CustomKNN(ExpectedSquareL2Distance())
+
+        self.metric_calc_expected = AccuracyRecall(
+            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+            k=5,
+            device=self.device,
+            knn_func=knn_func_expected,
+        )
+
         # Meters
         self.metrics = MetricMeter(
             meters={
@@ -118,6 +128,21 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 "test_recall_k": AverageMeter(),
                 "train_loss": AverageMeter(),
                 "val_loss": AverageMeter(),
+            },
+            batch_size=self.batch_size,
+        )
+
+        self.expected_metrics = MetricMeter(
+            meters={
+                "train_expected_accuracy": AverageMeter(),
+                "train_expected_map_k": AverageMeter(),
+                "train_expected_recall_k": AverageMeter(),
+                "val_expected_accuracy": AverageMeter(),
+                "val_expected_map_k": AverageMeter(),
+                "val_expected_recall_k": AverageMeter(),
+                "test_expected_accuracy": AverageMeter(),
+                "test_expected_map_k": AverageMeter(),
+                "test_expected_recall_k": AverageMeter(),
             },
             batch_size=self.batch_size,
         )
@@ -251,23 +276,59 @@ class BaseLightningModule(LightningLite, MetricMeter):
             )
         )
 
-    def update_accuracy(self, z, y, step="train"):
+    def update_accuracy(self, z, y, step="train", z_db=None, y_db=None):
         if step not in ["train", "val", "test"]:
             raise ValueError("step must be one of ['train', 'val', 'test']")
+
+        if z_db is None:
+            z_db = z
+
+        if y_db is None:
+            y_db = y
 
         # Metrics
         with torch.no_grad():
             metrics = self.metric_calc.get_accuracy(
                 query=z,
-                reference=z,
+                reference=z_db,
                 query_labels=y,
-                reference_labels=y,
+                reference_labels=y_db,
                 embeddings_come_from_same_source=True,
             )
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
             self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
             self.metrics.update(f"{step}_recall_k", metrics["recall_at_k"])
+
+    def update_expected_accuracy(self, z, y, step="train", z_db=None, y_db=None):
+        if step not in ["train", "val", "test"]:
+            raise ValueError("step must be one of ['train', 'val', 'test']")
+
+        if z_db is None:
+            z_db = z
+
+        if y_db is None:
+            y_db = y
+
+        # Metrics
+        with torch.no_grad():
+            metrics = self.metric_calc_expected.get_accuracy(
+                query=z,
+                reference=z_db,
+                query_labels=y,
+                reference_labels=y_db,
+                embeddings_come_from_same_source=True,
+            )
+
+            self.expected_metrics.update(
+                f"{step}_expected_accuracy", metrics["precision_at_1"]
+            )
+            self.expected_metrics.update(
+                f"{step}_expected_map_k", metrics["mean_average_precision"]
+            )
+            self.expected_metrics.update(
+                f"{step}_expected_recall_k", metrics["recall_at_k"]
+            )
 
     def optimizer_step(self):
         self.optimizer.step()
@@ -352,6 +413,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
                 self.update_accuracy(out, target, "val")
 
+                self.update_expected_accuracy(
+                    torch.stack((id_mu, id_sigma), dim=-1),
+                    target,
+                    "val",
+                )
+
         self.val_end()
 
         if self.to_visualize:
@@ -375,7 +442,17 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 id_mu.append(mu)
                 id_images.append(image)
 
-                self.update_accuracy(out, target, "test")
+                self.update_accuracy(
+                    out,
+                    target,
+                    "test",
+                )
+
+                self.update_expected_accuracy(
+                    torch.stack((mu, sigma), dim=-1),
+                    target,
+                    "test",
+                )
 
         self.test_end()
 
@@ -440,6 +517,10 @@ class BaseLightningModule(LightningLite, MetricMeter):
         metrics = self.metrics.get_dict()
         with open(vis_path / "metrics.json", "w") as f:
             json.dump(metrics, f)
+
+        expected_metrics = self.expected_metrics.get_dict()
+        with open(vis_path / "expected_metrics.json", "w") as f:
+            json.dump(expected_metrics, f)
 
         additional_metrics = self.additional_metrics.get_dict()
         with open(vis_path / "additional_metrics.json", "w") as f:
