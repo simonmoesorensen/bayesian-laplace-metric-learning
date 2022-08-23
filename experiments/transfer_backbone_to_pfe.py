@@ -10,16 +10,28 @@ backbone_models = outputs / "Backbone" / "checkpoints"
 
 pfe_models = src / "baselines" / "PFE" / "pretrained"
 
-for model in backbone_models.glob("**/*.pth"):
-    print("Copying {} to {}".format(model, pfe_models))
-    dataset = model.parts[-3]
-    name = model.parts[-2]
+models_dir = [
+    path
+    for path in backbone_models.glob("**/*")
+    if "latentdim" in path.name and path.is_dir()
+]
+
+for model in models_dir:
+    # Get the most recent checkpoint
+    checkpoints = [path for path in model.glob("*.pth")]
+    checkpoints.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    checkpoint = checkpoints[0]
+
+    # Setup file name
+    dataset = checkpoint.parts[-3]
+    name = checkpoint.parts[-2]
     file_name = f"{name}.pth"
 
     # Copy model.pth to PFE folder
     pfe_model = pfe_models / dataset / file_name
+    print("Copying {} to {}".format(checkpoint, pfe_model))
     pfe_model.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(model, pfe_model)
+    shutil.copy(checkpoint, pfe_model)
 
 
 # Print total sum size of all files in pfe pretrained folder in MB
