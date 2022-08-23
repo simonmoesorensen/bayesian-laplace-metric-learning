@@ -6,18 +6,22 @@ class Config:
     dataset: str
     models: List[str] = ["PFE", "DUL", "HIB", "MCDropout"]
     seeds: List[int] = [42, 43, 44, 45, 46]
+    gpu_queue: str = "gpuv100"
+    gpu_mem: str
 
 
 class FashionMNISTConfig(Config):
     latent_dims = [2, 16, 32]
     dataset = "FashionMNIST"
     num_epoch = 150
+    gpu_mem = "16"
 
 
 class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
     num_epoch = 500
+    gpu_mem = "36"
 
 
 template_text = """
@@ -25,7 +29,7 @@ template_text = """
 ### General options
 
 ### -- specify queue --
-#BSUB -q gpuv100
+#BSUB -q {gpu_queue}
 
 ### -- set the job Name --
 #BSUB -J {job_name}

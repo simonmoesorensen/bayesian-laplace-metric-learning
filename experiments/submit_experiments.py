@@ -1,20 +1,15 @@
 import subprocess
 from pathlib import Path
 
-from config import CIFAR10Config, FashionMNISTConfig, template_text
+from config import CIFAR10Config, template_text
 
 root = Path(__file__).parent.parent
 
 # Submit FashionMNIST experiments
-for config in [FashionMNISTConfig, CIFAR10Config]:
+for config in [CIFAR10Config]:
     for latent_dim in config.latent_dims:
         for model in config.models:
             batch_size = 256
-
-            if config.dataset == "FashionMNIST":
-                gpu_mem = "16"
-            elif config.dataset == "CIFAR10":
-                gpu_mem = "32"
 
             if model == "DUL":
                 if config.dataset == "FashionMNIST":
@@ -44,7 +39,8 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                         "latent_dim": latent_dim,
                         "num_epoch": config.num_epoch,
                         "additional_args": additional_args_seed,
-                        "gpu_mem": gpu_mem,
+                        "gpu_mem": config.gpu_mem,
+                        "gpu_queue": config.gpu_queue,
                     }
                 )
 
