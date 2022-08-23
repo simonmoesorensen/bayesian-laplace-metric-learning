@@ -190,7 +190,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
     df_save.to_csv(
         results_dir / f"experiments_{config.dataset}.csv",
         index=False,
-        float_format="%.4f",
+        float_format="%.5f",
         encoding="utf-8",
         sep=",",
         decimal=".",
