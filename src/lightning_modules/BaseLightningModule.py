@@ -40,13 +40,13 @@ class BaseLightningModule(LightningLite, MetricMeter):
         torch.manual_seed(args.random_seed)
 
         # Learning rate scheduler options
-        base_lr = args.lr
+        self.base_lr = args.lr
         max_lr = args.lr * 10
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
 
-        print(" 'base_lr' : '{}' ".format(base_lr))
+        print(" 'base_lr' : '{}' ".format(self.base_lr))
         print(" 'max_lr' : '{}' ".format(max_lr))
         print(" 'step_size_up' : '{}' ".format(step_size_up))
 
@@ -85,7 +85,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         # Scheduler
         self.scheduler = lr_scheduler.CyclicLR(
             self.optimizer,
-            base_lr=base_lr,
+            base_lr=self.base_lr,
             max_lr=max_lr,
             step_size_up=step_size_up,
             mode="triangular2",

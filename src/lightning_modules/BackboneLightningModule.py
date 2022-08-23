@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-import torch
 from matplotlib import pyplot as plt
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
@@ -19,11 +18,9 @@ class BackboneLightningModule(BaseLightningModule):
 
         self.to_visualize = False
 
-        # self.loss_optimizer = optim.SGD(loss_fn.parameters(), lr=0.01)
-
-    # def optimizer_step(self):
-    #     self.loss_optimizer.step()
-    #     return super().optimizer_step()
+        self.scheduler.max_lrs = self.scheduler._format_param(
+            "max_lr", optimizer, self.base_lr
+        )
 
     def train_step(self, X, y):
         z = self.forward(X)
