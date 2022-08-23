@@ -37,6 +37,9 @@ for path in experiments:
     # Read the additional metrics.json file
     additional_metrics = json.load(open(path / "additional_metrics.json"))
 
+    # Read the expected_metrics.json file
+    expected_metrics = json.load(open(path / "expected_metrics.json"))
+
     data = {
         "seed": hparams["random_seed"],
         "model_name": path.parent.parent.parent.parent.name,
@@ -50,6 +53,9 @@ for path in experiments:
         "auprc": additional_metrics["test_auprc"],
         "ausc": additional_metrics["test_ausc"],
         "ece": additional_metrics["test_ece"],
+        "expected_acc": expected_metrics["test_expected_accuracy"],
+        "expected_map@5": expected_metrics["test_expected_map_k"],
+        "expected_recall@5": expected_metrics["test_expected_recall_k"],
         "path": path,
     }
 
@@ -64,7 +70,18 @@ df_grouped = df.groupby(["model_name", "dataset", "latent_dim"]).apply(
 )
 
 # Calculate mean and std of metrics
-metrics = ["acc", "map@5", "recall@5", "auroc", "auprc", "ausc", "ece"]
+metrics = [
+    "acc",
+    "map@5",
+    "recall@5",
+    "auroc",
+    "auprc",
+    "ausc",
+    "ece",
+    "expected_acc",
+    "expected_map@5",
+    "expected_recall@5",
+]
 
 df_stats = (
     df[metrics + ["model_name", "dataset", "latent_dim"]]
@@ -131,6 +148,9 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                         "auprc": 0,
                         "ausc": 0,
                         "ece": 0,
+                        "expected_acc": 0,
+                        "expected_map@5": 0,
+                        "expected_recall@5": 0,
                     }
                 )
 
@@ -155,6 +175,9 @@ df_grouped = df_grouped[
         "auprc",
         "ausc",
         "ece",
+        "expected_acc",
+        "expected_map@5",
+        "expected_recall@5",
         "success_rate",
     ]
 ]

@@ -9,8 +9,8 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/MCDropout/train.py \
     --dataset FashionMNIST \
     --name train_script \
     --batch_size 64 \
-    --embedding_size 6 \
-    --num_epoch 20 \
+    --embedding_size 2 \
+    --num_epoch 2 \
     --save_freq 1 \
     --gpu_id 0\
     --num_workers 8 \
