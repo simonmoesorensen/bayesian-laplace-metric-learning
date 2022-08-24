@@ -81,7 +81,7 @@ def run(Backbone_args):
     trainer.add_data_module(data_module)
 
     trainer.train()
-    trainer.test()
+    trainer.test(expected=False)
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")
 

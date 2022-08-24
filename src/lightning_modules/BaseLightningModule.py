@@ -426,7 +426,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         self.model.train()
 
-    def test(self):
+    def test(self, expected=True):
         print(f"Testing @ epoch: {self.epoch + 1}")
         self.model.eval()
 
@@ -448,11 +448,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
                     "test",
                 )
 
-                self.update_expected_accuracy(
-                    torch.stack((mu, sigma), dim=-1),
-                    target,
-                    "test",
-                )
+                if expected:
+                    self.update_expected_accuracy(
+                        torch.stack((mu, sigma), dim=-1),
+                        target,
+                        "test",
+                    )
 
         self.test_end()
 
