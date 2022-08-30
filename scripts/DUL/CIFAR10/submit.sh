@@ -46,9 +46,9 @@ export CUDA_VISIBLE_DEVICES=0,1
 # notice: default kl_scale is 0.01 in DUL (base on original paper) 
 python3 -m src.baselines.DUL.train \
     --dataset CIFAR10 \
-    --name CIFAR10 \
-    --batch_size 512 \
-    --embedding_size 64 \
+    --name train \
+    --batch_size 256 \
+    --embedding_size 2 \
     --num_epoch 1000 \
     --save_freq 50 \
     --gpu_id 0 1\

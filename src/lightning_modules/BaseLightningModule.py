@@ -1,28 +1,26 @@
 import datetime
 import json
 import logging
-from pathlib import Path, PosixPath
 import time
+from pathlib import Path, PosixPath
 
 import torch
+import torch.optim.lr_scheduler as lr_scheduler
 from matplotlib import pyplot as plt
 from pytorch_lightning.lite import LightningLite
-from torch.utils.tensorboard import SummaryWriter
-import torch.optim.lr_scheduler as lr_scheduler
-from tqdm import tqdm
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
-
-from src.visualize import visualize_all
-from src.metrics.MetricMeter import MetricMeter, AverageMeter
-from src.recall_at_k import AccuracyRecall
-
+from src.distances import ExpectedSquareL2Distance
 from src.evaluation.calibration_curve import run as run_calibration_curve
 from src.evaluation.sparsification_curve import run as run_sparsification_curve
+from src.metrics.MetricMeter import AverageMeter, MetricMeter
+from src.recall_at_k import AccuracyRecall
+from src.visualize import get_names, visualize_all
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
-torch.manual_seed(1234)
 
 
 def get_time():
@@ -40,14 +38,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
         for k in args.__dict__:
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
 
+        torch.manual_seed(args.random_seed)
+
         # Learning rate scheduler options
-        base_lr = args.lr
-        max_lr = args.lr # * 10
+        self.base_lr = args.lr
+        max_lr = args.lr * 10
         # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
         # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
         step_size_up = max(1, args.num_epoch // 20)
 
-        print(" 'base_lr' : '{}' ".format(base_lr))
+        print(" 'base_lr' : '{}' ".format(self.base_lr))
         print(" 'max_lr' : '{}' ".format(max_lr))
         print(" 'step_size_up' : '{}' ".format(step_size_up))
 
@@ -86,7 +86,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         # Scheduler
         self.scheduler = lr_scheduler.CyclicLR(
             self.optimizer,
-            base_lr=base_lr,
+            base_lr=self.base_lr,
             max_lr=max_lr,
             step_size_up=step_size_up,
             mode="triangular2",
@@ -103,6 +103,15 @@ class BaseLightningModule(LightningLite, MetricMeter):
             k=5,
             device=self.device,
             knn_func=knn_func,
+        )
+
+        knn_func_expected = CustomKNN(ExpectedSquareL2Distance())
+
+        self.metric_calc_expected = AccuracyRecall(
+            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+            k=5,
+            device=self.device,
+            knn_func=knn_func_expected,
         )
 
         # Meters
@@ -123,6 +132,35 @@ class BaseLightningModule(LightningLite, MetricMeter):
             batch_size=self.batch_size,
         )
 
+        self.expected_metrics = MetricMeter(
+            meters={
+                "train_expected_accuracy": AverageMeter(),
+                "train_expected_map_k": AverageMeter(),
+                "train_expected_recall_k": AverageMeter(),
+                "val_expected_accuracy": AverageMeter(),
+                "val_expected_map_k": AverageMeter(),
+                "val_expected_recall_k": AverageMeter(),
+                "test_expected_accuracy": AverageMeter(),
+                "test_expected_map_k": AverageMeter(),
+                "test_expected_recall_k": AverageMeter(),
+            },
+            batch_size=self.batch_size,
+        )
+
+        self.additional_metrics = MetricMeter(
+            meters={
+                "val_ece": AverageMeter(),
+                "val_ausc": AverageMeter(),
+                "val_auroc": AverageMeter(),
+                "val_auprc": AverageMeter(),
+                "test_ece": AverageMeter(),
+                "test_ausc": AverageMeter(),
+                "test_auroc": AverageMeter(),
+                "test_auprc": AverageMeter(),
+            },
+            batch_size=self.batch_size,
+        )
+
     def setup_logger(self, name):
         subdir = get_time()
         logdir = Path(self.args.log_dir) / self.args.dataset / name / subdir
@@ -134,6 +172,15 @@ class BaseLightningModule(LightningLite, MetricMeter):
             self.writer.add_scalar(
                 f"{metric}",
                 self.metrics.get(metric).avg,
+                global_step=self.epoch + 1,
+                new_style=True,
+            )
+
+    def log_additional(self, metrics):
+        for metric in metrics:
+            self.writer.add_scalar(
+                f"{metric}",
+                self.additional_metrics.get(metric).avg,
                 global_step=self.epoch + 1,
                 new_style=True,
             )
@@ -229,23 +276,59 @@ class BaseLightningModule(LightningLite, MetricMeter):
             )
         )
 
-    def update_accuracy(self, z, y, step="train"):
+    def update_accuracy(self, z, y, step="train", z_db=None, y_db=None):
         if step not in ["train", "val", "test"]:
             raise ValueError("step must be one of ['train', 'val', 'test']")
+
+        if z_db is None:
+            z_db = z
+
+        if y_db is None:
+            y_db = y
 
         # Metrics
         with torch.no_grad():
             metrics = self.metric_calc.get_accuracy(
                 query=z,
-                reference=z,
+                reference=z_db,
                 query_labels=y,
-                reference_labels=y,
+                reference_labels=y_db,
                 embeddings_come_from_same_source=True,
             )
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
             self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
             self.metrics.update(f"{step}_recall_k", metrics["recall_at_k"])
+
+    def update_expected_accuracy(self, z, y, step="train", z_db=None, y_db=None):
+        if step not in ["train", "val", "test"]:
+            raise ValueError("step must be one of ['train', 'val', 'test']")
+
+        if z_db is None:
+            z_db = z
+
+        if y_db is None:
+            y_db = y
+
+        # Metrics
+        with torch.no_grad():
+            metrics = self.metric_calc_expected.get_accuracy(
+                query=z,
+                reference=z_db,
+                query_labels=y,
+                reference_labels=y_db,
+                embeddings_come_from_same_source=True,
+            )
+
+            self.expected_metrics.update(
+                f"{step}_expected_accuracy", metrics["precision_at_1"]
+            )
+            self.expected_metrics.update(
+                f"{step}_expected_map_k", metrics["mean_average_precision"]
+            )
+            self.expected_metrics.update(
+                f"{step}_expected_recall_k", metrics["recall_at_k"]
+            )
 
     def optimizer_step(self):
         self.optimizer.step()
@@ -330,6 +413,12 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
                 self.update_accuracy(out, target, "val")
 
+                self.update_expected_accuracy(
+                    torch.stack((id_mu, id_sigma), dim=-1),
+                    target,
+                    "val",
+                )
+
         self.val_end()
 
         if self.to_visualize:
@@ -337,7 +426,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
         self.model.train()
 
-    def test(self):
+    def test(self, expected=True):
         print(f"Testing @ epoch: {self.epoch + 1}")
         self.model.eval()
 
@@ -353,13 +442,23 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 id_mu.append(mu)
                 id_images.append(image)
 
-                self.update_accuracy(out, target, "test")
+                self.update_accuracy(
+                    out,
+                    target,
+                    "test",
+                )
+
+                if expected:
+                    self.update_expected_accuracy(
+                        torch.stack((mu, sigma), dim=-1),
+                        target,
+                        "test",
+                    )
 
         self.test_end()
 
         if self.to_visualize:
             self.visualize(id_mu, id_sigma, id_images, prefix="test_")
-
 
     def visualize(self, id_mu, id_sigma, id_images, prefix):
         print("=" * 60, flush=True)
@@ -389,25 +488,59 @@ class BaseLightningModule(LightningLite, MetricMeter):
             id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
         )
 
-        model_name = vis_path.parts[-5]
+        model_name, dataset_name, run_name = get_names(vis_path)
 
         print("Running calibration curve")
-        run_calibration_curve(
-            self.model, self.test_loader, 50, vis_path, model_name, self.args.dataset
+        ece = run_calibration_curve(
+            self.model,
+            self.test_loader,
+            50,
+            vis_path,
+            model_name,
+            dataset_name,
+            run_name,
         )
+        self.additional_metrics.update(f"{prefix}ece", ece)
 
         print("Running sparsification curve")
-        run_sparsification_curve(
-            self.model, self.test_loader, vis_path, model_name, self.args.dataset
+        ausc = run_sparsification_curve(
+            self.model, self.test_loader, vis_path, model_name, dataset_name, run_name
         )
+        self.additional_metrics.update(f"{prefix}ausc", ausc)
+
+        # Read ood metrics
+        with open(vis_path / "ood_metrics.json", "r") as f:
+            ood_metrics = json.load(f)
+            self.additional_metrics.update(f"{prefix}auroc", ood_metrics["auroc"])
+            self.additional_metrics.update(f"{prefix}auprc", ood_metrics["auprc"])
 
         # Save metrics
+        metrics = self.metrics.get_dict()
         with open(vis_path / "metrics.json", "w") as f:
-            json.dump(self.metrics.get_dict(), f)
+            json.dump(metrics, f)
+
+        expected_metrics = self.expected_metrics.get_dict()
+        with open(vis_path / "expected_metrics.json", "w") as f:
+            json.dump(expected_metrics, f)
+
+        additional_metrics = self.additional_metrics.get_dict()
+        with open(vis_path / "additional_metrics.json", "w") as f:
+            json.dump(additional_metrics, f)
 
         # Save hparams
         with open(vis_path / "hparams.json", "w") as f:
             json.dump(self.get_hparams(), f)
+
+        # Save additional metrics for tensorboard in log_hyperparams
+        add_metrics = [
+            f"{prefix}ece",
+            f"{prefix}ausc",
+            f"{prefix}auroc",
+            f"{prefix}auprc",
+        ]
+
+        # Update tensorboard
+        self.log_additional(add_metrics)
 
     def forward(self, x):
         return self.model(x)
@@ -431,20 +564,16 @@ class BaseLightningModule(LightningLite, MetricMeter):
 
     def log_hyperparams(self):
         print("Logging hyperparameters")
+        metrics = self.metrics.get_dict()
+        additional_metrics = self.additional_metrics.get_dict()
+
+        # Join metrics
+        metrics.update(additional_metrics)
+
         hparams = self.get_hparams()
         self.writer.add_hparams(
             hparam_dict=hparams,
-            metric_dict={
-                "train_accuracy": self.metrics.get("train_accuracy").avg,
-                "train_map_k": self.metrics.get("train_map_k").avg,
-                "train_recall_k": self.metrics.get("train_recall_k").avg,
-                "val_accuracy": self.metrics.get("val_accuracy").avg,
-                "val_map_k": self.metrics.get("val_map_k").avg,
-                "val_recall_k": self.metrics.get("val_recall_k").avg,
-                "test_accuracy": self.metrics.get("test_accuracy").avg,
-                "test_map_k": self.metrics.get("test_map_k").avg,
-                "test_recall_k": self.metrics.get("test_recall_k").avg,
-            },
+            metric_dict=metrics,
             run_name=".",
         )
 

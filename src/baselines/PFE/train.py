@@ -1,25 +1,16 @@
-from src.lightning_modules.PFELightningModule import PFELightningModule
 import torch.optim as optim
-from pytorch_metric_learning import miners, distances
-
+from pytorch_metric_learning import distances, miners
+from src.baselines.PFE.config import parse_args
+from src.baselines.PFE.losses import MLSLoss
+from src.baselines.PFE.models import CIFAR10_PFE, MNIST_PFE, Casia_PFE, FashionMNIST_PFE
 from src.data_modules import (
+    CasiaDataModule,
+    CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
-    CIFAR10DataModule,
-    CasiaDataModule,
 )
-from src.baselines.PFE.config import parse_args
-from src.baselines.PFE.models import (
-    MNIST_PFE,
-    CIFAR10_PFE,
-    Casia_PFE,
-    FashionMNIST_PFE,
-)
-from src.utils import (
-    separate_batchnorm_params,
-)
-
-from src.baselines.PFE.losses import MLSLoss
+from src.lightning_modules.PFELightningModule import PFELightningModule
+from src.utils import separate_batchnorm_params
 
 
 def run(PFE_args):
@@ -28,17 +19,25 @@ def run(PFE_args):
     sampler = None
 
     if PFE_args.dataset == "MNIST":
-        model = MNIST_PFE(embedding_size=PFE_args.embedding_size)
+        model = MNIST_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = MNISTDataModule
     elif PFE_args.dataset == "CIFAR10":
-        model = CIFAR10_PFE(embedding_size=PFE_args.embedding_size)
+        model = CIFAR10_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = CIFAR10DataModule
     elif PFE_args.dataset == "Casia":
-        model = Casia_PFE(embedding_size=PFE_args.embedding_size)
+        model = Casia_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = CasiaDataModule
         sampler = "WeightedRandomSampler"
     elif PFE_args.dataset == "FashionMNIST":
-        model = FashionMNIST_PFE(embedding_size=PFE_args.embedding_size)
+        model = FashionMNIST_PFE(
+            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+        )
         data_module = FashionMNISTDataModule
 
     data_module = data_module(
@@ -69,10 +68,9 @@ def run(PFE_args):
 
     loss = MLSLoss()
 
-    # Get all positive pairs for the loss
     miner = miners.BatchEasyHardMiner(
         pos_strategy="all",
-        neg_strategy="hard",
+        neg_strategy="all",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 

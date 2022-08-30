@@ -1,4 +1,3 @@
-from re import L
 from typing import List
 
 
@@ -22,20 +21,6 @@ class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
     num_epoch = 500
-    
-    gpu_mem = "36"
-
-
-class LaplaceConfig():
-    hessians = ["fixed", "positives", "full"]
-    gpu_mem = "40"
-    models = ["Online"] #, "PostHoc"]
-
-class FashionMNISTConfigLaplace(LaplaceConfig, FashionMNISTConfig):
-    num_epoch = 100
-
-class CIFAR10ConfigLaplace(LaplaceConfig, CIFAR10Config):
-    num_epoch = 250
 
 
 template_text = """
@@ -43,7 +28,7 @@ template_text = """
 ### General options
 
 ### -- specify queue --
-#BSUB -q gpuv100
+#BSUB -q {gpu_queue}
 
 ### -- set the job Name --
 #BSUB -J {job_name}

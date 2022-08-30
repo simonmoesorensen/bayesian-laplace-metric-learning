@@ -1,9 +1,8 @@
-from torchvision.models import resnet18, resnet50, resnet152
-from torch.nn import Conv2d
-import torch.nn as nn
 import torch
-
+import torch.nn as nn
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 from src.utils import l2_norm
+from torchvision.models import resnet152
 
 
 class StochasticLayer(nn.Module):
@@ -24,7 +23,7 @@ class StochasticLayer(nn.Module):
     def forward(self, x):
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
-        
+
         # Numerical stability
         log_var = (1e-6 + log_var.exp()).log()
 
@@ -39,12 +38,7 @@ def MNIST_HIB(embedding_size=128):
     Construct a mnist model for HIB.
     """
     # Embedding dimension
-    model = resnet18(num_classes=embedding_size)
-
-    # Adapt to 1 channel inputs
-    model.conv1 = Conv2d(
-        1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-    )
+    model = FashionMNISTConvNet(latent_dim=embedding_size)
 
     model_HIB = nn.Sequential(model, StochasticLayer(embedding_size=embedding_size))
 
@@ -56,7 +50,7 @@ def CIFAR10_HIB(embedding_size=128):
     Construct a cifar10 model for HIB.
     """
     # Embedding dimension
-    model = resnet50(num_classes=embedding_size)
+    model = CIFAR10ConvNet(latent_dim=embedding_size)
 
     model_HIB = nn.Sequential(model, StochasticLayer(embedding_size=embedding_size))
 

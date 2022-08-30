@@ -1,10 +1,9 @@
 import torch
-
 from pytorch_metric_learning import reducers
-from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
-from pytorch_metric_learning.losses.generic_pair_loss import GenericPairLoss
 from pytorch_metric_learning.distances import LpDistance
+from pytorch_metric_learning.losses.generic_pair_loss import GenericPairLoss
 from pytorch_metric_learning.losses.mixins import WeightMixin
+from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 
 
 class WeightClipper:
@@ -12,24 +11,21 @@ class WeightClipper:
         self.frequency = frequency
 
     def __call__(self, module):
-        # filter the variables to get the ones you want
-        if hasattr(module, 'A'):
-            module.A.data = module.A.data.clamp(min=1e-6)
+        if hasattr(module, "A"):
+            module.A.data = module.A.data.clamp(min=0.01)
 
 
 class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
     def __init__(self, **kwargs):
         super().__init__(mat_based_loss=False, **kwargs)
-        self.add_to_recordable_attributes(
-            list_of_names=["A", "B"], is_stat=False
-        )
+        self.add_to_recordable_attributes(list_of_names=["A", "B"], is_stat=False)
         self.weight_clipper = WeightClipper()
 
-        self.A = torch.nn.Parameter(torch.Tensor(1))
+        self.A = torch.nn.Parameter(torch.ones(1))
         # Constrain A to be positive
         self.weight_init_func(self.A)
 
-        self.B = torch.nn.Parameter(torch.Tensor(1))
+        self.B = torch.nn.Parameter(torch.zeros(1))
         self.weight_init_func(self.B)
 
     def cast_params(self, device):
@@ -42,7 +38,7 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
             pos_loss = self.get_per_pair_loss(pos_pair_dist, "pos")
         if len(neg_pair_dist) > 0:
             neg_loss = self.get_per_pair_loss(neg_pair_dist, "neg")
-        
+
         pos_pairs = lmu.pos_pairs_from_tuple(indices_tuple)
         neg_pairs = lmu.neg_pairs_from_tuple(indices_tuple)
         return {
@@ -85,6 +81,6 @@ class SoftContrastiveLoss(WeightMixin, GenericPairLoss):
 
     def _sub_loss_names(self):
         return ["pos_loss", "neg_loss"]
-    
+
     def get_default_distance(self):
         return LpDistance(p=2, normalize_embeddings=False)

@@ -1,18 +1,16 @@
 import datetime
 import logging
 import time
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import torch
 import torch.distributions as tdist
 from matplotlib import pyplot as plt
-from tqdm import tqdm
-
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
+from tqdm import tqdm
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
-torch.manual_seed(1234)
 
 
 def get_time():
@@ -33,7 +31,8 @@ class HIBLightningModule(BaseLightningModule):
 
         elif not args.model_path and args.loss_path:
             raise Exception(
-                "You can not specify a loss path without a model path! Use --model_path to specify the model path."
+                "You can not specify a loss path without a model path!"
+                " Use --model_path to specify the model path."
             )
 
         if loss_path is not None:
@@ -54,7 +53,7 @@ class HIBLightningModule(BaseLightningModule):
         )
 
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
-        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
+        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.001)
 
         self.metrics.add("train_loss_kl")
         self.metrics.add("val_loss_kl")
@@ -222,8 +221,9 @@ class HIBLightningModule(BaseLightningModule):
         mu, std = self.forward(X)
 
         # Reparameterization trick
-        epsilon = torch.randn_like(std)
-        samples = mu + epsilon * std
+        cov = torch.diag_embed(std.square())
+        pdist = tdist.MultivariateNormal(mu, cov)
+        samples = pdist.rsample()
 
         return mu, std, samples
 
@@ -269,7 +269,7 @@ class HIBLightningModule(BaseLightningModule):
         if prefix is not None:
             model_name = prefix + "_" + model_name
 
-        path = Path(self.args.model_save_folder) / self.args.name
+        path = Path(self.args.model_save_folder) / self.args.dataset / self.args.name
         model_path = path / model_name
 
         model_path.parent.mkdir(parents=True, exist_ok=True)

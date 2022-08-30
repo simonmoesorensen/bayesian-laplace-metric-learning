@@ -1,12 +1,13 @@
-import numpy as np
+import json
+
 import matplotlib.pyplot as plt
-from scipy.stats import hmean
-from matplotlib.patches import Ellipse
+import numpy as np
+import pandas as pd
 import seaborn as sns
 import torch
 import torchmetrics
-import json
-import pandas as pd
+from matplotlib.patches import Ellipse
+from scipy.stats import hmean
 
 sns.set()
 
@@ -18,7 +19,7 @@ def visualize_top_5(
     id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix, n=5
 ):
     """Visualize the top 5 highest and lowest variance images"""
-    model_name, dataset = get_names(vis_path)
+    model_name, dataset, run_name = get_names(vis_path)
 
     # Get colormap
     channels = id_images.shape[1]
@@ -112,7 +113,7 @@ def visualize_top_5(
         counter += 1
 
     plt.suptitle(
-        f"Top and bottom 5 variance images for model {model_name} on dataset {dataset}"
+        f"Top and bottom 5 variance images for model {model_name} ({run_name}) on dataset {dataset}"
     )
 
     fig.savefig(vis_path / f"{prefix}top_bot_5_var.png")
@@ -197,21 +198,22 @@ def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
 
 
 def plot_ood(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
-    model_name, dataset = get_names(vis_path)
+    model_name, dataset, run_name = get_names(vis_path)
     fig, ax = plt.subplots(ncols=2, figsize=(10, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
     plot_histogram(var_id, color=c_id, ax=ax[1])
     plot_samples(mu_ood, var_ood, limit=100, color=c_ood, label="OOD", ax=ax[0])
     plot_histogram(var_ood, color=c_ood, ax=ax[1])
     ax[0].legend()
-    fig.suptitle(f"ID vs OOD comparison for model {model_name} on dataset {dataset}")
+    fig.suptitle(
+        f"ID vs OOD comparison for model {model_name} ({run_name}) on dataset {dataset}"
+    )
     fig.savefig(vis_path / f"{prefix}ood_comparison.png")
     return fig, ax
 
 
 def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
-    model_name, dataset = get_names(vis_path)
-    latent_dim = id_sigma.shape[-1]
+    model_name, dataset, run_name = get_names(vis_path)
     id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
     ood_sigma = np.reshape(ood_sigma, (ood_sigma.shape[0], -1))
 
@@ -230,7 +232,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(fpr, tpr)
     plt.xlabel("FPR")
     plt.ylabel("TPR")
-    plt.title(f"OOD ROC Curve for model {model_name} on dataset {dataset}")
+    plt.title(f"OOD ROC Curve for model {model_name} ({run_name}) on dataset {dataset}")
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
     plt.cla()
@@ -253,7 +255,9 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.plot(recall, precision)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
-    plt.title(f"OOD Precision-Recall Curve for model {model_name} on dataset {dataset}")
+    plt.title(
+        f"OOD Precision-Recall Curve for model {model_name} ({run_name}) on dataset {dataset}"
+    )
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
     plt.cla()
@@ -269,6 +273,13 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # compute false positive rate at 80
     num_id = len(id_sigma)
 
+    # compute auroc
+    auroc = torchmetrics.AUROC(num_classes=1)
+    auroc_score = auroc(
+        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+    )
+    metrics["auroc"] = float(auroc_score.numpy())
+
     for p in range(0, 100, 10):
         # if there is no difference in variance
         try:
@@ -278,14 +289,6 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
         else:
             continue
 
-    # compute auroc
-    auroc = torchmetrics.AUROC(num_classes=1)
-    auroc_score = auroc(
-        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
-    )
-    metrics["auroc"] = float(auroc_score.numpy())
-    print(f"Metrics: {metrics}")
-
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
@@ -294,4 +297,4 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
 
 def get_names(vis_path):
     # returns (model name, dataset trained on)
-    return (vis_path.parts[-5], vis_path.parts[-2])
+    return (vis_path.parts[-5], vis_path.parts[-3], vis_path.parts[-2])

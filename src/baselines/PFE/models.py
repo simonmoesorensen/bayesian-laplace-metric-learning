@@ -1,10 +1,8 @@
-from torchvision.models import resnet18, resnet34, resnet50
-from torch.nn import Conv2d, BatchNorm1d
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from src.baselines.Backbone.models import (
-    CIFAR10_Backbone,
     Casia_Backbone,
+    CIFAR10_Backbone,
     MNIST_Backbone,
 )
 
@@ -21,14 +19,18 @@ class UncertaintyModule(nn.Module):
         for param in backbone.parameters():
             param.requires_grad = False
 
-        backbone_no_last_layer = list(backbone.children())[:-1]
-        last_layer_size = backbone.linear[0].in_features
+        # Conv part
+        backbone_no_last_layer = list(backbone.children())[:-1][0].conv
+        # Linear part without last layer
+        backbone_no_last_layer.append(list(backbone.children())[:-1][0].linear[:-1])
+
+        last_layer_size = backbone[0].linear[-1].in_features
 
         # Define bottleneck as model without the last layer
         self.bottleneck = nn.Sequential(*backbone_no_last_layer)
 
-        # Use pretrained last layer (fully connected, l2norm) to compute mu
-        self.fc_mu = backbone.linear  # backbone.linear has L2Norm layer
+        # Use pretrained last layer (fully connected) to compute mu with l2norm
+        self.fc_mu = nn.Sequential(backbone[0].linear[-1], backbone[1])
 
         self.fc_var1 = nn.Sequential(
             nn.Linear(last_layer_size, embedding_size),
@@ -71,29 +73,16 @@ class UncertaintyModule(nn.Module):
         return mu, std
 
 
-def MNIST_PFE(embedding_size=128):
+def MNIST_PFE(embedding_size=128, seed=42):
     """
     Construct a mnist model for PFE.
     """
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/mnist.pth"))
-
-    # Wrap in PFE framework
-    model_PFE = UncertaintyModule(backbone, embedding_size)
-
-    return model_PFE
-
-
-def FashionMNIST_PFE(embedding_size=128):
-    """
-    Construct a fashion mnist model for PFE.
-    """
-    # Embedding dimension
-    backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
         torch.load(
-            f"src/baselines/PFE/pretrained/fashion_mnist_latent_{embedding_size}.pth"
+            "src/baselines/PFE/pretrained/MNIST/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
         )
     )
 
@@ -103,14 +92,17 @@ def FashionMNIST_PFE(embedding_size=128):
     return model_PFE
 
 
-def CIFAR10_PFE(embedding_size=128):
+def FashionMNIST_PFE(embedding_size=128, seed=42):
     """
-    Construct a cifar10 model for PFE.
+    Construct a fashion mnist model for PFE.
     """
     # Embedding dimension
-    backbone = CIFAR10_Backbone(embedding_size=embedding_size)
+    backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(f"src/baselines/PFE/pretrained/cifar10_latent_{embedding_size}.pth")
+        torch.load(
+            "src/baselines/PFE/pretrained/FashionMNIST/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        )
     )
 
     # Wrap in PFE framework
@@ -119,13 +111,37 @@ def CIFAR10_PFE(embedding_size=128):
     return model_PFE
 
 
-def Casia_PFE(embedding_size=128):
+def CIFAR10_PFE(embedding_size=128, seed=42):
+    """
+    Construct a cifar10 model for PFE.
+    """
+    # Embedding dimension
+    backbone = CIFAR10_Backbone(embedding_size=embedding_size)
+    backbone.load_state_dict(
+        torch.load(
+            "src/baselines/PFE/pretrained/CIFAR10/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        )
+    )
+
+    # Wrap in PFE framework
+    model_PFE = UncertaintyModule(backbone, embedding_size)
+
+    return model_PFE
+
+
+def Casia_PFE(embedding_size=128, seed=42):
     """
     Construct a Casia Webface model for PFE.
     """
     # Embedding dimension
     backbone = Casia_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(torch.load("src/baselines/PFE/pretrained/casia.pth"))
+    backbone.load_state_dict(
+        torch.load(
+            "src/baselines/PFE/pretrained/CASIA/"
+            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        )
+    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)

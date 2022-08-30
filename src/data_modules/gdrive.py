@@ -17,9 +17,11 @@ def download_file_from_google_drive(id, destination):
     def save_response_content(response, destination):
         CHUNK_SIZE = 32768
 
-        total = int(response.headers.get('content-length', 0))
+        total = int(response.headers.get("content-length", 0))
 
-        with open(destination, "wb") as f, tqdm(total=total, unit='iB', unit_scale=True, unit_divisor=1024) as pbar:
+        with open(destination, "wb") as f, tqdm(
+            total=total, unit="iB", unit_scale=True, unit_divisor=1024
+        ) as pbar:
             for chunk in response.iter_content(CHUNK_SIZE):
                 if chunk:  # filter out keep-alive new chunks
                     size = f.write(chunk)
@@ -29,7 +31,7 @@ def download_file_from_google_drive(id, destination):
 
     session = requests.Session()
 
-    response = session.get(URL, params={"id": id, 'confirm': 't'}, stream=True)
+    response = session.get(URL, params={"id": id, "confirm": "t"}, stream=True)
     token = get_confirm_token(response)
 
     if token:
