@@ -34,6 +34,8 @@ def run(Backbone_args):
     elif Backbone_args.dataset == "FashionMNIST":
         model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = FashionMNISTDataModule
+    else:
+        raise ValueError("Dataset not supported")
 
     data_module = data_module(
         Backbone_args.data_dir,
@@ -61,7 +63,8 @@ def run(Backbone_args):
     )
 
     loss = losses.ContrastiveLoss(
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+        # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+        # neg_margin=0.2, pos_margin=0.,
     )
 
     miner = miners.BatchEasyHardMiner(

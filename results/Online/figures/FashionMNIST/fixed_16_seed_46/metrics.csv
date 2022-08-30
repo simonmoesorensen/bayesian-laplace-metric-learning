@@ -1,0 +1,10 @@
+mean_average_precision,0.9140873611111111,16
+precision_at_1,0.896,16
+recall_at_k,0.9553,16
+mean_average_precision_expected,0.9031070833333332,16
+precision_at_1_expected,0.8888,16
+recall_at_k_expected,0.9434,16
+auroc,0.9736562967300415,16
+auprc,0.9706419110298157,16
+ece,0.06146806086858689,16
+ausc,0.9608088731765747,16

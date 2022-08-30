@@ -122,12 +122,18 @@ def visualize_top_5(
 def visualize_all(
     id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
 ):
-    id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
-    id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
-    ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
-    ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
-    id_images = torch.cat(id_images, dim=0).cpu().detach().numpy()
-    ood_images = torch.cat(ood_images, dim=0).cpu().detach().numpy()
+    id_sigma = id_sigma.numpy()
+    id_mu = id_mu.numpy()
+    ood_sigma = ood_sigma.numpy()
+    ood_mu = ood_mu.numpy()
+    id_images = id_images.numpy()
+    ood_images = ood_images.numpy()
+    # id_sigma = torch.cat(id_sigma, dim=0).cpu().detach().numpy()
+    # id_mu = torch.cat(id_mu, dim=0).cpu().detach().numpy()
+    # ood_sigma = torch.cat(ood_sigma, dim=0).cpu().detach().numpy()
+    # ood_mu = torch.cat(ood_mu, dim=0).cpu().detach().numpy()
+    # id_images = torch.cat(id_images, dim=0).cpu().detach().numpy()
+    # ood_images = torch.cat(ood_images, dim=0).cpu().detach().numpy()
 
     if not prefix.endswith("_"):
         prefix += "_"
@@ -286,6 +292,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
+    pd.DataFrame.from_dict({"auroc": metrics["auroc"], "auprc": metrics["auprc"]}, orient="index").assign(dim=latent_dim).to_csv(vis_path / f"metrics.csv", mode="a", header=False)
 
 
 def get_names(vis_path):

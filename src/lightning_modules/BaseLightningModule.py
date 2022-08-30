@@ -550,7 +550,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
         hparams["name"] = self.name
         hparams["epoch"] = self.epoch
         hparams["miner"] = self.miner.__class__.__name__
-        hparams["model"] = self.model.module.module.__class__.__name__
+        hparams["model"] = self.model.module.__class__.__name__
         hparams["optimizer"] = self.optimizer.__class__.__name__
         hparams["loss_fn"] = self.loss_fn.__class__.__name__
 
@@ -612,4 +612,4 @@ class BaseLightningModule(LightningLite, MetricMeter):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"Saving model @ {str(path)}")
-        self.save(content=self.model.module.module.state_dict(), filepath=str(path))
+        self.save(content=self.model.module.state_dict(), filepath=str(path))
