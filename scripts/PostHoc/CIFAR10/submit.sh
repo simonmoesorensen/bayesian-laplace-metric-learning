@@ -30,95 +30,95 @@ source venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0
 
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T133008_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 16
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T133021_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 16
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T133045_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 16
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T134059_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 16
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T134120_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 16
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T120221_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 16
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T121601_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 16
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T122930_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 16
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T124233_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 16
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T125612_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 16
+
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T115850_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 32
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T120914_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 32
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T121943_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 32
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T123027_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 32
+# python3 -m src.laplace.train \
+#     --dataset CIFAR10 \
+#     --name CIFAR10 \
+#     --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T124104_checkpoint.pth \
+#     --hessian full \
+#     --embedding_size 32
 
 python3 -m src.laplace.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T134310_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 32
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T135154_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 32
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T135210_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 32
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T135437_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 32
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T140253_checkpoint.pth \
-    --hessian fixed \
-    --embedding_size 32
-
-python3 -m src.laplace.train \
-    --dataset CIFAR10 \
-    --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T140256_checkpoint.pth \
-    --hessian fixed \
+    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T115846_checkpoint.pth \
+    --hessian full \
     --embedding_size 64
 python3 -m src.laplace.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T140559_checkpoint.pth \
-    --hessian fixed \
+    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T120923_checkpoint.pth \
+    --hessian full \
     --embedding_size 64
 python3 -m src.laplace.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T141355_checkpoint.pth \
-    --hessian fixed \
+    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T122003_checkpoint.pth \
+    --hessian full \
     --embedding_size 64
 python3 -m src.laplace.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T141349_checkpoint.pth \
-    --hessian fixed \
+    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T123048_checkpoint.pth \
+    --hessian full \
     --embedding_size 64
 python3 -m src.laplace.train \
     --dataset CIFAR10 \
     --name CIFAR10 \
-    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-19T141859_checkpoint.pth \
-    --hessian fixed \
+    --model_path outputs/Backbone/checkpoints/CIFAR10/CIFAR10/Final_Model_Epoch_500_Time_2022-08-23T124137_checkpoint.pth \
+    --hessian full \
     --embedding_size 64

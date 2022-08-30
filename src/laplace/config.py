@@ -68,10 +68,11 @@ def parse_args():
     parser.add_argument("--margin", type=float, default=1.0)
     parser.add_argument("--inference_model", type=str, default="linear")
     parser.add_argument("--hessian", type=str, default="full")
-    parser.add_argument("--posterior_samples", type=int, default=12)
+    parser.add_argument("--posterior_samples", type=int, default=3)
 
     # ----- hyperparameters
-    parser.add_argument("--num_epoch", type=int, default=22)
+    parser.add_argument("--num_epoch", type=int, default=250)
+    parser.add_argument("--hessian_freq", type=int, default=10)
     parser.add_argument("--lr", type=float, default=3e-4)
 
     args = parser.parse_args()

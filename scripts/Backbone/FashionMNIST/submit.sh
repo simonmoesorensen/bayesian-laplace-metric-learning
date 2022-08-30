@@ -34,7 +34,35 @@ python3 -m src.baselines.Backbone.train \
     --dataset FashionMNIST \
     --name FashionMNIST \
     --batch_size 512 \
+    --embedding_size 2 \
+    --num_epoch 100 \
+    --save_freq 25 \
+    --gpu_id 0 \
+    --num_workers 8 \
+    --shuffle \
+    --disp_freq 2 \
+    --to_visualize
+
+
+python3 -m src.baselines.Backbone.train \
+    --dataset FashionMNIST \
+    --name FashionMNIST \
+    --batch_size 512 \
     --embedding_size 16 \
+    --num_epoch 100 \
+    --save_freq 25 \
+    --gpu_id 0 \
+    --num_workers 8 \
+    --shuffle \
+    --disp_freq 2 \
+    --to_visualize
+
+
+python3 -m src.baselines.Backbone.train \
+    --dataset FashionMNIST \
+    --name FashionMNIST \
+    --batch_size 512 \
+    --embedding_size 32 \
     --num_epoch 100 \
     --save_freq 25 \
     --gpu_id 0 \

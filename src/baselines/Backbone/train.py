@@ -61,10 +61,9 @@ def run(Backbone_args):
         # neg_margin=0.2, pos_margin=0.,
     )
 
-    # miner = miners.PairMarginMiner(
-    #     # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    # )
-    miner = miners.MultiSimilarityMiner()
+    miner = miners.BatchEasyHardMiner(
+        pos_strategy=miners.BatchEasyHardMiner.ALL,
+        neg_strategy=miners.BatchEasyHardMiner.ALL)
 
     trainer = BackboneLightningModule(
         accelerator="gpu", devices=len(Backbone_args.gpu_id), strategy="dp"
