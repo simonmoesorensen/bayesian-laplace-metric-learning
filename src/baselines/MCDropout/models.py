@@ -1,29 +1,5 @@
-import torch
-import torch.nn as nn
-from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet, SampleNet
 from src.utils import L2Norm
-
-
-class SampleNet(nn.Module):
-    def pass_through(self, x):
-        """ " Normal forward pass"""
-        raise NotImplementedError()
-
-    def sample(self, X, samples):
-        zs = []
-
-        for _ in range(samples):
-            zs.append(self.pass_through(X))
-
-        zs = torch.stack(zs)
-
-        return zs.mean(dim=0), zs.std(dim=0)
-
-    def forward(self, x, samples=100):
-        if samples:
-            return self.sample(x, samples)
-        else:
-            return self.pass_through(x), None
 
 
 class MCDropoutHead(SampleNet):

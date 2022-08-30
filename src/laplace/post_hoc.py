@@ -13,22 +13,33 @@ from torch.nn.utils.convert_parameters import parameters_to_vector
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
-from src.baselines.Backbone.models import (Casia_Backbone, CIFAR10_Backbone,
-                                           MNIST_Backbone)
-from src.data_modules import (CasiaDataModule, CIFAR10DataModule,
-                              FashionMNISTDataModule, MNISTDataModule)
+from src.laplace.models import L2Norm
+from src.baselines.Backbone.models import (
+    Casia_Backbone,
+    CIFAR10_Backbone,
+    MNIST_Backbone,
+)
+from src.data_modules import (
+    CasiaDataModule,
+    CIFAR10DataModule,
+    FashionMNISTDataModule,
+    MNISTDataModule,
+)
 from src.distances import ExpectedSquareL2Distance
 from src.evaluation.calibration_curve import calibration_curves
-from src.hessian.layerwise import (ContrastiveHessianCalculator,
-                                   FixedContrastiveHessianCalculator)
+from src.hessian.layerwise import (
+    ContrastiveHessianCalculator,
+    FixedContrastiveHessianCalculator,
+)
 from src.laplace.config import parse_args
-from src.laplace.post_hoc import post_hoc
-from src.miners import (AllCombinationsMiner, AllPermutationsMiner,
-                        AllPositiveMiner)
+
+# from src.laplace.post_hoc import post_hoc
+from src.miners import AllCombinationsMiner, AllPositiveMiner
 from src.recall_at_k import AccuracyRecall
 from src.visualize import visualize_all
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
@@ -51,16 +62,22 @@ def run(args):
         data_module = FashionMNISTDataModule
     else:
         raise ValueError("Dataset not supported")
-    
-    model.load_state_dict(torch.load(args.model_path))
 
-    vis_path = (
-        Path("outputs") 
-        / "PostHoc"
-        / "figures"
-        / args.dataset
-        / args.hessian
-    )
+    model = model[0]
+    model.linear.add_module("l2norm", L2Norm())
+    state_dict = torch.load(args.model_path)
+
+    new_state_dict = {}
+    for key in state_dict:
+        if key.startswith("0."):
+            new_state_dict[key[2:]] = state_dict[key]
+        else:
+            new_state_dict[key] = state_dict[key]
+
+    model.load_state_dict(new_state_dict)
+
+    vis_path = Path("outputs") / "PostHoc" / "figures" / args.dataset / args.hessian
+    vis_path.mkdir(parents=True, exist_ok=True)
 
     data_module = data_module(
         args.data_dir,
@@ -76,30 +93,51 @@ def run(args):
     inference_model = getattr(model, args.inference_model)
 
     mu_q, sigma_q = post_hoc(
-        model, inference_model, data_module.train_dataloader(), margin=args.margin, device=device, method=args.hessian
+        model,
+        inference_model,
+        data_module.train_dataloader(),
+        margin=args.margin,
+        device=device,
+        method=args.hessian,
     )
-    torch.save(sigma_q, f"sigma_q_{args.dataset}_{args.embedding_size}_{args.hessian}.pt")
+    torch.save(
+        sigma_q, f"sigma_q_{args.dataset}_{args.embedding_size}_{args.hessian}.pt"
+    )
 
-    mu_id, var_id = evaluate_laplace(model, inference_model, data_module.test_dataloader(), mu_q, sigma_q, device)
-    mu_id = mu_id.detach().cpu()#.numpy()
-    var_id = var_id.detach().cpu()#.numpy()
-    id_images = torch.cat([x for x, _ in data_module.test_dataloader()], dim=0).detach().cpu()#.numpy()
-    id_labels = torch.cat([y for _, y in data_module.test_dataloader()], dim=0).detach().cpu()#.numpy()
+    mu_id, var_id = evaluate_laplace(
+        model, inference_model, data_module.test_dataloader(), mu_q, sigma_q, device
+    )
+    mu_id = mu_id.detach().cpu()  # .numpy()
+    var_id = var_id.detach().cpu()  # .numpy()
+    id_images = (
+        torch.cat([x for x, _ in data_module.test_dataloader()], dim=0).detach().cpu()
+    )  # .numpy()
+    id_labels = (
+        torch.cat([y for _, y in data_module.test_dataloader()], dim=0).detach().cpu()
+    )  # .numpy()
 
-    mu_ood, var_ood = evaluate_laplace(model, inference_model, data_module.ood_dataloader(), mu_q, sigma_q, device)
-    mu_ood = mu_ood.detach().cpu()#.numpy()
-    var_ood = var_ood.detach().cpu()#.numpy()
-    ood_images = torch.cat([x for x, _ in data_module.ood_dataloader()], dim=0).detach().cpu()#.numpy()
+    mu_ood, var_ood = evaluate_laplace(
+        model, inference_model, data_module.ood_dataloader(), mu_q, sigma_q, device
+    )
+    mu_ood = mu_ood.detach().cpu()  # .numpy()
+    var_ood = var_ood.detach().cpu()  # .numpy()
+    ood_images = (
+        torch.cat([x for x, _ in data_module.ood_dataloader()], dim=0).detach().cpu()
+    )  # .numpy()
 
-    mu_train, var_train = evaluate_laplace(model, inference_model, data_module.train_dataloader(), mu_q, sigma_q, device)
-    mu_train = mu_train.detach().cpu()#.numpy()
-    var_train = var_train.detach().cpu()#.numpy()
-    train_labels = torch.cat([y for _, y in data_module.train_dataloader()], dim=0).detach().cpu()#.numpy()
+    mu_train, var_train = evaluate_laplace(
+        model, inference_model, data_module.train_dataloader(), mu_q, sigma_q, device
+    )
+    mu_train = mu_train.detach().cpu()  # .numpy()
+    var_train = var_train.detach().cpu()  # .numpy()
+    train_labels = (
+        torch.cat([y for _, y in data_module.train_dataloader()], dim=0).detach().cpu()
+    )  # .numpy()
     results = AccuracyRecall(
-            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
-            k=5,
-            device=device,
-            knn_func=CustomKNN(LpDistance()),
+        include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+        k=5,
+        device=device,
+        knn_func=CustomKNN(LpDistance()),
     ).get_accuracy(
         mu_id,
         mu_train,
@@ -107,12 +145,14 @@ def run(args):
         train_labels.squeeze(),
         embeddings_come_from_same_source=False,
     )
-    pd.DataFrame.from_dict(results, orient="index").assign(dim=args.embedding_size).to_csv(vis_path / "metrics.csv", mode="a", header=False)
+    pd.DataFrame.from_dict(results, orient="index").assign(
+        dim=args.embedding_size
+    ).to_csv(vis_path / "metrics.csv", mode="a", header=False)
     results = AccuracyRecall(
-            include=("mean_average_precision", "precision_at_1", "recall_at_k"),
-            k=5,
-            device=device,
-            knn_func=CustomKNN(ExpectedSquareL2Distance()),
+        include=("mean_average_precision", "precision_at_1", "recall_at_k"),
+        k=5,
+        device=device,
+        knn_func=CustomKNN(ExpectedSquareL2Distance()),
     ).get_accuracy(
         torch.stack((mu_id, var_id), dim=-1),
         torch.stack((mu_train, var_train), dim=-1),
@@ -120,16 +160,28 @@ def run(args):
         train_labels.squeeze(),
         embeddings_come_from_same_source=False,
     )
-    pd.DataFrame.from_dict({
-        "mean_average_precision_expected": results["mean_average_precision"],
-        "precision_at_1_expected": results["precision_at_1"],
-        "recall_at_k_expected": results["recall_at_k"],
-        }, orient="index")\
-        .assign(dim=args.embedding_size)\
-        .to_csv(vis_path / "metrics.csv", mode="a", header=False)
+    pd.DataFrame.from_dict(
+        {
+            "mean_average_precision_expected": results["mean_average_precision"],
+            "precision_at_1_expected": results["precision_at_1"],
+            "recall_at_k_expected": results["recall_at_k"],
+        },
+        orient="index",
+    ).assign(dim=args.embedding_size).to_csv(
+        vis_path / "metrics.csv", mode="a", header=False
+    )
 
-
-    visualize(mu_id, var_id, id_images, id_labels, mu_ood, var_ood, ood_images, args.dataset, vis_path)
+    visualize(
+        mu_id,
+        var_id,
+        id_images,
+        id_labels,
+        mu_ood,
+        var_ood,
+        ood_images,
+        args.dataset,
+        vis_path,
+    )
 
     # mu_id = mu_id.detach().cpu().numpy()
     # var_id = var_id.detach().cpu().numpy()
@@ -142,7 +194,6 @@ def run(args):
 
     # metrics = compute_and_plot_roc_curves(".", var_id, var_ood)
     # print(metrics)
-
 
 
 def log_det_ratio(hessian, prior_prec):
@@ -158,7 +209,9 @@ def scatter(mu_q, prior_precision_diag):
 
 def log_marginal_likelihood(mu_q, hessian, prior_prec):
     # we ignore neg log likelihood as it is constant wrt prior_prec
-    neg_log_marglik = -0.5 * (log_det_ratio(hessian, prior_prec) + scatter(mu_q, prior_prec))
+    neg_log_marglik = -0.5 * (
+        log_det_ratio(hessian, prior_prec) + scatter(mu_q, prior_prec)
+    )
     return neg_log_marglik
 
 
@@ -223,8 +276,12 @@ def post_hoc(
 
     h = torch.maximum(h, torch.tensor(0))
 
-    logging.info(f"{100 * calculator.zeros / calculator.total_pairs:.2f}% of pairs are zero.")
-    logging.info(f"{100 * calculator.negatives / calculator.total_pairs:.2f}% of pairs are negative.")
+    logging.info(
+        f"{100 * calculator.zeros / calculator.total_pairs:.2f}% of pairs are zero."
+    )
+    logging.info(
+        f"{100 * calculator.negatives / calculator.total_pairs:.2f}% of pairs are negative."
+    )
 
     map_solution = parameters_to_vector(inference_model.parameters())
 
@@ -237,22 +294,32 @@ def post_hoc(
     return map_solution, posterior_scale
 
 
-
-
-
-
-
-
-
-def visualize(id_mu, id_sigma, id_images, id_targets, ood_mu, ood_sigma, ood_images, dataset, vis_path):
+def visualize(
+    id_mu,
+    id_sigma,
+    id_images,
+    id_targets,
+    ood_mu,
+    ood_sigma,
+    ood_images,
+    dataset,
+    vis_path,
+):
     print("=" * 60, flush=True)
     print("Visualizing...")
 
     latent_dim = id_mu.shape[1]
-
     # Visualize
+
     visualize_all(
-        id_mu, id_sigma.sqrt(), id_images, ood_mu, ood_sigma.sqrt(), ood_images, vis_path, prefix=f"{latent_dim}"
+        [id_mu],
+        [id_sigma.sqrt()],
+        [id_images],
+        [ood_mu],
+        [ood_sigma.sqrt()],
+        [ood_images],
+        vis_path,
+        prefix=f"{latent_dim}",
     )
 
     print("Running calibration curve")
@@ -261,9 +328,7 @@ def visualize(id_mu, id_sigma, id_images, id_targets, ood_mu, ood_sigma, ood_ima
     )
 
     print("Running sparsification curve")
-    run_sparsification_curve(
-        id_targets, id_mu, id_sigma, vis_path, "post_hoc", dataset
-    )
+    run_sparsification_curve(id_targets, id_mu, id_sigma, vis_path, "post_hoc", dataset)
 
     # # Save metrics
     # with open(vis_path / "metrics.json", "w") as f:
@@ -271,9 +336,7 @@ def visualize(id_mu, id_sigma, id_images, id_targets, ood_mu, ood_sigma, ood_ima
 
 
 def run_sparsification_curve(targets, mus, sigmas, path, model_name, dataset_name):
-    knn_func = CustomKNN(
-        distance=distances.LpDistance(normalize_embeddings=False)
-    )
+    knn_func = CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
 
     metric = AccuracyCalculator(
         include=("precision_at_1",),
@@ -358,11 +421,15 @@ def run_sparsification_curve(targets, mus, sigmas, path, model_name, dataset_nam
     }
     with open(path / "uncertainty_metrics.json", "w") as f:
         json.dump(metrics, f)
-    pd.DataFrame.from_dict({"ausc": metrics["ausc"]}, orient="index").assign(dim=latent_dim).to_csv(path / f"metrics.csv", mode="a", header=False)
-def run_calibration_curve(targets, mus, sigmas, samples, path, model_name, dataset_name):
-    knn_func = CustomKNN(
-        distance=distances.LpDistance(normalize_embeddings=False)
-    )
+    pd.DataFrame.from_dict({"ausc": metrics["ausc"]}, orient="index").assign(
+        dim=latent_dim
+    ).to_csv(path / f"metrics.csv", mode="a", header=False)
+
+
+def run_calibration_curve(
+    targets, mus, sigmas, samples, path, model_name, dataset_name
+):
+    knn_func = CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
     latent_dim = mus.shape[-1]
 
     predicted = []
@@ -459,16 +526,16 @@ def run_calibration_curve(targets, mus, sigmas, samples, path, model_name, datas
 
     with open(path / "calibration_curve.json", "w") as f:
         json.dump(metrics, f)
-    pd.DataFrame.from_dict({"ece": metrics["ece"]}, orient="index").assign(dim=latent_dim).to_csv(path / f"metrics.csv", mode="a", header=False)
-        
+    pd.DataFrame.from_dict({"ece": metrics["ece"]}, orient="index").assign(
+        dim=latent_dim
+    ).to_csv(path / f"metrics.csv", mode="a", header=False)
+
 
 from typing import Tuple
 
 import torch
-from pytorch_metric_learning import testers
 from pytorch_metric_learning.distances import LpDistance
-from pytorch_metric_learning.utils.accuracy_calculator import \
-    AccuracyCalculator
+from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from pytorch_metric_learning.utils.inference import CustomKNN
 from torch.nn.utils.convert_parameters import vector_to_parameters
 
@@ -481,6 +548,8 @@ def get_single_sample_pred(full_model, loader, device) -> torch.Tensor:
         preds.append(pred)
     preds = torch.cat(preds, dim=0)
     return preds
+
+
 def generate_predictions_from_samples_rolling(
     loader, weight_samples, full_model, inference_model=None, device="cpu"
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -497,7 +566,7 @@ def generate_predictions_from_samples_rolling(
     msq = 0.0
     delta = 0.0
 
-    for i, net_sample in enumerate(weight_samples[1:, :]):
+    for i, net_sample in tqdm(enumerate(weight_samples[1:, :])):
         vector_to_parameters(net_sample, inference_model.parameters())
         sample_preds = get_single_sample_pred(full_model, loader, device)
         delta = sample_preds - mean
@@ -506,27 +575,39 @@ def generate_predictions_from_samples_rolling(
 
     variance = msq / (N - 1)
     return mean, variance
+
+
 def sample_nn_weights(parameters, posterior_scale, n_samples=16):
     n_params = len(parameters)
     samples = torch.randn(n_samples, n_params, device=parameters.device)
     samples = samples * posterior_scale.reshape(1, n_params)
     return parameters.reshape(1, n_params) + samples
+
+
 def evaluate_laplace(net, inference_net, loader, mu_q, sigma_q, device="cpu"):
     samples = sample_nn_weights(mu_q, sigma_q)
 
-    pred_mean, pred_var = generate_predictions_from_samples_rolling(loader, samples, net, inference_net, device)
+    pred_mean, pred_var = generate_predictions_from_samples_rolling(
+        loader, samples, net, inference_net, device
+    )
     return pred_mean, pred_var
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torchmetrics
 from matplotlib.patches import Ellipse
-from scipy.stats import hmean, mode
+from scipy.stats import hmean
 
 sns.set_theme(style="ticks")
 c_id = "b"
 c_ood = "r"
-def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="b", label=None):
+
+
+def plot_samples(
+    mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="b", label=None
+):
     if ax is None:
         _, ax = plt.subplots()
 
@@ -555,6 +636,8 @@ def plot_samples(mu, sigma_sq, latent1=0, latent2=1, limit=100, ax=None, color="
         xlabel=f"Latent dim {latent1}",
         ylabel=f"Latent dim {latent2}",
     )
+
+
 def plot_histogram(sigma_sq, mean="arithmetic", ax=None, color="b", label=None):
     if ax is None:
         _, ax = plt.subplots()
@@ -565,14 +648,18 @@ def plot_histogram(sigma_sq, mean="arithmetic", ax=None, color="b", label=None):
         mean_sigma_sq = np.mean(sigma_sq, axis=1)
     else:
         raise NotImplementedError
-    
-    print(f"mean={mean_sigma_sq.mean():.5f}, "
-          f"std={mean_sigma_sq.std():.5f}, "
-          f"min={mean_sigma_sq.min():.5f}, "
-          f"max={mean_sigma_sq.max():.5f}")
+
+    print(
+        f"mean={mean_sigma_sq.mean():.5f}, "
+        f"std={mean_sigma_sq.std():.5f}, "
+        f"min={mean_sigma_sq.min():.5f}, "
+        f"max={mean_sigma_sq.max():.5f}"
+    )
 
     sns.kdeplot(mean_sigma_sq, ax=ax, color=color, label=label)
     ax.set(xlabel="Variance")
+
+
 def plot_ood(mu_id, var_id, mu_ood, var_ood):
     fig, ax = plt.subplots(ncols=2, figsize=(7, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
@@ -583,6 +670,8 @@ def plot_ood(mu_id, var_id, mu_ood, var_ood):
     ax[1].set_ylabel(None)
     ax[1].legend()
     return fig, ax
+
+
 def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
     id_sigma = np.reshape(id_sigma, (id_sigma.shape[0], -1))
@@ -595,7 +684,9 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
     # plot roc curve
     roc = torchmetrics.ROC(num_classes=1)
-    fpr, tpr, thresholds = roc(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+    fpr, tpr, thresholds = roc(
+        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+    )
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     ax.plot(fpr, tpr)
@@ -615,7 +706,9 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
     # plot precision recall curve
     pr_curve = torchmetrics.PrecisionRecallCurve(pos_label=1)
-    precision, recall, thresholds = pr_curve(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+    precision, recall, thresholds = pr_curve(
+        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+    )
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     ax.plot(recall, precision)
@@ -646,10 +739,13 @@ def compute_and_plot_roc_curves(path, id_sigma, ood_sigma, pre_fix=""):
 
     # compute auroc
     auroc = torchmetrics.AUROC(num_classes=1)
-    auroc_score = auroc(torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1))
+    auroc_score = auroc(
+        torch.tensor(pred).unsqueeze(1), torch.tensor(target).unsqueeze(1)
+    )
     metrics["auroc"] = float(auroc_score.numpy())
 
     return metrics
+
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)

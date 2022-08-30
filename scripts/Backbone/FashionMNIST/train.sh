@@ -9,9 +9,9 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Backbone/train.py \
     --dataset FashionMNIST \
     --name train_script \
     --batch_size 512 \
-    --embedding_size 6 \
+    --embedding_size 32 \
     --num_epoch 20 \
-    --save_freq 10 \
+    --save_freq 21 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \

@@ -1,9 +1,13 @@
 import argparse
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 baseline_dir = Path("outputs") / "PostHoc"
 
-data_dir = Path("/work3/s174433/datasets")
+data_dir = Path(os.getenv("DATA_DIR"))
 vis_dir = baseline_dir / "figures"
 save_dir = baseline_dir / "checkpoints"
 log_dir = baseline_dir / "logs"
@@ -30,6 +34,7 @@ def parse_args():
 
     # ----- resume pretrain details
     parser.add_argument("--resume_epoch", type=int, default=0)
+    parser.add_argument("--backbone_path", type=str, default=None)
     parser.add_argument("--model_path", type=str, default=None)
     # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-19T160116_checkpoint.pth")
     # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-19T160331_checkpoint.pth")
@@ -50,7 +55,6 @@ def parse_args():
     # 2 dim FashionMNIST
     # parser.add_argument("--model_path", type=str, default="outputs/Backbone/checkpoints/FashionMNIST/FashionMNIST/Final_Model_Epoch_100_Time_2022-08-18T160018_checkpoint.pth")
 
-
     # ----- model & training details
     parser.add_argument("--embedding_size", type=int, default=32)
     parser.add_argument("--weight_decay", type=float, default=0)
@@ -68,7 +72,7 @@ def parse_args():
     parser.add_argument("--margin", type=float, default=1.0)
     parser.add_argument("--inference_model", type=str, default="linear")
     parser.add_argument("--hessian", type=str, default="full")
-    parser.add_argument("--posterior_samples", type=int, default=3)
+    parser.add_argument("--posterior_samples", type=int, default=16)
 
     # ----- hyperparameters
     parser.add_argument("--num_epoch", type=int, default=250)

@@ -6,13 +6,16 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
-from src.layers import L2Normalize
+from src.laplace.models import L2Norm
 
 
 class HessianCalculator:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def __init__(self, device) -> None:
+        self.set_device(device)
+
+    def set_device(self, device):
         self.device = device
 
     @abstractmethod
@@ -85,15 +88,20 @@ class RmseHessianCalculator(HessianCalculator):
 
                 # Calculate the Jacobian wrt to the inputs
                 if isinstance(self.model[k], torch.nn.Linear):
-                    jacobian_x = self.model[k].weight.expand((bs, *self.model[k].weight.shape))
+                    jacobian_x = self.model[k].weight.expand(
+                        (bs, *self.model[k].weight.shape)
+                    )
                 elif isinstance(self.model[k], torch.nn.Tanh):
                     jacobian_x = torch.diag_embed(
-                        torch.ones(feature_maps[k + 1].shape, device=self.device) - feature_maps[k + 1] ** 2
+                        torch.ones(feature_maps[k + 1].shape, device=self.device)
+                        - feature_maps[k + 1] ** 2
                     )
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x = torch.diag_embed((feature_maps[k + 1] > 0).float())
-                elif isinstance(self.model[k], L2Normalize):
-                    jacobian_x = self.model[k]._jacobian_wrt_input(feature_maps[k], feature_maps[k + 1])
+                elif isinstance(self.model[k], L2Norm):
+                    jacobian_x = self.model[k]._jacobian_wrt_input(
+                        feature_maps[k], feature_maps[k + 1]
+                    )
                 else:
                     raise NotImplementedError
 
@@ -114,7 +122,7 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
         self.total_pairs = 0
         self.zeros = 0
         self.negatives = 0
-    
+
     def init_model(self, model):
         super().init_model(model)
         self.rmse_hessian_calculator.init_model(model)
@@ -139,7 +147,7 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
         zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
-        
+
         self.zeros += zero_mask.sum().detach().item()
         self.negatives += negative_mask.sum().detach().item()
         self.total_pairs += bs
@@ -169,7 +177,9 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
 
 class ContrastiveHessianCalculator(HessianCalculator):
-    def __init__(self, margin=0.2, alpha=0.01, num_classes=10, device="cpu", force_positive=False) -> None:
+    def __init__(
+        self, margin=0.2, alpha=0.01, num_classes=10, device="cpu", force_positive=False
+    ) -> None:
         super().__init__(device)
         self.margin = margin
         self.alpha = alpha
@@ -181,7 +191,12 @@ class ContrastiveHessianCalculator(HessianCalculator):
         self.negatives = 0
 
     def compute_batch(
-        self, feature_maps1: List[Tensor], feature_maps2: List[Tensor], y: Tensor, *args, **kwargs
+        self,
+        feature_maps1: List[Tensor],
+        feature_maps2: List[Tensor],
+        y: Tensor,
+        *args,
+        **kwargs
     ) -> Tensor:
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
@@ -194,14 +209,18 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
         zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
-        
+
         self.zeros += zero_mask.sum().detach().item()
         self.negatives += negative_mask.sum().detach().item()
         self.total_pairs += bs
 
         # Saves the product of the Jacobians wrt layer input
-        tmp1 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))
-        tmp2 = torch.diag_embed((1 + self.alpha) * torch.ones(bs, output_size, device=self.device))
+        tmp1 = torch.diag_embed(
+            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+        )
+        tmp2 = torch.diag_embed(
+            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+        )
         tmp3 = torch.diag_embed(torch.ones(bs, output_size, device=self.device))
 
         hessian = []
@@ -246,21 +265,29 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
                 # Calculate the Jacobian wrt to the inputs
                 if isinstance(self.model[k], torch.nn.Linear):
-                    jacobian_x1 = self.model[k].weight.expand((bs, *self.model[k].weight.shape))
+                    jacobian_x1 = self.model[k].weight.expand(
+                        (bs, *self.model[k].weight.shape)
+                    )
                     jacobian_x2 = jacobian_x1
                 elif isinstance(self.model[k], torch.nn.Tanh):
                     jacobian_x1 = torch.diag_embed(
-                        torch.ones(feature_maps1[k + 1].shape, device=self.device) - feature_maps1[k + 1] ** 2
+                        torch.ones(feature_maps1[k + 1].shape, device=self.device)
+                        - feature_maps1[k + 1] ** 2
                     )
                     jacobian_x2 = torch.diag_embed(
-                        torch.ones(feature_maps2[k + 1].shape, device=self.device) - feature_maps2[k + 1] ** 2
+                        torch.ones(feature_maps2[k + 1].shape, device=self.device)
+                        - feature_maps2[k + 1] ** 2
                     )
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x1 = torch.diag_embed((feature_maps1[k + 1] > 0).float())
                     jacobian_x2 = torch.diag_embed((feature_maps2[k + 1] > 0).float())
-                elif isinstance(self.model[k], L2Normalize):
-                    jacobian_x1 = self.model[k]._jacobian_wrt_input(feature_maps1[k], feature_maps1[k + 1])
-                    jacobian_x2 = self.model[k]._jacobian_wrt_input(feature_maps2[k], feature_maps2[k + 1])
+                elif isinstance(self.model[k], L2Norm):
+                    jacobian_x1 = self.model[k]._jacobian_wrt_input(
+                        feature_maps1[k], feature_maps1[k + 1]
+                    )
+                    jacobian_x2 = self.model[k]._jacobian_wrt_input(
+                        feature_maps2[k], feature_maps2[k + 1]
+                    )
                 else:
                     raise NotImplementedError
 
@@ -273,12 +300,12 @@ class ContrastiveHessianCalculator(HessianCalculator):
         hessian = torch.cat(hessian, dim=1)
 
         # Set to zero for non-matches outside mask
-        hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0., 1.), hessian)
+        hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0.0, 1.0), hessian)
 
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
         hessian = torch.einsum(
             "b,bm->bm",
-            torch.where(negative_mask, -1. / (self.num_classes - 1.), 1.),
+            torch.where(negative_mask, -1.0 / (self.num_classes - 1.0), 1.0),
             hessian,
         )
 

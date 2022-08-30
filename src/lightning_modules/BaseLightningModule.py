@@ -27,7 +27,7 @@ def get_time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")
 
 
-class BaseLightningModule(LightningLite, MetricMeter):
+class BaseLightningModule(LightningLite):
     """
     Base Lightning Module for Probabilistic Metric Learning
     """
@@ -293,7 +293,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 reference=z_db,
                 query_labels=y,
                 reference_labels=y_db,
-                embeddings_come_from_same_source=True,
+                embeddings_come_from_same_source=False,
             )
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
@@ -317,7 +317,7 @@ class BaseLightningModule(LightningLite, MetricMeter):
                 reference=z_db,
                 query_labels=y,
                 reference_labels=y_db,
-                embeddings_come_from_same_source=True,
+                embeddings_come_from_same_source=False,
             )
 
             self.expected_metrics.update(
@@ -435,25 +435,52 @@ class BaseLightningModule(LightningLite, MetricMeter):
         id_sigma = []
         id_mu = []
         id_images = []
+        id_labels = []
+
+        train_mu = []
+        train_sigma = []
+        train_sampled = []
+        train_labels = []
+
         with torch.no_grad():
+            for image, target in tqdm(
+                self.train_loader, desc="Preparing query DB for testing"
+            ):
+                mu, sigma, out = self.test_step(image, target)
+                train_mu.append(mu)
+                train_sigma.append(sigma)
+                train_sampled.append(out)
+                train_labels.append(target)
+
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
                 id_sigma.append(sigma)
                 id_mu.append(mu)
                 id_images.append(image)
+                id_labels.append(target)
 
-                self.update_accuracy(
-                    out,
-                    target,
-                    "test",
+            self.update_accuracy(
+                torch.cat(id_mu, dim=0),
+                torch.cat(id_labels, dim=0),
+                "test",
+                z_db=torch.cat(train_mu, dim=0),
+                y_db=torch.cat(train_labels, dim=0),
+            )
+
+            if expected:
+                self.update_expected_accuracy(
+                    z=torch.stack(
+                        (torch.cat(id_mu, dim=0), torch.cat(id_sigma, dim=0)),
+                        dim=-1,
+                    ),
+                    y=torch.cat(id_labels, dim=0),
+                    step="test",
+                    z_db=torch.stack(
+                        (torch.cat(train_mu, dim=0), torch.cat(train_sigma, dim=0)),
+                        dim=-1,
+                    ),
+                    y_db=torch.cat(train_labels, dim=0),
                 )
-
-                if expected:
-                    self.update_expected_accuracy(
-                        torch.stack((mu, sigma), dim=-1),
-                        target,
-                        "test",
-                    )
 
         self.test_end()
 

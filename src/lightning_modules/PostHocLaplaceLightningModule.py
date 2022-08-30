@@ -1,16 +1,29 @@
-import logging
-from typing import Tuple
-import torch
-from torch import Tensor
-from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_parameters
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
-from src.hessian.layerwise import (
-    ContrastiveHessianCalculator,
-    FixedContrastiveHessianCalculator,
-)
+from torch import optim, nn
+import torch.distributions as dist
+
+import torch
+from torch.nn.utils.convert_parameters import parameters_to_vector
+
+from tqdm import tqdm
+
+
+class DummyOptimizer(optim.Optimizer):
+    def __init__(self, lr=1e-3):
+        defaults = dict(lr=lr)
+        params = [{"params": [torch.randn(1, 1)], "lr": lr}]
+        super(DummyOptimizer, self).__init__(params, defaults)
+
+    def step(self):
+        pass
+
+
+class DummyLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, y):
+        return x
 
 
 class PostHocLaplaceLightningModule(BaseLightningModule):
@@ -18,197 +31,142 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
     Post-hoc Laplace approximation of the posterior distribution.
     """
 
-    def init(self, model, loss_fn, miner, optimizer, args) -> None:
-        """
-        Initialize the module.
-        :param model: nn.Sequential, the model to train.
-        :param miner: Miner, the miner to use.
-        :param args: Requires the following arguments:
-            - name: str, name of the model
-            - dataset: str, dataset name
-            - batch_size: int, batch size
-            - num_workers: int, number of workers
-            - shuffle: bool, whether to shuffle the data
-            - pin_memory: bool, whether to use pinned memory
-            - neg_margin: float, margin for contrastive loss
-            - embedding_size: int, embedding size
-            - lr: float, learning rate
-            - n_posterior_samples: int, number of posterior samples
-            - num_epoch: int, number of epochs
-            - resume_epoch: int, resume training from this epoch
-            - save_freq: int, save model every save_freq epochs
-            - disp_freq: int, display progress every disp_freq batches
-            - to_visualize: bool, whether to visualize the model
-            - vis_dir: str, path to the visualization directory
-            - data_dir: str, path to the data directory
-            - model_save_folder: str, path to the model save folder
-            - model_path: str, path to the model to load
-            - log_dir: str, path to the log directory
-        :return: None
-        """
-        super().init(model, loss_fn, miner, optimizer, args)
+    def init(self, model, miner, calculator_cls, inference_model, args):
+        super().init(model, DummyLoss(), miner, DummyOptimizer(), args)
 
-        self.n_posterior_samples = args.posterior_samples
-        self.scale = 1.0
-        self.prior_prec = 1.0
-        self.inference_model = getattr(self.model.module, args.inference_model)
+        # Load model backbone
+        if args.backbone_path:
+            state_dict = torch.load(args.backbone_path)
 
-        if args.hessian_calculator == "fixed":
-            self.hessian_calculator = FixedContrastiveHessianCalculator(
-                args.neg_margin, device=self.device
-            )
+            new_state_dict = {}
+            for key in state_dict:
+                if key.startswith("0."):
+                    new_state_dict[key[2:]] = state_dict[key]
+                else:
+                    new_state_dict[key] = state_dict[key]
+
+            model.backbone.load_state_dict(new_state_dict)
+
+        self.calculator = calculator_cls(device=self.device, margin=args.margin)
+
+        if inference_model is None:
+            self.inference_model = model
         else:
-            self.hessian_calculator = ContrastiveHessianCalculator(
-                args.neg_margin, device=self.device
-            )
-        self.hessian_calculator.init_model(self.inference_model)
+            self.inference_model = inference_model
 
-    def train_start(self) -> None:
-        n_params = sum(p.numel() for p in self.inference_model.parameters())
-        self.hessian = torch.zeros((n_params,), device=self.device)
-        self.scaler: float = (len(self.train_loader.dataset)**2) / (self.batch_size**2)
+        self.calculator.init_model(self.inference_model)
+        self.n_samples = args.posterior_samples
 
-    def train(self) -> None:
-        print(f"Training")
-        self.train_start()
+        self.model.module.module.inference_model = self.inference_model
+
+    def forward(self, x, use_samples=True):
+        return self.model(x, use_samples=use_samples)
+
+    def ood_step(self, X, y):
+        mean, std = self.forward(X, use_samples=True)
+        return mean, std
+
+    def test_start(self):
+        super().test_start()
+        self.generate_nn_samples()
+
+    def generate_nn_samples(self):
+        # Use the same samples for testing
+        self.model.module.module.generate_nn_samples(
+            self.mu_q, self.sigma_q, self.n_samples
+        )
+
+    def test_step(self, X, y):
+        mean, std = self.forward(X, use_samples=True)
+
+        cov = torch.diag_embed(std.square())
+        pdist = dist.MultivariateNormal(mean, cov)
+        samples = pdist.rsample()
+
+        return mean, std, samples
+
+    def train_start(self):
+        self.epoch = 0
+
+    def train(self):
+        """Specialized train loop for post hoc"""
         self.model.train()
+        self.train_start()
+
+        print("Starting post hoc optimization")
 
         if not self.name:
             raise ValueError("Please run .init()")
 
-        self.epoch_start()
+        h = 0
+        dataset_size = len(self.train_loader.dataset)
+        print(f"Dataset size: {dataset_size}")
+        with torch.no_grad():
+            for x, y in tqdm(self.train_loader):
+                output, _ = self.forward(x, use_samples=False)
+                hard_pairs = self.miner(output, y)
 
-        for image, target in tqdm(self.train_loader, desc="Training"):
-            self.train_step(image, target)
+                # Total number of possible pairs / number of pairs in our batch
+                scaler = dataset_size**2 / x.shape[0] ** 2
+                hessian = self.calculator.compute_batch_pairs(hard_pairs)
+                h += hessian * scaler
 
-        self.epoch_end()
+        if (h < 0).sum():
+            print("Found negative values in Hessian.")
 
-        self.train_end()
-        print(f"Finished training")
+        h = torch.maximum(h, torch.tensor(0))
 
-    def train_step(self, X, y) -> Tensor:
-        X = X.to(self.device)
-        y = y.to(self.device)
+        print(
+            f"{100 * self.calculator.zeros / self.calculator.total_pairs:.2f}% of pairs are zero."
+        )
+        print(
+            f"{100 * self.calculator.negatives / self.calculator.total_pairs:.2f}% of pairs are negative."
+        )
 
-        z = self.model(X)
-        hard_pairs = self.miner(z, y)
+        map_solution = parameters_to_vector(self.inference_model.parameters())
 
-        hessian = self.hessian_calculator.compute_batch_pairs(hard_pairs)
-        self.hessian += self.scaler * hessian
-        return hessian
+        scale = 1.0
+        prior_prec = 1.0
+        prior_prec = self.optimize_prior_precision(
+            map_solution, h, torch.tensor(prior_prec)
+        )
+        posterior_precision = h * scale + prior_prec
+        posterior_scale = 1.0 / (posterior_precision.sqrt() + 1e-6)
 
-    def train_end(self) -> None:
-        if (self.hessian < 0).sum():
-            logging.warning("Found negative values in Hessian.")
-            self.hessian = self.hessian.clamp(min=0.0)
-        
-        plt.plot(self.hessian.cpu().numpy())
-        plt.savefig("hessian.png")
+        self.mu_q = map_solution
+        self.sigma_q = posterior_scale
+        self.h = h
 
-        self.mu_q: Tensor = parameters_to_vector(self.inference_model.parameters())
-        self.sigma_q: Tensor = self.posterior_scale()
+        print("Finished optimizing post-hoc")
 
-    def val_step(self, X, y):
-        mean, var = self.predict(X)
-        return mean, var, mean
+    def scatter(self, mu_q, prior_precision_diag):
+        return (mu_q * prior_precision_diag) @ mu_q
 
-    def test_step(self, X, y):
-        mean, var = self.predict(X)
-        return mean, var, mean
+    def log_det_ratio(self, hessian, prior_prec):
+        posterior_precision = hessian + prior_prec
+        log_det_prior_precision = len(hessian) * prior_prec.log()
+        log_det_posterior_precision = posterior_precision.log().sum()
+        return log_det_posterior_precision - log_det_prior_precision
 
-    def ood_step(self, X, y):
-        mean, var = self.predict(X)
-        return mean, var
+    def log_marginal_likelihood(self, mu_q, hessian, prior_prec):
+        # we ignore neg log likelihood as it is constant wrt prior_prec
+        neg_log_marglik = -0.5 * (
+            self.log_det_ratio(hessian, prior_prec) + self.scatter(mu_q, prior_prec)
+        )
+        return neg_log_marglik
 
-    def predict(self, x: Tensor):
-        x = x.to(self.device)
-        posterior_samples = self._sample_posterior()
+    def optimize_prior_precision(self, mu_q, hessian, prior_prec, n_steps=100):
 
-        mean, var = self.generate_predictions_from_samples_rolling(x, posterior_samples)
-        return mean, var
-
-    # def predict(self, x: Tensor, agg=torch.mean) -> Tensor:
-    #     x = x.to(self.device)
-    #     posterior_samples = self._sample_posterior()
-    #     preds = []
-    #     for sample in posterior_samples:
-    #         vector_to_parameters(sample, self.inference_model.parameters())
-    #         with torch.inference_mode():
-    #             preds.append(self.model(x))
-    #     preds = torch.stack(preds)
-    #     return agg(preds, dim=0) if agg is not None else preds
-
-    def _sample_posterior(self) -> Tensor:
-        n_params = len(self.mu_q)
-        samples = torch.randn(self.n_posterior_samples, n_params, device=self.device)
-        samples = samples * self.sigma_q.reshape(1, n_params)
-        return self.mu_q.reshape(1, n_params) + samples
-
-    def optimize_prior_precision(self, n_steps=100) -> Tensor:
-        """
-        Optimize the prior precision.
-        :param n_steps: int, number of iterations to optimize the prior precision.
-        :return: Tensor, the optimized prior precision.
-        """
-        prior_prec = torch.tensor(1)
         log_prior_prec = prior_prec.log()
         log_prior_prec.requires_grad = True
         optimizer = torch.optim.Adam([log_prior_prec], lr=1e-1)
         for _ in range(n_steps):
             optimizer.zero_grad()
             prior_prec = log_prior_prec.exp()
-            neg_log_marglik = -self.log_marginal_likelihood(prior_prec)
+            neg_log_marglik = -self.log_marginal_likelihood(mu_q, hessian, prior_prec)
             neg_log_marglik.backward()
             optimizer.step()
 
         prior_prec = log_prior_prec.detach().exp()
-        self.prior_prec = prior_prec
 
         return prior_prec
-
-    def log_marginal_likelihood(self, prior_prec) -> Tensor:
-        # we ignore neg log likelihood as it is constant wrt prior_prec
-        neg_log_marglik = -0.5 * (
-            _log_det_ratio(self.hessian, prior_prec) + _scatter(self.mu_q, prior_prec)
-        )
-        return neg_log_marglik
-
-    def posterior_scale(self):
-        posterior_precision = self.hessian * self.scale + self.prior_prec
-        return 1.0 / (posterior_precision.sqrt() + 1e-6)
-
-    def generate_predictions_from_samples_rolling(
-        self, x, weight_samples
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Welford's online algorithm for calculating mean and variance.
-        """
-
-        N = len(weight_samples)
-
-        vector_to_parameters(weight_samples[0, :], self.inference_model.parameters())
-        with torch.inference_mode():
-            mean = self.model(x)
-            msq = 0.0
-            delta = 0.0
-
-            for i, net_sample in enumerate(weight_samples[1:, :]):
-                vector_to_parameters(net_sample, self.inference_model.parameters())
-                sample_preds = self.model(x)
-                delta = sample_preds - mean
-                mean += delta / (i + 1)
-                msq += delta * delta
-
-            variance = msq / (N - 1)
-        return mean, variance
-
-
-def _log_det_ratio(hessian, prior_prec) -> Tensor:
-    posterior_precision = hessian + prior_prec
-    log_det_prior_precision = len(hessian) * prior_prec.log()
-    log_det_posterior_precision = posterior_precision.log().sum()
-    return log_det_posterior_precision - log_det_prior_precision
-
-
-def _scatter(mu_q, prior_precision_diag) -> Tensor:
-    return (mu_q * prior_precision_diag) @ 

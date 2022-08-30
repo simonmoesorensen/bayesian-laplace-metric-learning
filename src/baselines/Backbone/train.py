@@ -1,5 +1,5 @@
 import torch.optim as optim
-from pytorch_metric_learning import distances, losses, miners
+from pytorch_metric_learning import losses, miners
 from src.baselines.Backbone.config import parse_args
 from src.baselines.Backbone.models import (
     Casia_Backbone,
@@ -70,7 +70,7 @@ def run(Backbone_args):
     miner = miners.BatchEasyHardMiner(
         pos_strategy="all",
         neg_strategy="all",
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
+        # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
 
     trainer = BackboneLightningModule(
