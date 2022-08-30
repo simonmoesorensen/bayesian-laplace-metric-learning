@@ -54,10 +54,15 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         else:
             self.inference_model = inference_model
 
-        self.calculator.init_model(self.inference_model)
+        # self.calculator.init_model(self.inference_model)
+
         self.n_samples = args.posterior_samples
 
         self.model.module.module.inference_model = self.inference_model
+
+        self.epoch = 0
+        self.mu_q = parameters_to_vector(self.inference_model.parameters())
+        self.sigma_q = torch.load('sigma_q_FashionMNIST_32_fixed.pt')
 
     def forward(self, x, use_samples=True):
         return self.model(x, use_samples=use_samples)

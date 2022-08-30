@@ -18,23 +18,16 @@ class LaplaceHead(SampleNet):
         return self.backbone(x)
 
     def sample(self, X, samples):
-        mean = 0.0
-        msq = 0.0
-        delta = 0.0
+        preds = []
 
-        for i, net_sample in enumerate(samples):
+        for net_sample in samples:
             vector_to_parameters(net_sample, self.inference_model.parameters())
-            if i == 0:
-                mean = self.backbone(X)
-                continue
+            pred = self.backbone(X)
+            preds.append(pred)
 
-            sample_preds = self.backbone(X)
-            delta = sample_preds - mean
-            mean += delta / i
-            msq += delta * delta
+        preds = torch.stack(preds, dim=-1)
 
-        variance = msq / (len(samples) - 1)
-        return mean, variance.sqrt()
+        return preds.mean(dim=-1), preds.std(dim=-1)
 
     def forward(self, x, use_samples=True):
         if use_samples:

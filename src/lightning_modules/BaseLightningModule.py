@@ -93,9 +93,7 @@ class BaseLightningModule(LightningLite):
             cycle_momentum=False,
         )
 
-        knn_func = CustomKNN(
-            distances.LpDistance(normalize_embeddings=False, p=2, power=1)
-        )
+        knn_func = CustomKNN(distances.LpDistance())
 
         # Metric calculation
         self.metric_calc = AccuracyRecall(
@@ -459,28 +457,28 @@ class BaseLightningModule(LightningLite):
                 id_images.append(image)
                 id_labels.append(target)
 
-            self.update_accuracy(
-                torch.cat(id_mu, dim=0),
-                torch.cat(id_labels, dim=0),
-                "test",
-                z_db=torch.cat(train_mu, dim=0),
-                y_db=torch.cat(train_labels, dim=0),
-            )
-
-            if expected:
-                self.update_expected_accuracy(
-                    z=torch.stack(
-                        (torch.cat(id_mu, dim=0), torch.cat(id_sigma, dim=0)),
-                        dim=-1,
-                    ),
-                    y=torch.cat(id_labels, dim=0),
-                    step="test",
-                    z_db=torch.stack(
-                        (torch.cat(train_mu, dim=0), torch.cat(train_sigma, dim=0)),
-                        dim=-1,
-                    ),
+                self.update_accuracy(
+                    mu,
+                    target,
+                    "test",
+                    z_db=torch.cat(train_mu, dim=0),
                     y_db=torch.cat(train_labels, dim=0),
                 )
+
+                if expected:
+                    self.update_expected_accuracy(
+                        z=torch.stack((mu, sigma.square()), dim=-1),
+                        y=target,
+                        step="test",
+                        z_db=torch.stack(
+                            (
+                                torch.cat(train_mu, dim=0),
+                                torch.cat(train_sigma.square(), dim=0),
+                            ),
+                            dim=-1,
+                        ),
+                        y_db=torch.cat(train_labels, dim=0),
+                    )
 
         self.test_end()
 

@@ -72,7 +72,7 @@ def run(args):
 
     trainer.add_data_module(data_module)
 
-    trainer.train()
+    # trainer.train()
     trainer.test(expected=True)
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")
