@@ -13,6 +13,8 @@ from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 from torch.utils.data import DataLoader, TensorDataset
 from pytorch_metric_learning.utils.inference import CustomKNN
 from pytorch_metric_learning import distances
+from tqdm import tqdm
+
 
 sns.set()
 
@@ -141,8 +143,8 @@ def visualize_all(
     # Visualize
     plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
 
-    id_var = id_sigma**2
-    ood_var = ood_sigma**2
+    id_var = id_sigma.square()
+    ood_var = ood_sigma.square()
     plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
 
 
@@ -341,7 +343,7 @@ def plot_calibration_curve(
 
     predicted = []
     confidences = []
-    for target, mu, sigma in DataLoader(TensorDataset(targets, mus, sigmas), 128):
+    for target, mu, sigma in tqdm(DataLoader(TensorDataset(targets, mus, sigmas), 128)):
         cov = torch.diag_embed(sigma)
         pdist = torch.distributions.MultivariateNormal(mu, cov)
 
@@ -451,7 +453,7 @@ def plot_sparsification_curve(
 
     accuracies = []
 
-    for target, mu, sigma in DataLoader(TensorDataset(targets, mus, sigmas), 128):
+    for target, mu, sigma in tqdm(DataLoader(TensorDataset(targets, mus, sigmas), 128)):
 
         # Start with all images and remove the highest uncertainty image until
         # there is only 10 images with the lowest uncertainty left
