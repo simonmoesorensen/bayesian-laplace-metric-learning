@@ -11,11 +11,14 @@ from pytorch_lightning.lite import LightningLite
 from pytorch_metric_learning import distances
 from pytorch_metric_learning.utils.inference import CustomKNN
 from src.distances import ExpectedSquareL2Distance
-from src.evaluation.calibration_curve import run as run_calibration_curve
-from src.evaluation.sparsification_curve import run as run_sparsification_curve
 from src.metrics.MetricMeter import AverageMeter, MetricMeter
 from src.recall_at_k import AccuracyRecall
-from src.visualize import get_names, visualize_all
+from src.visualize import (
+    get_names,
+    visualize_all,
+    plot_calibration_curve,
+    plot_sparsification_curve,
+)
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -425,9 +428,10 @@ class BaseLightningModule(LightningLite):
 
         self.val_start()
 
-        id_sigma = []
-        id_mu = []
-        id_images = []
+        val_sigma = []
+        val_mu = []
+        val_images = []
+        val_labels = []
         with torch.no_grad():
             if self.train_images:
                 train_labels = torch.cat(self.train_labels, dim=0)
@@ -438,9 +442,10 @@ class BaseLightningModule(LightningLite):
 
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu, sigma, out = self.val_step(image, target)
-                id_sigma.append(sigma)
-                id_mu.append(mu)
-                id_images.append(image)
+                val_sigma.append(sigma)
+                val_mu.append(mu)
+                val_images.append(image)
+                val_labels.append(target)
 
                 self.update_accuracy(
                     out,
@@ -451,7 +456,7 @@ class BaseLightningModule(LightningLite):
                 )
 
                 self.update_expected_accuracy(
-                    torch.stack((id_mu, id_sigma), dim=-1),
+                    torch.stack((val_mu, val_sigma), dim=-1),
                     target,
                     step="val",
                     z_db=train_mu,
@@ -461,7 +466,7 @@ class BaseLightningModule(LightningLite):
         self.val_end()
 
         if self.to_visualize:
-            self.visualize(id_mu, id_sigma, id_images, prefix="val_")
+            self.visualize(val_mu, val_sigma, val_images, val_labels, prefix="val_")
 
         self.model.train()
 
@@ -471,10 +476,10 @@ class BaseLightningModule(LightningLite):
 
         self.test_start()
 
-        id_sigma = []
-        id_mu = []
-        id_images = []
-        id_labels = []
+        test_sigma = []
+        test_mu = []
+        test_images = []
+        test_labels = []
 
         train_mu = []
         train_sigma = []
@@ -493,10 +498,10 @@ class BaseLightningModule(LightningLite):
 
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
-                id_sigma.append(sigma)
-                id_mu.append(mu)
-                id_images.append(image)
-                id_labels.append(target)
+                test_sigma.append(sigma)
+                test_mu.append(mu)
+                test_images.append(image)
+                test_labels.append(target)
 
                 self.update_accuracy(
                     mu,
@@ -524,9 +529,14 @@ class BaseLightningModule(LightningLite):
         self.test_end()
 
         if self.to_visualize:
-            self.visualize(id_mu, id_sigma, id_images, prefix="test_")
+            self.visualize(test_mu, test_sigma, test_images, test_labels, prefix="test_")
 
-    def visualize(self, id_mu, id_sigma, id_images, prefix):
+    def visualize(self, id_mu, id_sigma, id_images, id_labels, prefix):
+        id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
+        id_mu = torch.cat(id_mu, dim=0).detach().cpu()
+        id_images = torch.cat(id_images, dim=0).detach().cpu()
+        id_labels = torch.cat(id_labels, dim=0).detach().cpu()
+
         print("=" * 60, flush=True)
         print("Visualizing...")
 
@@ -542,12 +552,20 @@ class BaseLightningModule(LightningLite):
         ood_sigma = []
         ood_mu = []
         ood_images = []
+        ood_labels = []
+
         with torch.no_grad():
             for img, y in tqdm(self.ood_loader, desc="OOD"):
                 mu_ood, std_ood, samples_ood = self.ood_step(img, y)
                 ood_sigma.append(std_ood)
                 ood_mu.append(mu_ood)
                 ood_images.append(img)
+                ood_labels.append(y)
+
+        ood_sigma = torch.cat(ood_sigma, dim=0).detach().cpu()
+        ood_mu = torch.cat(ood_mu, dim=0).detach().cpu()
+        ood_images = torch.cat(ood_images, dim=0).detach().cpu()
+        ood_labels = torch.cat(ood_labels, dim=0).detach().cpu()
 
         # Visualize
         visualize_all(
@@ -557,9 +575,10 @@ class BaseLightningModule(LightningLite):
         model_name, dataset_name, run_name = get_names(vis_path)
 
         print("Running calibration curve")
-        ece = run_calibration_curve(
-            self.model,
-            self.test_loader,
+        ece = plot_calibration_curve(
+            id_labels,
+            id_mu,
+            id_sigma,
             100,
             vis_path,
             model_name,
@@ -569,9 +588,11 @@ class BaseLightningModule(LightningLite):
         self.additional_metrics.update(f"{prefix}ece", ece)
 
         print("Running sparsification curve")
-        ausc = run_sparsification_curve(
-            self.model, self.test_loader, vis_path, model_name, dataset_name, run_name
+
+        ausc = plot_sparsification_curve(
+            id_labels, id_mu, id_sigma, vis_path, model_name, dataset_name, run_name
         )
+
         self.additional_metrics.update(f"{prefix}ausc", ausc)
 
         # Read ood metrics
