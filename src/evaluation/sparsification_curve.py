@@ -114,9 +114,7 @@ def load(model_name, model_path, dataset, embedding_size, batch_size, loss):
 
 
 def run(model, data_loader, path, model_name, dataset_name, run_name=""):
-    knn_func = inference.CustomKNN(
-        distance=distances.LpDistance(normalize_embeddings=False)
-    )
+    knn_func = inference.CustomKNN(distance=distances.LpDistance())
 
     metric = AccuracyCalculator(
         include=("precision_at_1",),

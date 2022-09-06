@@ -151,10 +151,8 @@ def load(model_name, model_path, dataset, embedding_size, batch_size, loss, samp
     run(model, data_loader, samples, path, model_name, dataset)
 
 
-def run(model, data_loader, samples, path, model_name, dataset_name, run_name=""):
-    knn_func = inference.CustomKNN(
-        distance=distances.LpDistance(normalize_embeddings=False)
-    )
+def run(model, data_loader, n_samples, path, model_name, dataset_name, run_name=""):
+    knn_func = inference.CustomKNN(distance=distances.LpDistance())
 
     predicted = []
     confidences = []
@@ -165,19 +163,33 @@ def run(model, data_loader, samples, path, model_name, dataset_name, run_name=""
             image = image.to(device)
             target = target.to(device)
 
-            mu, sigma = model(image)
+            out = model(image)
 
-            cov = torch.diag_embed(sigma)
-            pdist = torch.distributions.MultivariateNormal(mu, cov)
+            if len(out) == 2:
+                mu, sigma = out
+
+                cov = torch.diag_embed(sigma)
+                pdist = torch.distributions.MultivariateNormal(mu, cov)
+
+            elif len(out) == 3:
+                (
+                    mu,
+                    sigma,
+                    samples,
+                ) = out  # samples is (n_samples, batch_size, embedding_size)
+            else:
+                raise ValueError("Invalid output from model")
 
             pred_labels = []
 
-            for _ in range(samples):
-                # Save space by sampling once every iteration instead of all in one go
-                sample = pdist.sample()
-
+            for i in range(n_samples):
                 # knn_func(query, k, reference, shares_datapoints)
-                _, indices = knn_func(sample, 1, sample, True)
+                if len(out) == 2:
+                    sample_i = pdist.sample()
+                elif len(out) == 3:
+                    sample_i = samples[i]
+
+                _, indices = knn_func(sample_i, 1, sample_i, True)
                 pred_labels.append(target[indices].squeeze())
 
             pred_labels = torch.stack(pred_labels, dim=1)
