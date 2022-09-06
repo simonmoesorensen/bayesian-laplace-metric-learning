@@ -35,6 +35,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
                     "num_epoch": num_epoch,
                     "additional_args": f"--random_seed {seed}",
                     "gpu_mem": gpu_mem,
+                    "gpu_queue": config.gpu_queue,
                 }
             )
 
