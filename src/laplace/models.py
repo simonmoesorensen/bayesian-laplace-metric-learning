@@ -35,7 +35,7 @@ class LaplaceHead(SampleNet):
 
         preds = torch.stack(preds, dim=-1)
 
-        return preds.mean(dim=-1), preds.var(dim=-1), preds
+        return preds.mean(dim=-1), preds.std(dim=-1), preds
 
     def forward(self, x, use_samples=True):
         if use_samples:
@@ -103,4 +103,5 @@ def sample_nn_weights(parameters, posterior_scale, n_samples=100):
     n_params = len(parameters)
     samples = torch.randn(n_samples, n_params, device=parameters.device)
     samples = samples * posterior_scale.reshape(1, n_params)
+    samples = samples + parameters
     return samples
