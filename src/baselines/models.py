@@ -28,20 +28,20 @@ class CIFAR10ConvNet(nn.Module):
     def __init__(self, latent_dim=128):
         super().__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 16, 3, 1),
+            nn.Conv2d(3, 6, 5),
             nn.ReLU(),
-            nn.Conv2d(16, 32, 3, 1),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(6, 16, 5),
             nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Dropout2d(0.25),
+            nn.MaxPool2d(2, stride=2),
             nn.Flatten(),
         )
         linear_layers = [
-            nn.Linear(6272, 256),
+            nn.Linear(16 * 5 * 5, 120),
             nn.Tanh(),
-            nn.Linear(256, 256),
+            nn.Linear(120, 84),
             nn.Tanh(),
-            nn.Linear(256, latent_dim),
+            nn.Linear(84, latent_dim),
         ]
 
         self.linear = nn.Sequential(*linear_layers)
@@ -55,17 +55,19 @@ class CIFAR10ConvNet(nn.Module):
 class FashionMNISTConvNet(nn.Module):
     def __init__(self, latent_dim=32):
         super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(1, 16, 3, 1),
+        self.conv =  nn.Sequential(
+            nn.Conv2d(1, 8, 3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(16, 32, 3, 1),
+            nn.Conv2d(8, 16, 3, stride=2, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Dropout2d(0.25),
+            nn.Conv2d(16, 32, 3, stride=2, padding=0),
+            nn.ReLU(),
             nn.Flatten(),
         )
         linear_layers = [
-            nn.Linear(4608, latent_dim),
+            nn.Linear(3 * 3 * 32, 128),
+            nn.Tanh(),
+            nn.Linear(128, latent_dim),
         ]
 
         self.linear = nn.Sequential(*linear_layers)
