@@ -21,6 +21,7 @@ class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
     num_epoch = 500
+    gpu_mem = "32"
 
 
 template_text = """
@@ -72,7 +73,6 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 python3 -m src.baselines.{model}.train --dataset {dataset} --name {name} --batch_size {batch_size} --embedding_size {latent_dim} --num_epoch {num_epoch} --save_freq 100000 --gpu_id 0 1 --num_workers 8 --to_visualize --shuffle {additional_args}
 """
-
 
 
 template_text_laplace = """
