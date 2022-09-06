@@ -339,7 +339,7 @@ def visualize(
 
 
 def run_sparsification_curve(targets, mus, sigmas, path, model_name, dataset_name):
-    knn_func = CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
+    knn_func = CustomKNN(distance=distances.LpDistance())
 
     metric = AccuracyCalculator(
         include=("precision_at_1",),
@@ -432,7 +432,7 @@ def run_sparsification_curve(targets, mus, sigmas, path, model_name, dataset_nam
 def run_calibration_curve(
     targets, mus, sigmas, samples, path, model_name, dataset_name
 ):
-    knn_func = CustomKNN(distance=distances.LpDistance(normalize_embeddings=False))
+    knn_func = CustomKNN(distance=distances.LpDistance())
     latent_dim = mus.shape[-1]
 
     predicted = []
@@ -580,7 +580,7 @@ def generate_predictions_from_samples_rolling(
     return mean, variance
 
 
-def sample_nn_weights(parameters, posterior_scale, n_samples=16):
+def sample_nn_weights(parameters, posterior_scale, n_samples=100):
     n_params = len(parameters)
     samples = torch.randn(n_samples, n_params, device=parameters.device)
     samples = samples * posterior_scale.reshape(1, n_params)
