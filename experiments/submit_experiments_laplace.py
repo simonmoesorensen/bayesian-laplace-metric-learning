@@ -66,4 +66,3 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                         check=True,
                         shell=True,
                     )
-                    input("h")
