@@ -276,7 +276,9 @@ class BaseLightningModule(LightningLite):
             )
         )
 
-    def update_accuracy(self, z, y, step="train", z_db=None, y_db=None):
+    def update_accuracy(
+        self, z, y, step="train", z_db=None, y_db=None, same_source=False
+    ):
         if step not in ["train", "val", "test"]:
             raise ValueError("step must be one of ['train', 'val', 'test']")
 
@@ -293,7 +295,7 @@ class BaseLightningModule(LightningLite):
                 reference=z_db,
                 query_labels=y,
                 reference_labels=y_db,
-                embeddings_come_from_same_source=False,
+                embeddings_come_from_same_source=same_source,
             )
 
             self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
@@ -350,6 +352,10 @@ class BaseLightningModule(LightningLite):
         )  # frequency to display training loss
         batch = 0
 
+        # Save train data for accuracy calculation
+        self.train_images = []
+        self.train_labels = []
+
         for epoch in range(self.args.num_epoch):
             self.epoch_start()
 
@@ -359,6 +365,10 @@ class BaseLightningModule(LightningLite):
             self.epoch = epoch
 
             for image, target in tqdm(self.train_loader, desc="Training"):
+                if len(self.train_images) < len(self.train_loader.dataset):
+                    self.train_images.append(image)
+                    self.train_labels.append(target)
+
                 self.optimizer.zero_grad()
 
                 out, loss = self.train_step(image, target)
@@ -369,14 +379,28 @@ class BaseLightningModule(LightningLite):
 
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
-                    self.update_accuracy(out, target, "train")
-                    self.display(epoch, batch)
-                    self.writer.add_scalar(
-                        "lr",
-                        self.optimizer.param_groups[0]["lr"],
-                        global_step=self.epoch + 1,
-                        new_style=True,
-                    )
+                    with torch.no_grad():
+                        train_labels = torch.cat(self.train_labels, dim=0)
+                        
+                        train_mu, _, _ = self.val_step(
+                            torch.cat(self.train_images, dim=0), train_labels
+                        )
+
+                        self.update_accuracy(
+                            out,
+                            target,
+                            step="train",
+                            z_db=train_mu,
+                            y_db=train_labels,
+                            same_source=True,
+                        )
+                        self.display(epoch, batch)
+                        self.writer.add_scalar(
+                            "lr",
+                            self.optimizer.param_groups[0]["lr"],
+                            global_step=self.epoch + 1,
+                            new_style=True,
+                        )
 
                 batch += 1
 
@@ -405,18 +429,33 @@ class BaseLightningModule(LightningLite):
         id_mu = []
         id_images = []
         with torch.no_grad():
+            if self.train_images:
+                train_labels = torch.cat(self.train_labels, dim=0)
+
+                train_mu, _, _ = self.val_step(
+                    torch.cat(self.train_images, dim=0), train_labels
+                )
+
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu, sigma, out = self.val_step(image, target)
                 id_sigma.append(sigma)
                 id_mu.append(mu)
                 id_images.append(image)
 
-                self.update_accuracy(out, target, "val")
+                self.update_accuracy(
+                    out,
+                    target,
+                    step="val",
+                    z_db=train_mu,
+                    y_db=train_labels,
+                )
 
                 self.update_expected_accuracy(
                     torch.stack((id_mu, id_sigma), dim=-1),
                     target,
-                    "val",
+                    step="val",
+                    z_db=train_mu,
+                    y_db=train_labels,
                 )
 
         self.val_end()
@@ -475,7 +514,7 @@ class BaseLightningModule(LightningLite):
                         z_db=torch.stack(
                             (
                                 torch.cat(train_mu, dim=0),
-                                torch.cat(train_sigma.square(), dim=0),
+                                torch.cat(train_sigma, dim=0).square(),
                             ),
                             dim=-1,
                         ),
