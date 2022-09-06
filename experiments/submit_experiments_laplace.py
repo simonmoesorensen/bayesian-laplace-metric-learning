@@ -20,9 +20,11 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
 
             for hessian in config.hessians:
                 for seed in config.seeds:
-                    additional_args_seed = f"--random_seed {seed}"
+                    additional_args_seed = f"--random_seed {seed} "
 
-                    backbone_path = f"src/baselines/PFE/pretrained/{config.dataset}/latentdim_{latent_dim}_seed_{seed}.pth"
+                    if model == "PostHoc":
+                        backbone_path = f"src/baselines/PFE/pretrained/{config.dataset}/latentdim_{latent_dim}_seed_{seed}.pth"
+                        additional_args_backbone = f"--backbone_path {backbone_path} "
 
                     batch_size = 16
 
@@ -43,9 +45,9 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                             "gpu_queue": config.gpu_queue,
                             "gpu_mem": config.gpu_mem,
                             "hessian": hessian,
-                            "additional_args": additional_args_seed,
+                            "additional_args": additional_args_seed
+                            + additional_args_backbone,
                             "train_script": train_script,
-                            "backbone_path": backbone_path,
                         }
                     )
 
@@ -63,3 +65,4 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                         check=True,
                         shell=True,
                     )
+                    input("h")
