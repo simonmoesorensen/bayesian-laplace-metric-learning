@@ -27,7 +27,7 @@ class MCDropoutLightningModule(BaseLightningModule):
         return self.model(X, samples)
 
     def train_step(self, X, y):
-        mu, _ = self.forward(X, samples=None)
+        mu = self.forward(X, samples=None)
 
         pairs = self.miner(mu, y)
 
@@ -40,11 +40,9 @@ class MCDropoutLightningModule(BaseLightningModule):
     def val_step(self, X, y):
         enable_dropout(self.model)
 
-        mu, std = self.forward(X)
+        mu, std, samples = self.forward(X)
 
-        samples = self.model.get_samples(X, samples=100)
-
-        pairs = self.miner(samples, y)
+        pairs = self.miner(mu, y)
 
         loss = self.loss_fn(mu, y, indices_tuple=pairs)
 
@@ -54,9 +52,7 @@ class MCDropoutLightningModule(BaseLightningModule):
     def test_step(self, X, y):
         enable_dropout(self.model)
 
-        mu, std = self.forward(X)
-
-        samples = self.model.get_samples(X, samples=100)
+        mu, std, samples = self.forward(X)
 
         return mu, std, samples
 

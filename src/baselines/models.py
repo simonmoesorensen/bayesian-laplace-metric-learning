@@ -8,24 +8,20 @@ class SampleNet(nn.Module):
         raise NotImplementedError()
 
     def sample(self, X, samples):
-        zs = self.get_samples(X, samples)
-
-        return zs.mean(dim=0), zs.std(dim=0)
-
-    def get_samples(self, X, samples):
         zs = []
 
         for _ in range(samples):
             zs.append(self.pass_through(X))
 
-        zs = torch.stack(zs)
-        return zs
+        zs = torch.stack(zs, dim=-1)
+
+        return zs.mean(dim=-1), zs.std(dim=-1), zs
 
     def forward(self, x, samples=100):
         if samples:
             return self.sample(x, samples)
         else:
-            return self.pass_through(x), None
+            return self.pass_through(x)
 
 
 class CIFAR10ConvNet(nn.Module):
