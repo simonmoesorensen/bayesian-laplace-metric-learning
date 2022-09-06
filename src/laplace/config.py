@@ -53,7 +53,7 @@ def parse_args():
     # ----- laplace details
     parser.add_argument("--margin", type=float, default=1.0)
     parser.add_argument("--inference_model", type=str, default="linear")
-    parser.add_argument("--hessian", type=str, default="full")
+    parser.add_argument("--hessian", type=str, default="fixed")
     parser.add_argument("--posterior_samples", type=int, default=100)
 
     # ----- hyperparameters
