@@ -177,18 +177,21 @@ def run(model, data_loader, n_samples, path, model_name, dataset_name, run_name=
                     sigma,
                     samples,
                 ) = out  # samples is (n_samples, batch_size, embedding_size)
+
+                # Hack to limit number of samples to sample size from laplace
+                n_samples = min(samples.shape[2], n_samples)
             else:
                 raise ValueError("Invalid output from model")
 
             pred_labels = []
 
             for i in range(n_samples):
-                # knn_func(query, k, reference, shares_datapoints)
                 if len(out) == 2:
                     sample_i = pdist.sample()
                 elif len(out) == 3:
-                    sample_i = samples[i]
+                    sample_i = samples[:, :, i]
 
+                # knn_func(query, k, reference, shares_datapoints)
                 _, indices = knn_func(sample_i, 1, sample_i, True)
                 pred_labels.append(target[indices].squeeze())
 

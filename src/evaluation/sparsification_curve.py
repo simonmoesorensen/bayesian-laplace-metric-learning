@@ -130,7 +130,16 @@ def run(model, data_loader, path, model_name, dataset_name, run_name=""):
             image = image.to(device)
             target = target.to(device)
 
-            mu, sigma = model(image)
+            out = model(image)
+            if len(out) == 2:
+                mu, sigma = out
+
+            elif len(out) == 3:
+                (
+                    mu,
+                    sigma,
+                    samples,
+                ) = out  # samples is (n_samples, batch_size, embedding_size)
 
             # Start with all images and remove the highest uncertainty image until
             # there is only 10 images with the lowest uncertainty left
