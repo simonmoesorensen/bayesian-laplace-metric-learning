@@ -381,7 +381,7 @@ class BaseLightningModule(LightningLite):
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     with torch.no_grad():
                         train_labels = torch.cat(self.train_labels, dim=0)
-                        
+
                         train_mu, _, _ = self.val_step(
                             torch.cat(self.train_images, dim=0), train_labels
                         )
@@ -544,9 +544,9 @@ class BaseLightningModule(LightningLite):
         ood_images = []
         with torch.no_grad():
             for img, y in tqdm(self.ood_loader, desc="OOD"):
-                mu_dul, std_dul = self.ood_step(img, y)
-                ood_sigma.append(std_dul)
-                ood_mu.append(mu_dul)
+                mu_ood, std_ood, samples_ood = self.ood_step(img, y)
+                ood_sigma.append(std_ood)
+                ood_mu.append(mu_ood)
                 ood_images.append(img)
 
         # Visualize
@@ -560,7 +560,7 @@ class BaseLightningModule(LightningLite):
         ece = run_calibration_curve(
             self.model,
             self.test_loader,
-            50,
+            100,
             vis_path,
             model_name,
             dataset_name,
