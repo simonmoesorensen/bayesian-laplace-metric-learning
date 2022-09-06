@@ -159,6 +159,8 @@ class BaseLightningModule(LightningLite):
             batch_size=self.batch_size,
         )
 
+        self.epoch = 0
+
     def setup_logger(self, name):
         subdir = get_time()
         logdir = Path(self.args.log_dir) / self.args.dataset / name / subdir
