@@ -1,12 +1,12 @@
 import subprocess
 from pathlib import Path
 
-from config import CIFAR10Config, template_text
+from config import CIFAR10Config, FashionMNISTConfig, template_text
 
 root = Path(__file__).parent.parent
 
 # Submit FashionMNIST experiments
-for config in [CIFAR10Config]:
+for config in [FashionMNISTConfig, CIFAR10Config]:
     for latent_dim in config.latent_dims:
         for model in config.models:
             batch_size = 256
