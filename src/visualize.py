@@ -289,9 +289,6 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
-    pd.DataFrame.from_dict(
-        {"auroc": metrics["auroc"], "auprc": metrics["auprc"]}, orient="index"
-    ).assign(dim=latent_dim).to_csv(vis_path / "metrics.csv", mode="a", header=False)
 
 
 def get_names(vis_path):
