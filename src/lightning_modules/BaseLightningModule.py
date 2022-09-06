@@ -305,7 +305,9 @@ class BaseLightningModule(LightningLite):
             self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
             self.metrics.update(f"{step}_recall_k", metrics["recall_at_k"])
 
-    def update_expected_accuracy(self, z, y, step="train", z_db=None, y_db=None):
+    def update_expected_accuracy(
+        self, z, y, step="train", z_db=None, y_db=None, same_source=False
+    ):
         if step not in ["train", "val", "test"]:
             raise ValueError("step must be one of ['train', 'val', 'test']")
 
@@ -322,7 +324,7 @@ class BaseLightningModule(LightningLite):
                 reference=z_db,
                 query_labels=y,
                 reference_labels=y_db,
-                embeddings_come_from_same_source=False,
+                embeddings_come_from_same_source=same_source,
             )
 
             self.expected_metrics.update(
@@ -418,22 +420,24 @@ class BaseLightningModule(LightningLite):
         val_labels = []
         with torch.no_grad():
             for image, target in tqdm(self.val_loader, desc="Validating"):
-                mu, sigma, out = self.val_step(image, target)
+                mu, sigma, _ = self.val_step(image, target)
                 val_sigma.append(sigma)
                 val_mu.append(mu)
                 val_images.append(image)
                 val_labels.append(target)
 
                 self.update_accuracy(
-                    out,
+                    mu,
                     target,
                     step="val",
+                    same_source=True,
                 )
 
                 self.update_expected_accuracy(
-                    torch.stack((val_mu, val_sigma), dim=-1),
+                    torch.stack((mu, sigma.square()), dim=-1),
                     target,
                     step="val",
+                    same_source=True,
                 )
 
         self.val_end()
@@ -540,7 +544,7 @@ class BaseLightningModule(LightningLite):
                     mu_ood, std_ood, _ = out
                 else:
                     raise ValueError("Invalid output from OOD step")
-                
+
                 ood_sigma.append(std_ood)
                 ood_mu.append(mu_ood)
                 ood_images.append(img)
