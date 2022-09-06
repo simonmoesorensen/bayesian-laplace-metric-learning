@@ -22,6 +22,8 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                 for seed in config.seeds:
                     additional_args_seed = f"--random_seed {seed}"
 
+                    backbone_path = f"src/baselines/PFE/pretrained/{config.dataset}/latentdim_{latent_dim}_seed_{seed}.pth"
+
                     batch_size = 16
 
                     name = f"{hessian}_{latent_dim}_seed_{seed}"
@@ -43,6 +45,7 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                             "hessian": hessian,
                             "additional_args": additional_args_seed,
                             "train_script": train_script,
+                            "backbone_path": backbone_path,
                         }
                     )
 

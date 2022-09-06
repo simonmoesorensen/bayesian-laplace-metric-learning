@@ -138,5 +138,5 @@ source venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0
 
 
-python3 -m src.laplace.{train_script} --dataset {dataset} --name {name} --batch_size {batch_size} --to_visualize --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args}
+python3 -m src.laplace.{train_script} --dataset {dataset} --name {name} --batch_size {batch_size} --to_visualize --backbone_path {backbone_path} --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args}
 """
