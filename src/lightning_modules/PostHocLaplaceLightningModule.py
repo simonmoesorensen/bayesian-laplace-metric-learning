@@ -1,7 +1,5 @@
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 from torch import optim, nn
-import torch.distributions as dist
-
 import torch
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
@@ -54,22 +52,18 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         else:
             self.inference_model = inference_model
 
-        # self.calculator.init_model(self.inference_model)
+        self.calculator.init_model(self.inference_model)
 
         self.n_samples = args.posterior_samples
 
         self.model.module.module.inference_model = self.inference_model
 
-        self.epoch = 0
-        self.mu_q = parameters_to_vector(self.inference_model.parameters())
-        self.sigma_q = torch.load('sigma_q_FashionMNIST_32_fixed.pt')
-
     def forward(self, x, use_samples=True):
         return self.model(x, use_samples=use_samples)
 
     def ood_step(self, X, y):
-        mean, std = self.forward(X, use_samples=True)
-        return mean, std
+        mean, std, samples = self.forward(X, use_samples=True)
+        return mean, std, samples
 
     def test_start(self):
         super().test_start()
@@ -82,11 +76,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         )
 
     def test_step(self, X, y):
-        mean, std = self.forward(X, use_samples=True)
-
-        cov = torch.diag_embed(std.square())
-        pdist = dist.MultivariateNormal(mean, cov)
-        samples = pdist.rsample()
+        mean, std, samples = self.forward(X, use_samples=True)
 
         return mean, std, samples
 
@@ -108,7 +98,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         print(f"Dataset size: {dataset_size}")
         with torch.no_grad():
             for x, y in tqdm(self.train_loader):
-                output, _ = self.forward(x, use_samples=False)
+                output = self.forward(x, use_samples=False)
                 hard_pairs = self.miner(output, y)
 
                 # Total number of possible pairs / number of pairs in our batch
@@ -118,6 +108,9 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
         if (h < 0).sum():
             print("Found negative values in Hessian.")
+
+        # Scale by number of batches
+        h /= len(self.train_loader)
 
         h = torch.maximum(h, torch.tensor(0))
 
