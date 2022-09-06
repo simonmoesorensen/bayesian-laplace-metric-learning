@@ -10,8 +10,8 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/DUL/train.py \
     --dataset FashionMNIST \
     --name train_script \
     --batch_size 256 \
-    --embedding_size 2 \
-    --num_epoch 30 \
+    --embedding_size 16 \
+    --num_epoch 1 \
     --save_freq 15 \
     --gpu_id 0\
     --num_workers 8 \
