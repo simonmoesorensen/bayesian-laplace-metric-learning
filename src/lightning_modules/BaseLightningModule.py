@@ -355,10 +355,6 @@ class BaseLightningModule(LightningLite):
         )  # frequency to display training loss
         batch = 0
 
-        # Save train data for accuracy calculation
-        self.train_images = []
-        self.train_labels = []
-
         for epoch in range(self.args.num_epoch):
             self.epoch_start()
 
@@ -368,10 +364,6 @@ class BaseLightningModule(LightningLite):
             self.epoch = epoch
 
             for image, target in tqdm(self.train_loader, desc="Training"):
-                if len(self.train_images) < len(self.train_loader.dataset):
-                    self.train_images.append(image)
-                    self.train_labels.append(target)
-
                 self.optimizer.zero_grad()
 
                 out, loss = self.train_step(image, target)
@@ -383,18 +375,10 @@ class BaseLightningModule(LightningLite):
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     with torch.no_grad():
-                        train_labels = torch.cat(self.train_labels, dim=0)
-
-                        train_mu, _, _ = self.val_step(
-                            torch.cat(self.train_images, dim=0), train_labels
-                        )
-
                         self.update_accuracy(
                             out,
                             target,
                             step="train",
-                            z_db=train_mu,
-                            y_db=train_labels,
                             same_source=True,
                         )
                         self.display(epoch, batch)
@@ -433,13 +417,6 @@ class BaseLightningModule(LightningLite):
         val_images = []
         val_labels = []
         with torch.no_grad():
-            if self.train_images:
-                train_labels = torch.cat(self.train_labels, dim=0)
-
-                train_mu, _, _ = self.val_step(
-                    torch.cat(self.train_images, dim=0), train_labels
-                )
-
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu, sigma, out = self.val_step(image, target)
                 val_sigma.append(sigma)
@@ -451,16 +428,12 @@ class BaseLightningModule(LightningLite):
                     out,
                     target,
                     step="val",
-                    z_db=train_mu,
-                    y_db=train_labels,
                 )
 
                 self.update_expected_accuracy(
                     torch.stack((val_mu, val_sigma), dim=-1),
                     target,
                     step="val",
-                    z_db=train_mu,
-                    y_db=train_labels,
                 )
 
         self.val_end()
@@ -496,6 +469,11 @@ class BaseLightningModule(LightningLite):
                 train_sampled.append(out)
                 train_labels.append(target)
 
+            train_mu = torch.cat(train_mu, dim=0)
+            train_sigma = torch.cat(train_sigma, dim=0)
+            train_sampled = torch.cat(train_sampled, dim=0)
+            train_labels = torch.cat(train_labels, dim=0)
+
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
                 test_sigma.append(sigma)
@@ -507,8 +485,8 @@ class BaseLightningModule(LightningLite):
                     mu,
                     target,
                     "test",
-                    z_db=torch.cat(train_mu, dim=0),
-                    y_db=torch.cat(train_labels, dim=0),
+                    z_db=train_mu,
+                    y_db=train_labels,
                 )
 
                 if expected:
@@ -517,19 +495,18 @@ class BaseLightningModule(LightningLite):
                         y=target,
                         step="test",
                         z_db=torch.stack(
-                            (
-                                torch.cat(train_mu, dim=0),
-                                torch.cat(train_sigma, dim=0).square(),
-                            ),
+                            (train_mu, train_sigma.square()),
                             dim=-1,
                         ),
-                        y_db=torch.cat(train_labels, dim=0),
+                        y_db=train_labels,
                     )
 
         self.test_end()
 
         if self.to_visualize:
-            self.visualize(test_mu, test_sigma, test_images, test_labels, prefix="test_")
+            self.visualize(
+                test_mu, test_sigma, test_images, test_labels, prefix="test_"
+            )
 
     def visualize(self, id_mu, id_sigma, id_images, id_labels, prefix):
         id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
@@ -556,7 +533,14 @@ class BaseLightningModule(LightningLite):
 
         with torch.no_grad():
             for img, y in tqdm(self.ood_loader, desc="OOD"):
-                mu_ood, std_ood, samples_ood = self.ood_step(img, y)
+                out = self.ood_step(img, y)
+                if len(out) == 2:
+                    mu_ood, std_ood = out
+                elif len(out) == 3:
+                    mu_ood, std_ood, _ = out
+                else:
+                    raise ValueError("Invalid output from OOD step")
+                
                 ood_sigma.append(std_ood)
                 ood_mu.append(mu_ood)
                 ood_images.append(img)
