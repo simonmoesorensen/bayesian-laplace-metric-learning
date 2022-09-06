@@ -474,13 +474,11 @@ class BaseLightningModule(LightningLite):
                 train_labels.append(target)
 
             train_mu = torch.cat(train_mu, dim=0)
-            train_sigma = torch.cat(train_sigma, dim=0)
             train_sampled = torch.cat(train_sampled, dim=0)
             train_labels = torch.cat(train_labels, dim=0)
 
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
-                test_sigma.append(sigma)
                 test_mu.append(mu)
                 test_images.append(image)
                 test_labels.append(target)
@@ -494,6 +492,9 @@ class BaseLightningModule(LightningLite):
                 )
 
                 if expected:
+                    test_sigma.append(sigma)
+                    train_sigma = torch.cat(train_sigma, dim=0)
+
                     self.update_expected_accuracy(
                         z=torch.stack((mu, sigma.square()), dim=-1),
                         y=target,
