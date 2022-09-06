@@ -27,7 +27,7 @@ from src.data_modules import (
 )
 from src.distances import ExpectedSquareL2Distance
 from src.evaluation.calibration_curve import calibration_curves
-from src.hessian.layerwise import (
+from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
     FixedContrastiveHessianCalculator,
 )

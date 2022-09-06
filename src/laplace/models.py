@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet, SampleNet
-from torch.nn.utils.convert_parameters import vector_to_parameters
+from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 
 
 class LaplaceHead(SampleNet):
@@ -24,14 +24,18 @@ class LaplaceHead(SampleNet):
 
         conv_out = self.convnet(X)
 
+        mu = parameters_to_vector(self.inference_model.parameters())
+
         for net_sample in samples:
             vector_to_parameters(net_sample, self.inference_model.parameters())
             pred = self.inference_model(conv_out)
             preds.append(pred)
 
+        vector_to_parameters(mu, self.inference_model.parameters())
+
         preds = torch.stack(preds, dim=-1)
 
-        return preds.mean(dim=-1), preds.std(dim=-1), preds
+        return preds.mean(dim=-1), preds.var(dim=-1), preds
 
     def forward(self, x, use_samples=True):
         if use_samples:
@@ -43,6 +47,7 @@ class LaplaceHead(SampleNet):
             return self.pass_through(x)
 
     def generate_nn_samples(self, mu_q, sigma_q, n_samples):
+        print(f"Generating {n_samples} samples of model weights")
         self.samples = sample_nn_weights(mu_q, sigma_q, n_samples=n_samples)
 
 

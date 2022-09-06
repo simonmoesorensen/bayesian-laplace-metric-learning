@@ -9,7 +9,7 @@ from src.data_modules import (
     CIFAR10DataModule,
     FashionMNISTDataModule,
 )
-from src.hessian.layerwise import (
+from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
     FixedContrastiveHessianCalculator,
 )
