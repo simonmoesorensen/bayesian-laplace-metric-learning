@@ -274,6 +274,9 @@ def post_hoc(
     if (h < 0).sum():
         logging.warning("Found negative values in Hessian.")
 
+    # Scale by number of batches
+    h /= len(train_loader)
+
     h = torch.maximum(h, torch.tensor(0))
 
     logging.info(
