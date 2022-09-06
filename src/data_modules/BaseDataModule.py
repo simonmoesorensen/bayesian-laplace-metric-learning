@@ -53,12 +53,10 @@ class BaseDataModule(LightningDataModule):
         n_train += size - n_train - n_val
 
         if shuffle:
-            # Overlapping classes allowed
             self.dataset_train, self.dataset_val = random_split(
                 dataset_full, [n_train, n_val]
             )
         else:
-            # Overlapping classes not allowed (zero-shot learning)
             self.dataset_train = Subset(dataset_full, range(0, n_train))
             self.dataset_val = Subset(dataset_full, range(n_train, n_train + n_val))
 
