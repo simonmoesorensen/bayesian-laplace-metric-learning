@@ -14,20 +14,24 @@ class LaplaceHead(SampleNet):
 
         self.backbone.linear.add_module("l2norm", L2Norm())
 
+        self.convnet = self.backbone.conv
+
     def pass_through(self, x):
         return self.backbone(x)
 
     def sample(self, X, samples):
         preds = []
 
+        conv_out = self.convnet(X)
+
         for net_sample in samples:
             vector_to_parameters(net_sample, self.inference_model.parameters())
-            pred = self.backbone(X)
+            pred = self.inference_model(conv_out)
             preds.append(pred)
 
         preds = torch.stack(preds, dim=-1)
 
-        return preds.mean(dim=-1), preds.std(dim=-1)
+        return preds.mean(dim=-1), preds.std(dim=-1), preds
 
     def forward(self, x, use_samples=True):
         if use_samples:
@@ -36,7 +40,7 @@ class LaplaceHead(SampleNet):
             else:
                 raise AttributeError("No samples generated")
         else:
-            return self.pass_through(x), None
+            return self.pass_through(x)
 
     def generate_nn_samples(self, mu_q, sigma_q, n_samples):
         self.samples = sample_nn_weights(mu_q, sigma_q, n_samples=n_samples)
@@ -90,7 +94,7 @@ class L2Norm(nn.Module):
         return out
 
 
-def sample_nn_weights(parameters, posterior_scale, n_samples=16):
+def sample_nn_weights(parameters, posterior_scale, n_samples=100):
     n_params = len(parameters)
     samples = torch.randn(n_samples, n_params, device=parameters.device)
     samples = samples * posterior_scale.reshape(1, n_params)
