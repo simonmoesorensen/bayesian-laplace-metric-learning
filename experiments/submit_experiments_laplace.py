@@ -45,8 +45,9 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                             "gpu_queue": config.gpu_queue,
                             "gpu_mem": config.gpu_mem,
                             "hessian": hessian,
-                            "additional_args": additional_args_seed
-                            + additional_args_backbone,
+                            "additional_args": (
+                                additional_args_seed + additional_args_backbone
+                            ),
                             "train_script": train_script,
                         }
                     )
