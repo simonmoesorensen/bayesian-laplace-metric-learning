@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-import torch
 from matplotlib import pyplot as plt
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
@@ -43,27 +42,23 @@ class MCDropoutLightningModule(BaseLightningModule):
 
         mu, std = self.forward(X)
 
-        cov = torch.diag_embed(std.square())
-        pdist = torch.distributions.MultivariateNormal(mu, cov)
-        sample = self.to_device(pdist.rsample())
+        samples = self.model.get_samples(X, samples=100)
 
-        pairs = self.miner(sample, y)
+        pairs = self.miner(samples, y)
 
         loss = self.loss_fn(mu, y, indices_tuple=pairs)
 
         self.metrics.update("val_loss", loss.item())
-        return mu, std, sample
+        return mu, std, samples
 
     def test_step(self, X, y):
         enable_dropout(self.model)
 
         mu, std = self.forward(X)
 
-        cov = torch.diag_embed(std.square())
-        pdist = torch.distributions.MultivariateNormal(mu, cov)
-        sample = self.to_device(pdist.rsample())
+        samples = self.model.get_samples(X, samples=100)
 
-        return mu, std, sample
+        return mu, std, samples
 
     def ood_step(self, X, y):
         enable_dropout(self.model)

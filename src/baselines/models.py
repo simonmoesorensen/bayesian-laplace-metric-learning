@@ -8,14 +8,18 @@ class SampleNet(nn.Module):
         raise NotImplementedError()
 
     def sample(self, X, samples):
+        zs = self.get_samples(X, samples)
+
+        return zs.mean(dim=0), zs.std(dim=0)
+
+    def get_samples(self, X, samples):
         zs = []
 
         for _ in range(samples):
             zs.append(self.pass_through(X))
 
         zs = torch.stack(zs)
-
-        return zs.mean(dim=0), zs.std(dim=0)
+        return zs
 
     def forward(self, x, samples=100):
         if samples:
