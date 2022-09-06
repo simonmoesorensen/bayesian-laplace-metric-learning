@@ -24,6 +24,21 @@ class CIFAR10Config(Config):
     gpu_mem = "32"
 
 
+class LaplaceConfig(Config):
+    hessians = ["fixed", "positives", "full"]
+    gpu_mem = "40"
+    models = ["PostHoc"]  # , "Online"]
+    gpu_queue = "gpua100"
+
+
+class FashionMNISTConfigLaplace(LaplaceConfig, FashionMNISTConfig):
+    num_epoch = 100
+
+
+class CIFAR10ConfigLaplace(LaplaceConfig, CIFAR10Config):
+    num_epoch = 250
+
+
 template_text = """
 #!/bin/sh
 ### General options
@@ -80,7 +95,7 @@ template_text_laplace = """
 ### General options
 
 ### -- specify queue --
-#BSUB -q gpua100
+#BSUB -q {gpu_queue}
 
 ### -- set the job Name --
 #BSUB -J {job_name}
@@ -123,5 +138,5 @@ source venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0
 
 
-python3 -m src.laplace.online --dataset {dataset} --name {name} --batch_size {batch_size} --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args}
+python3 -m src.laplace.{train_script} --dataset {dataset} --name {name} --batch_size {batch_size} --to_visualize --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args}
 """

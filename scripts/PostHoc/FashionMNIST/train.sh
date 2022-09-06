@@ -8,10 +8,10 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 python3 -m debugpy --listen $node_ip:1332 ./src/laplace/train_post_hoc.py \
     --dataset FashionMNIST \
     --name train_script \
-    --backbone_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
+    --backbone_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_2_seed_46.pth \
     --hessian fixed \
-    --embedding_size 32 \
+    --embedding_size 2 \
     --gpu_id 0 \
-    --random_seed 42 \
-    --batch_size 32 \
+    --random_seed 46 \
+    --batch_size 16 \
     --to_visualize
