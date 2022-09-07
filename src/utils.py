@@ -2,6 +2,17 @@ import torch
 import torch.nn as nn
 
 
+def filter_state_dict(state_dict, remove="module."):
+    new_state_dict = {}
+    for key in state_dict:
+        if key.startswith(remove):
+            new_state_dict[key[len(remove) :]] = state_dict[key]
+        else:
+            new_state_dict[key] = state_dict[key]
+
+    return new_state_dict
+
+
 class L2Norm(nn.Module):
     def forward(self, X):
         return l2_norm(X, axis=1)

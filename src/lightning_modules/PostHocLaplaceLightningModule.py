@@ -5,6 +5,8 @@ from torch.nn.utils.convert_parameters import parameters_to_vector
 
 from tqdm import tqdm
 
+from src.utils import filter_state_dict
+
 
 class DummyOptimizer(optim.Optimizer):
     def __init__(self, lr=1e-3):
@@ -35,15 +37,9 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         # Load model backbone
         if args.backbone_path:
             state_dict = torch.load(args.backbone_path)
-
-            new_state_dict = {}
-            for key in state_dict:
-                if key.startswith("0."):
-                    new_state_dict[key[2:]] = state_dict[key]
-                else:
-                    new_state_dict[key] = state_dict[key]
-
-            model.backbone.load_state_dict(new_state_dict)
+            model.backbone.load_state_dict(
+                filter_state_dict(state_dict, remove="module.0.")
+            )
 
         self.calculator = calculator_cls(device=self.device, margin=args.margin)
 

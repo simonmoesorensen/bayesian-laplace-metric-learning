@@ -22,6 +22,8 @@ from src.visualize import (
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from src.utils import filter_state_dict
+
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
 
@@ -66,14 +68,7 @@ class BaseLightningModule(LightningLite):
         if args.model_path:
             state_dict = self.load(args.model_path)
 
-            new_state_dict = {}
-            for key in state_dict:
-                if key.startswith("module."):
-                    new_state_dict[key[7:]] = state_dict[key]
-                else:
-                    new_state_dict[key] = state_dict[key]
-
-            model.load_state_dict(new_state_dict)
+            model.load_state_dict(filter_state_dict(state_dict))
 
         # Data
         self.batch_size = args.batch_size
