@@ -7,6 +7,7 @@ from torch import Tensor, nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
 from src.laplace.models import L2Norm
+from src.baselines.models import L2Norm as Norm
 
 
 class HessianCalculator:
@@ -98,7 +99,7 @@ class RmseHessianCalculator(HessianCalculator):
                     )
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x = torch.diag_embed((feature_maps[k + 1] > 0).float())
-                elif isinstance(self.model[k], L2Norm):
+                elif isinstance(self.model[k], L2Norm) or isinstance(self.model[k], Norm):
                     jacobian_x = self.model[k]._jacobian_wrt_input(
                         feature_maps[k], feature_maps[k + 1]
                     )
@@ -281,7 +282,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     jacobian_x1 = torch.diag_embed((feature_maps1[k + 1] > 0).float())
                     jacobian_x2 = torch.diag_embed((feature_maps2[k + 1] > 0).float())
-                elif isinstance(self.model[k], L2Norm):
+                elif isinstance(self.model[k], L2Norm) or isinstance(self.model[k], Norm):
                     jacobian_x1 = self.model[k]._jacobian_wrt_input(
                         feature_maps1[k], feature_maps1[k + 1]
                     )

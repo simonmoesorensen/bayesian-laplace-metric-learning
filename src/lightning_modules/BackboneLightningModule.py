@@ -2,6 +2,8 @@ import datetime
 import logging
 
 from matplotlib import pyplot as plt
+import torch
+
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 plt.switch_backend("agg")
@@ -41,11 +43,11 @@ class BackboneLightningModule(BaseLightningModule):
         loss = self.loss_fn(z, y, indices_tuple=hard_pairs)
 
         self.metrics.update("val_loss", loss.item())
-        return z, 0, z
+        return z, torch.zeros_like(z), z
 
     def test_step(self, X, y):
         z = self.forward(X)
-        return z, 0, z
+        return z, torch.zeros_like(z), z
 
     def ood_step(self, X, y):
         raise ValueError("Backbone module is not probabilistic")

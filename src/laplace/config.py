@@ -58,7 +58,7 @@ def parse_args():
 
     # ----- hyperparameters
     parser.add_argument("--num_epoch", type=int, default=250)
-    parser.add_argument("--hessian_freq", type=int, default=10)
+    parser.add_argument("--hessian_freq", type=int, default=1)
     parser.add_argument("--lr", type=float, default=3e-4)
 
     args = parser.parse_args()

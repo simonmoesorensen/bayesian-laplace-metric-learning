@@ -25,6 +25,8 @@ for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
                     if model == "PostHoc":
                         backbone_path = f"src/baselines/PFE/pretrained/{config.dataset}/latentdim_{latent_dim}_seed_{seed}.pth"
                         additional_args_backbone = f"--backbone_path {backbone_path} "
+                    else:
+                        additional_args_backbone = ""
 
                     batch_size = 16
 
