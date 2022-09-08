@@ -27,7 +27,8 @@ class CIFAR10Config(Config):
 class LaplaceConfig(Config):
     hessians = ["fixed", "positives", "full"]
     gpu_mem = "40"
-    models = ["PostHoc"]  # , "Online"]
+    # models = ["PostHoc"]  # , "Online"]
+    models = ["Online"]
     gpu_queue = "gpua100"
 
 

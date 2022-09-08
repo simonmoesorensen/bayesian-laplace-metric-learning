@@ -1,6 +1,32 @@
 import torch.nn as nn
 import torch
 
+class L2Norm(nn.Module):
+    """L2 normalization layer"""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, x, eps: float = 1e-6):
+        return x / (torch.norm(x, p=2, dim=1, keepdim=True) + eps).expand_as(x)
+
+    def _jacobian_wrt_input(self, x, val):
+        b, d = x.shape
+
+        norm = torch.norm(x, p=2, dim=1)
+
+        out = torch.einsum("bi,bj->bij", x, x)
+        out = torch.einsum("b,bij->bij", 1 / (norm**3 + 1e-6), out)
+        out = (
+            torch.einsum(
+                "b,bij->bij",
+                1 / (norm + 1e-6),
+                torch.diag(torch.ones(d, device=x.device)).expand(b, d, d),
+            )
+            - out
+        )
+
+        return out
 
 class SampleNet(nn.Module):
     def pass_through(self, x):
@@ -43,6 +69,7 @@ class CIFAR10ConvNet(nn.Module):
             nn.Linear(120, 84),
             nn.Tanh(),
             nn.Linear(84, latent_dim),
+            L2Norm(),
         ]
 
         self.linear = nn.Sequential(*linear_layers)
@@ -70,6 +97,7 @@ class FashionMNISTConvNet(nn.Module):
             nn.Linear(3 * 3 * 32, 128),
             nn.Tanh(),
             nn.Linear(128, latent_dim),
+            L2Norm(),
         ]
 
         self.linear = nn.Sequential(*linear_layers)
