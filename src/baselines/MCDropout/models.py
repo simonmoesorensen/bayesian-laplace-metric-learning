@@ -17,7 +17,7 @@ def MNIST_MCDropout(embedding_size=128):
     """
     Construct a mnist model for MCDropout.
     """
-    model = FashionMNISTConvNet(latent_dim=embedding_size)
+    model = FashionMNISTConvNet(latent_dim=embedding_size, p=0.25)
     model_mc = MCDropoutHead(model)
 
     return model_mc
@@ -27,7 +27,7 @@ def CIFAR10_MCDropout(embedding_size=128):
     """
     Construct a cifar10 model for MCDropout.
     """
-    model = CIFAR10ConvNet(latent_dim=embedding_size)
+    model = CIFAR10ConvNet(latent_dim=embedding_size, p=0.25)
     model_mc = MCDropoutHead(model)
 
     return model_mc

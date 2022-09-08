@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 from src.baselines.Backbone.models import (
-    Casia_Backbone,
     CIFAR10_Backbone,
     MNIST_Backbone,
+    Casia_Backbone,
 )
+from src.utils import filter_state_dict
 
 
 class UncertaintyModule(nn.Module):
@@ -80,9 +81,11 @@ def MNIST_PFE(embedding_size=128, seed=42):
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(
-            "src/baselines/PFE/pretrained/MNIST/"
-            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        filter_state_dict(
+            torch.load(
+                "src/baselines/PFE/pretrained/MNIST/"
+                f"latentdim_{embedding_size}_seed_{seed}.pth"
+            )
         )
     )
 
@@ -99,9 +102,11 @@ def FashionMNIST_PFE(embedding_size=128, seed=42):
     # Embedding dimension
     backbone = MNIST_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(
-            "src/baselines/PFE/pretrained/FashionMNIST/"
-            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        filter_state_dict(
+            torch.load(
+                "src/baselines/PFE/pretrained/FashionMNIST/"
+                f"latentdim_{embedding_size}_seed_{seed}.pth"
+            )
         )
     )
 
@@ -118,9 +123,11 @@ def CIFAR10_PFE(embedding_size=128, seed=42):
     # Embedding dimension
     backbone = CIFAR10_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(
-            "src/baselines/PFE/pretrained/CIFAR10/"
-            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        filter_state_dict(
+            torch.load(
+                "src/baselines/PFE/pretrained/CIFAR10/"
+                f"latentdim_{embedding_size}_seed_{seed}.pth"
+            )
         )
     )
 
@@ -137,9 +144,11 @@ def Casia_PFE(embedding_size=128, seed=42):
     # Embedding dimension
     backbone = Casia_Backbone(embedding_size=embedding_size)
     backbone.load_state_dict(
-        torch.load(
-            "src/baselines/PFE/pretrained/CASIA/"
-            f"latentdim_{embedding_size}_seed_{seed}.pth"
+        filter_state_dict(
+            torch.load(
+                "src/baselines/PFE/pretrained/CASIA/"
+                f"latentdim_{embedding_size}_seed_{seed}.pth"
+            )
         )
     )
 
