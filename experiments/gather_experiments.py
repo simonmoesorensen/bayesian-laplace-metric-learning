@@ -21,7 +21,7 @@ experiments = [
     for path in outputs_dir.glob("**/*")
     if path.is_dir()
     and (path / "hparams.json").exists()
-    and ("latentdim" in path.parent.name)
+    and ("seed" in path.parent.name)
 ]
 
 records = []
@@ -40,9 +40,15 @@ for path in experiments:
     # Read the expected_metrics.json file
     expected_metrics = json.load(open(path / "expected_metrics.json"))
 
+    # Extract model name
+    model_name = path.parent.parent.parent.parent.name
+
+    if model_name == "PostHoc":
+        model_name += f" ({path.parent.name.split('_')[0]})"
+
     data = {
         "seed": hparams["random_seed"],
-        "model_name": path.parent.parent.parent.parent.name,
+        "model_name": model_name,
         "dataset": hparams["dataset"],
         "latent_dim": hparams["embedding_size"],
         "l2_norm": "yes",
