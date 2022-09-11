@@ -21,14 +21,20 @@ class ExpectedSquareL2Distance(BaseDistance):
         ref_mean = ref_emb[:, :, 0]
         ref_var = ref_emb[:, :, 1]
 
-        mean_component = torch.pow(self.l2_square_dist.compute_mat(query_mean, ref_mean), 2)
+        mean_component = torch.pow(
+            self.l2_square_dist.compute_mat(query_mean, ref_mean), 2
+        )
         var1_component = query_var.sum(dim=self.feature_dim).unsqueeze(1)
         var2_component = ref_var.sum(dim=self.feature_dim).unsqueeze(0)
 
         logging.info(f"Expected distance mean contribution: {mean_component.mean()}")
-        logging.info(f"Expected distance variance contribution 1: {var1_component.mean()}")
-        logging.info(f"Expected distance variance contribution 2: {var2_component.mean()}")
-        
+        logging.info(
+            f"Expected distance variance contribution 1: {var1_component.mean()}"
+        )
+        logging.info(
+            f"Expected distance variance contribution 2: {var2_component.mean()}"
+        )
+
         return mean_component + var1_component + var2_component
         # return (
         #     torch.pow(self.l2_square_dist.compute_mat(query_mean, ref_mean), 2)

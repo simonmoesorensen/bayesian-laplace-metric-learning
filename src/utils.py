@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch import Tensor, nn
 
 
 def filter_state_dict(state_dict, remove="module."):
@@ -14,15 +15,31 @@ def filter_state_dict(state_dict, remove="module."):
 
 
 class L2Norm(nn.Module):
-    def forward(self, X):
-        return l2_norm(X, axis=1)
+    """L2 normalization layer"""
 
+    def __init__(self) -> None:
+        super().__init__()
 
-def l2_norm(input, axis=1):
-    norm = torch.norm(input, 2, axis, True)
-    output = torch.div(input, norm)
+    def forward(self, x: Tensor, eps: float = 1e-6) -> Tensor:
+        return x / (torch.norm(x, p=2, dim=1, keepdim=True) + eps).expand_as(x)
 
-    return output
+    def _jacobian_wrt_input(self, x: Tensor, val: Tensor) -> Tensor:
+        b, d = x.shape
+
+        norm = torch.norm(x, p=2, dim=1)
+
+        out = torch.einsum("bi,bj->bij", x, x)
+        out = torch.einsum("b,bij->bij", 1 / (norm**3 + 1e-6), out)
+        out = (
+            torch.einsum(
+                "b,bij->bij",
+                1 / (norm + 1e-6),
+                torch.diag(torch.ones(d, device=x.device)).expand(b, d, d),
+            )
+            - out
+        )
+
+        return out
 
 
 def separate_batchnorm_params(modules):

@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 
+from src.utils import L2Norm
+
 
 class SampleNet(nn.Module):
     def pass_through(self, x):
@@ -43,6 +45,7 @@ class CIFAR10ConvNet(nn.Module):
             nn.Linear(120, 84),
             nn.Tanh(),
             nn.Linear(84, latent_dim),
+            L2Norm(),
         ]
 
         self.linear = nn.Sequential(*linear_layers)
@@ -66,13 +69,12 @@ class FashionMNISTConvNet(nn.Module):
             nn.Dropout2d(p),
             nn.Flatten(),
         )
-        linear_layers = [
+        self.linear = nn.Sequential(
             nn.Linear(3 * 3 * 32, 128),
             nn.Tanh(),
             nn.Linear(128, latent_dim),
-        ]
-
-        self.linear = nn.Sequential(*linear_layers)
+            L2Norm(),
+        )
 
     def forward(self, x):
         x = self.conv(x)

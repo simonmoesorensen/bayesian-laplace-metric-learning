@@ -5,10 +5,9 @@ export CUDA_VISIBLE_DEVICES=0
 
 #node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m src.laplace.train_post_hoc \
+python3 -m src.laplace.online \
     --dataset FashionMNIST \
     --name train_script_32_42_no_opt \
-    --backbone_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
     --hessian fixed \
     --embedding_size 32 \
     --gpu_id 0 \

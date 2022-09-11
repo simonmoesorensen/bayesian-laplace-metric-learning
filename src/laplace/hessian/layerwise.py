@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
-from src.laplace.models import L2Norm
+from src.utils import L2Norm
 
 
 class HessianCalculator:

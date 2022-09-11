@@ -8,7 +8,7 @@ from pathlib import Path
 
 root = Path(__file__).parent.parent
 
-for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
+for config in [FashionMNISTConfigLaplace]:  # , CIFAR10ConfigLaplace]:
     for latent_dim in config.latent_dims:
         for model in config.models:
             if model == "PostHoc":

@@ -4,8 +4,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 from pytorch_metric_learning.utils.inference import CustomKNN
-from laplace.post_hoc import evaluate_laplace, visualize
-
+from typing import Tuple
 from src.laplace.config import parse_args
 from src.baselines.Backbone.models import (
     Casia_Backbone,
@@ -32,6 +31,59 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from src.laplace.hessian.layerwise import ContrastiveHessianCalculator
+
+
+def get_single_sample_pred(full_model, loader, device) -> torch.Tensor:
+    preds = []
+    for x, _ in iter(loader):
+        with torch.inference_mode():
+            pred = full_model(x.to(device))
+        preds.append(pred)
+    preds = torch.cat(preds, dim=0)
+    return preds
+
+
+def generate_predictions_from_samples_rolling(
+    loader, weight_samples, full_model, inference_model=None, device="cpu"
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Welford's online algorithm for calculating mean and variance.
+    """
+    if inference_model is None:
+        inference_model = full_model
+
+    N = len(weight_samples)
+
+    vector_to_parameters(weight_samples[0, :], inference_model.parameters())
+    mean = get_single_sample_pred(full_model, loader, device)
+    msq = 0.0
+    delta = 0.0
+
+    for i, net_sample in enumerate(weight_samples[1:, :]):
+        vector_to_parameters(net_sample, inference_model.parameters())
+        sample_preds = get_single_sample_pred(full_model, loader, device)
+        delta = sample_preds - mean
+        mean += delta / (i + 1)
+        msq += delta * delta
+
+    variance = msq / (N - 1)
+    return mean, variance
+
+
+def sample_nn_weights(parameters, posterior_scale, n_samples=16):
+    n_params = len(parameters)
+    samples = torch.randn(n_samples, n_params, device=parameters.device)
+    samples = samples * posterior_scale.reshape(1, n_params)
+    return parameters.reshape(1, n_params) + samples
+
+
+def evaluate_laplace(net, inference_net, loader, mu_q, sigma_q, device="cpu"):
+    samples = sample_nn_weights(mu_q, sigma_q)
+
+    pred_mean, pred_var = generate_predictions_from_samples_rolling(
+        loader, samples, net, inference_net, device
+    )
+    return pred_mean, pred_var
 
 
 def sample_neural_network_wights(parameters, posterior_scale, n_samples=32):

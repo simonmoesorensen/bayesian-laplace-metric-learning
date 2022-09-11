@@ -52,7 +52,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
         self.n_samples = args.posterior_samples
 
-        self.model.module.module.inference_model = self.inference_model
+        self.model.module.inference_model = self.inference_model
 
     def forward(self, x, use_samples=True):
         return self.model(x, use_samples=use_samples)
@@ -63,13 +63,12 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
     def test_start(self):
         super().test_start()
+
         self.generate_nn_samples()
 
     def generate_nn_samples(self):
         # Use the same samples for testing
-        self.model.module.module.generate_nn_samples(
-            self.mu_q, self.sigma_q, self.n_samples
-        )
+        self.model.module.generate_nn_samples(self.mu_q, self.sigma_q, self.n_samples)
 
     def test_step(self, X, y):
         mean, std, samples = self.forward(X, use_samples=True)
@@ -108,7 +107,24 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         # Scale by number of batches
         h /= len(self.train_loader)
 
-        h = torch.maximum(h, torch.tensor(0))
+        import matplotlib.pyplot as plt
+
+        plt.plot(h.cpu().numpy())
+        plt.savefig("h.png")
+        plt.close()
+        plt.cla()
+
+        plt.plot(1 / h.cpu().numpy())
+        plt.savefig("sigma2.png")
+        plt.close()
+        plt.cla()
+
+        plt.plot(1 / (h.cpu().numpy() * 1.0 + 1))
+        plt.savefig("sigma2_s.png")
+        plt.close()
+        plt.cla()
+
+        h = torch.nn.functional.relu(h) + 1e-6
 
         print(
             f"{100 * self.calculator.zeros / self.calculator.total_pairs:.2f}% of pairs are zero."
@@ -121,11 +137,16 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
         scale = 1.0
         prior_prec = 1.0
-        prior_prec = self.optimize_prior_precision(
-            map_solution, h, torch.tensor(prior_prec)
-        )
+        # prior_prec = self.optimize_prior_precision(
+        #    map_solution, h, torch.tensor(prior_prec)
+        # )
         posterior_precision = h * scale + prior_prec
         posterior_scale = 1.0 / (posterior_precision.sqrt() + 1e-6)
+        print("prior_prec", prior_prec, "scale", scale)
+        plt.plot(1 / posterior_precision.cpu().numpy())
+        plt.savefig("sigma2_opt.png")
+        plt.close()
+        plt.cla()
 
         self.mu_q = map_solution
         self.sigma_q = posterior_scale

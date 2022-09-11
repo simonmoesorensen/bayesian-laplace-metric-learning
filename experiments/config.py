@@ -5,13 +5,13 @@ class Config:
     latent_dims: List[int]
     dataset: str
     models: List[str] = ["PFE", "DUL", "HIB", "MCDropout"]
-    seeds: List[int] = [42, 43, 44, 45, 46]
+    seeds: List[int] = [46]  # [42, 43, 44, 45, 46]
     gpu_queue: str = "gpuv100"
     gpu_mem: str
 
 
 class FashionMNISTConfig(Config):
-    latent_dims = [2, 16, 32]
+    latent_dims = [32]  # [2, 16, 32]
     dataset = "FashionMNIST"
     num_epoch = 150
     gpu_mem = "16"
@@ -25,14 +25,14 @@ class CIFAR10Config(Config):
 
 
 class LaplaceConfig(Config):
-    hessians = ["fixed", "positives", "full"]
+    hessians = ["fixed"]  # , "positives", "full"]
     gpu_mem = "40"
     models = ["PostHoc"]  # , "Online"]
     gpu_queue = "gpua100"
 
 
 class FashionMNISTConfigLaplace(LaplaceConfig, FashionMNISTConfig):
-    num_epoch = 100
+    num_epoch = 250
 
 
 class CIFAR10ConfigLaplace(LaplaceConfig, CIFAR10Config):
@@ -67,9 +67,9 @@ template_text = """
 # if you want to receive e-mail notifications on a non-default address
 ### BSUB -u moe.simon@gmail.com
 ### -- send notification at start --
-#BSUB -B
+###BSUB -B
 ### -- send notification at completion--
-#BSUB -N
+###BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
@@ -118,9 +118,9 @@ template_text_laplace = """
 # if you want to receive e-mail notifications on a non-default address
 ### BSUB -u moe.simon@gmail.com
 ### -- send notification at start --
-#BSUB -B
+###BSUB -B
 ### -- send notification at completion--
-#BSUB -N
+###BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
