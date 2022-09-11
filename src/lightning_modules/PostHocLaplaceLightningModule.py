@@ -1,11 +1,13 @@
-from src.lightning_modules.BaseLightningModule import BaseLightningModule
 from torch import optim, nn
 import torch
-from torch.nn.utils.convert_parameters import parameters_to_vector
+from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
 from tqdm import tqdm
 
 from src.utils import filter_state_dict
+from src.baselines.Laplace_online.utils import sample_nn
+from src.baselines.Laplace_posthoc.utils import optimize_prior_precision
+from src.lightning_modules.BaseLightningModule import BaseLightningModule
 
 
 class DummyOptimizer(optim.Optimizer):
@@ -31,8 +33,10 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
     Post-hoc Laplace approximation of the posterior distribution.
     """
 
-    def init(self, model, miner, calculator_cls, inference_model, args):
+    def init(self, model, miner, calculator_cls, data_size, args):
         super().init(model, DummyLoss(), miner, DummyOptimizer(), args)
+
+        self.data_size = data_size
 
         # Load model backbone
         if args.backbone_path:
@@ -41,38 +45,56 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
                 filter_state_dict(state_dict, remove="module.0.")
             )
 
-        self.calculator = calculator_cls(device=self.device, margin=args.margin)
+        self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
+        self.hessian_calculator.init_model(self.model.linear)
 
-        if inference_model is None:
-            self.inference_model = model
+        self.n_test_samples = args.posterior_samples
+
+    def forward(self, x):
+
+        x = self.model.conv(x)
+        x = self.model.linear(x)
+
+        return x
+
+    def forward_samples(self, x, n_samples):
+
+        # pass the data through the deterministic model
+        x = self.model.conv(x)
+
+        # get posterior scale
+        sigma_q = 1 / (self.hessian * self.scale + self.prior_prec + 1e-8).sqrt()
+        mu_q = parameters_to_vector(self.model.linear.parameters())
+
+        samples = sample_nn(mu_q, sigma_q, n_samples)
+
+        z = []
+        for sample in samples:
+            # use sampled samples to compute the loss
+            vector_to_parameters(sample, self.model.linear.parameters())
+
+            zs = self.model.linear(X)
+            z.append(zs)
+
+        if len(z) > 1:
+            z = torch.stack(z)
+            z_mu = z.mean(0)
+            z_sigma = z.std(0)
         else:
-            self.inference_model = inference_model
+            z_mu = zs
+            z_sigma = torch.zeros_like(z_mu)
 
-        self.calculator.init_model(self.inference_model)
+        # put mean parameter as before
+        vector_to_parameters(mu_q, self.model.linear.parameters())
 
-        self.n_samples = args.posterior_samples
-
-        self.model.module.inference_model = self.inference_model
-
-    def forward(self, x, use_samples=True):
-        return self.model(x, use_samples=use_samples)
+        return z_mu, z_sigma, z
 
     def ood_step(self, X, y):
-        mean, std, samples = self.forward(X, use_samples=True)
+        mean, std, samples = self.forward_samples(X, self.n_test_samples)
         return mean, std, samples
 
-    def test_start(self):
-        super().test_start()
-
-        self.generate_nn_samples()
-
-    def generate_nn_samples(self):
-        # Use the same samples for testing
-        self.model.module.generate_nn_samples(self.mu_q, self.sigma_q, self.n_samples)
-
     def test_step(self, X, y):
-        mean, std, samples = self.forward(X, use_samples=True)
-
+        mean, std, samples = self.forward_samples(X, self.n_test_samples)
         return mean, std, samples
 
     def train_start(self):
@@ -80,51 +102,31 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
     def train(self):
         """Specialized train loop for post hoc"""
-        self.model.train()
-        self.train_start()
 
+        self.train_start()
         print("Starting post hoc optimization")
 
         if not self.name:
             raise ValueError("Please run .init()")
 
-        h = 0
-        dataset_size = len(self.train_loader.dataset)
-        print(f"Dataset size: {dataset_size}")
-        with torch.no_grad():
+        hessian = torch.zeros_like(
+            parameters_to_vector(self.model.linear.parameters()), device=x.device
+        )
+        self.model.eval()
+        with torch.inference_mode():
             for x, y in tqdm(self.train_loader):
-                output = self.forward(x, use_samples=False)
+                output = self.forward(x)
                 hard_pairs = self.miner(output, y)
 
-                # Total number of possible pairs / number of pairs in our batch
-                scaler = dataset_size**2 / x.shape[0] ** 2
-                hessian = self.calculator.compute_batch_pairs(hard_pairs)
-                h += hessian * scaler
+                # compute hessian
+                h_s = self.calculator.compute_batch_pairs(hard_pairs)
 
-        if (h < 0).sum():
-            print("Found negative values in Hessian.")
+                # scale from batch size to data size
+                scale = self.data_size**2 / x.shape[0] ** 2
+                hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches
-        h /= len(self.train_loader)
-
-        import matplotlib.pyplot as plt
-
-        plt.plot(h.cpu().numpy())
-        plt.savefig("h.png")
-        plt.close()
-        plt.cla()
-
-        plt.plot(1 / h.cpu().numpy())
-        plt.savefig("sigma2.png")
-        plt.close()
-        plt.cla()
-
-        plt.plot(1 / (h.cpu().numpy() * 1.0 + 1))
-        plt.savefig("sigma2_s.png")
-        plt.close()
-        plt.cla()
-
-        h = torch.nn.functional.relu(h) + 1e-6
+        hessian /= len(self.train_loader)
 
         print(
             f"{100 * self.calculator.zeros / self.calculator.total_pairs:.2f}% of pairs are zero."
@@ -133,55 +135,14 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             f"{100 * self.calculator.negatives / self.calculator.total_pairs:.2f}% of pairs are negative."
         )
 
-        map_solution = parameters_to_vector(self.inference_model.parameters())
+        mu_q = parameters_to_vector(self.model.linear.parameters())
 
         scale = 1.0
-        prior_prec = 1.0
-        # prior_prec = self.optimize_prior_precision(
-        #    map_solution, h, torch.tensor(prior_prec)
-        # )
-        posterior_precision = h * scale + prior_prec
-        posterior_scale = 1.0 / (posterior_precision.sqrt() + 1e-6)
-        print("prior_prec", prior_prec, "scale", scale)
-        plt.plot(1 / posterior_precision.cpu().numpy())
-        plt.savefig("sigma2_opt.png")
-        plt.close()
-        plt.cla()
+        prior_prec = torch.tensor(prior_prec)
+        prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
 
-        self.mu_q = map_solution
-        self.sigma_q = posterior_scale
-        self.h = h
+        self.hessian = hessian
+        self.prior_prec = prior_prec
+        self.scale = scale
 
         print("Finished optimizing post-hoc")
-
-    def scatter(self, mu_q, prior_precision_diag):
-        return (mu_q * prior_precision_diag) @ mu_q
-
-    def log_det_ratio(self, hessian, prior_prec):
-        posterior_precision = hessian + prior_prec
-        log_det_prior_precision = len(hessian) * prior_prec.log()
-        log_det_posterior_precision = posterior_precision.log().sum()
-        return log_det_posterior_precision - log_det_prior_precision
-
-    def log_marginal_likelihood(self, mu_q, hessian, prior_prec):
-        # we ignore neg log likelihood as it is constant wrt prior_prec
-        neg_log_marglik = -0.5 * (
-            self.log_det_ratio(hessian, prior_prec) + self.scatter(mu_q, prior_prec)
-        )
-        return neg_log_marglik
-
-    def optimize_prior_precision(self, mu_q, hessian, prior_prec, n_steps=100):
-
-        log_prior_prec = prior_prec.log()
-        log_prior_prec.requires_grad = True
-        optimizer = torch.optim.Adam([log_prior_prec], lr=1e-1)
-        for _ in range(n_steps):
-            optimizer.zero_grad()
-            prior_prec = log_prior_prec.exp()
-            neg_log_marglik = -self.log_marginal_likelihood(mu_q, hessian, prior_prec)
-            neg_log_marglik.backward()
-            optimizer.step()
-
-        prior_prec = log_prior_prec.detach().exp()
-
-        return prior_prec

@@ -6,6 +6,7 @@ import torch
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet, SampleNet
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
+
 class LaplaceHead(SampleNet):
     def __init__(self, backbone):
         super().__init__()

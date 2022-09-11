@@ -364,7 +364,7 @@ class BaseLightningModule(LightningLite):
                 self.optimizer.zero_grad()
 
                 out, loss = self.train_step(image, target)
-                
+
                 self.backward(loss)
 
                 self.optimizer_step()
