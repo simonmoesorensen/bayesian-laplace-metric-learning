@@ -14,7 +14,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, dataset_size, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-        self.to_visualize = False
+        self.to_visualize = True
         self.hessian_memory_factor = args.hessian_memory_factor
         self.data_size = dataset_size
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -147,12 +147,6 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         else:
             z_mu = z
             z_sigma = torch.zeros_like(z_mu)
-
-
-        # evaluate mean metrics
-        hard_pairs = self.miner(z_mu, y)
-        loss = self.loss_fn(z_mu, y, indices_tuple=hard_pairs)
-        self.metrics.update("test_loss", loss.item())
         
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
@@ -166,7 +160,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         
         # get posterior scale
         sigma_q = 1 / (self.hessian * self.scale+ self.prior_prec + 1e-8).sqrt()
-        mu_q = parameters_to_vector(self.linear.parameters())
+        mu_q = parameters_to_vector(self.model.linear.parameters())
         
         samples = sample_nn(mu_q, sigma_q, self.n_test_samples)
         
