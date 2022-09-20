@@ -36,7 +36,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
     def init(self, model, miner, calculator_cls, dataset_size, args):
         super().init(model, DummyLoss(), miner, DummyOptimizer(), args)
 
-        self.dataset_size = dataset_size
+        self.data_size = dataset_size
 
         # Load model backbone
         if args.backbone_path:
@@ -122,7 +122,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
                 h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
 
                 # scale from batch size to data size
-                scale = self.dataset_size**2 / x.shape[0] ** 2
+                scale = self.data_size**2 / (len(hard_pairs[0]) + len(hard_pairs[2])) ** 2
                 hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches
