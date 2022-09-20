@@ -1,5 +1,5 @@
 import torch.optim as optim
-from pytorch_metric_learning import distances, miners, losses
+from pytorch_metric_learning import losses
 from src.baselines.Laplace_online.config import parse_args
 from src.data_modules import (
     CasiaDataModule,
@@ -13,6 +13,7 @@ from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
     FixedContrastiveHessianCalculator,
 )
+from src.miners import AllCombinationsMiner, AllPositiveMiner
 
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
@@ -45,18 +46,16 @@ def run(args):
 
     loss = losses.ContrastiveLoss(neg_margin=args.margin)
 
-    miner = miners.BatchEasyHardMiner(
-        pos_strategy="all",
-        neg_strategy="all",
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    )
-    
+
     if args.hessian == "positives":
         calculator_cls = ContrastiveHessianCalculator
+        miner = AllPositiveMiner()
     elif args.hessian == "fixed":
         calculator_cls = FixedContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
     elif args.hessian == "full":
         calculator_cls = ContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
     else:
         raise ValueError(f"Unknown method: {args.hessian}")
 

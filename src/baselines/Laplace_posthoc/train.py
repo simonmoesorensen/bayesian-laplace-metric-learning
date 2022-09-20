@@ -46,18 +46,15 @@ def run(args):
         sampler=sampler,
     )
 
-    miner = miners.BatchEasyHardMiner(
-        pos_strategy="all",
-        neg_strategy="all",
-        distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
-    )
-
     if args.hessian == "positives":
         calculator_cls = ContrastiveHessianCalculator
+        miner = AllPositiveMiner()
     elif args.hessian == "fixed":
         calculator_cls = FixedContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
     elif args.hessian == "full":
         calculator_cls = ContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
     else:
         raise ValueError(f"Unknown method: {args.hessian}")
 

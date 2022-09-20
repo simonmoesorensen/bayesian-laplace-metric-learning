@@ -117,7 +117,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             for x, y in tqdm(self.train_loader):
                 output = self.forward(x)
                 hard_pairs = self.miner(output, y)
-
+                import pdb; pdb.set_trace()
                 # compute hessian
                 h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
 

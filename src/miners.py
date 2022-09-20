@@ -1,6 +1,5 @@
 import torch
-from pytorch_metric_learning import miners
-
+from pytorch_metric_learning import distances, miners
 
 class AllCombinationsMiner:
     """
@@ -26,6 +25,7 @@ class AllPermutationsMiner:
         self._miner = miners.BatchEasyHardMiner(
             pos_strategy="all",
             neg_strategy="all",
+            distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
             allowed_pos_range=None,
             allowed_neg_range=None,
         )
@@ -43,13 +43,13 @@ class AllPositiveMiner:
         self._miner = miners.BatchEasyHardMiner(
             pos_strategy="all",
             neg_strategy="hard",
+            distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
             allowed_pos_range=None,
             allowed_neg_range=(torch.inf, torch.inf),
         )
 
     def __call__(self, x, y):
         return self._miner(x, y)
-
 
 class AllNegativeMiner:
     """
@@ -60,6 +60,7 @@ class AllNegativeMiner:
         self._miner = miners.BatchEasyHardMiner(
             pos_strategy="hard",
             neg_strategy="all",
+            distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
             allowed_pos_range=(torch.inf, torch.inf),
             allowed_neg_range=None,
         )
