@@ -89,25 +89,24 @@ class RmseHessianCalculator(HessianCalculator):
 
                 # Calculate the Jacobian wrt to the inputs
                 if isinstance(self.model[k], torch.nn.Linear):
-                    jacobian_x = self.model[k].weight.expand(
-                        (bs, *self.model[k].weight.shape)
-                    )
+                    jacobian_x = self.model[k].weight
+                    tmp = torch.einsum("nm,bnj,jk->bmk", jacobian_x, tmp, jacobian_x)
                 elif isinstance(self.model[k], torch.nn.Tanh):
-                    jacobian_x = torch.diag_embed(
-                        torch.ones(feature_maps[k + 1].shape, device=self.device)
-                        - feature_maps[k + 1] ** 2
-                    )
+                    jacobian_x = torch.ones(feature_maps[k + 1].shape, device=self.device) - feature_maps[k + 1] ** 2
+                    tmp = torch.einsum("bn,bnj,bj->bnj", jacobian_x, tmp, jacobian_x)
                 elif isinstance(self.model[k], torch.nn.ReLU):
-                    jacobian_x = torch.diag_embed((feature_maps[k + 1] > 0).float())
+                    jacobian_x = (feature_maps[k + 1] > 0).float()
+                    tmp = torch.einsum("bn,bnj,bj->bnj", jacobian_x, tmp, jacobian_x)
                 elif isinstance(self.model[k], L2Norm):
                     jacobian_x = self.model[k]._jacobian_wrt_input(
                         feature_maps[k], feature_maps[k + 1]
                     )
+                    tmp = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x, tmp, jacobian_x)
                 else:
                     raise NotImplementedError
 
-                # TODO: make more efficent by using row vectors
-                tmp = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x, tmp, jacobian_x)
+                # TODO: make more efficent by using row vectors     #what are row vectors???
+                #tmp = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x, tmp, jacobian_x)
 
         return torch.cat(hessian, dim=1)
 
@@ -198,7 +197,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
         **kwargs
     ) -> Tensor:
         
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
 
@@ -274,29 +273,30 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
                 # Calculate the Jacobian wrt to the inputs
                 if isinstance(self.model[k], torch.nn.Linear):
-                    jacobian_x1 = self.model[k].weight.expand(
-                        (bs, *self.model[k].weight.shape)
-                    )
-                    jacobian_x2 = jacobian_x1
+                    jacobian_x1 = self.model[k].weight
+                    tmp1 = torch.einsum("nm,bnj,jk->bmk", jacobian_x1, tmp1, jacobian_x1)
+                    tmp2 = torch.einsum("nm,bnj,jk->bmk", jacobian_x1, tmp2, jacobian_x1)
+                    tmp3 = torch.einsum("nm,bnj,jk->bmk", jacobian_x1, tmp3, jacobian_x1)
                     
                 elif isinstance(self.model[k], torch.nn.Tanh):
                     # feature map 1
-                    jacobian_x1 = torch.diag_embed(
-                        torch.ones(feature_maps1[k + 1].shape, device=self.device)
-                        - feature_maps1[k + 1] ** 2
-                    )
-                    
+                    jacobian_x1 = torch.ones(feature_maps1[k + 1].shape, device=self.device) - feature_maps1[k + 1] ** 2
                     # feature map 2
-                    jacobian_x2 = torch.diag_embed(
-                        torch.ones(feature_maps2[k + 1].shape, device=self.device)
-                        - feature_maps2[k + 1] ** 2
-                    )
+                    jacobian_x2 = torch.ones(feature_maps2[k + 1].shape, device=self.device) - feature_maps2[k + 1] ** 2
+                    
+                    tmp1 = torch.einsum("bn,bnj,bj->bnj", jacobian_x1, tmp1, jacobian_x1)
+                    tmp2 = torch.einsum("bn,bnj,bj->bnj", jacobian_x2, tmp2, jacobian_x2)
+                    tmp3 = torch.einsum("bn,bnj,bj->bnj", jacobian_x1, tmp3, jacobian_x2)
                     
                 elif isinstance(self.model[k], torch.nn.ReLU):
                     # feature map 1
-                    jacobian_x1 = torch.diag_embed((feature_maps1[k + 1] > 0).float())
+                    jacobian_x1 = (feature_maps1[k + 1] > 0).float()
                     # feature map 2
-                    jacobian_x2 = torch.diag_embed((feature_maps2[k + 1] > 0).float())
+                    jacobian_x2 = (feature_maps2[k + 1] > 0).float()
+                    
+                    tmp1 = torch.einsum("bn,bnj,bj->bnj", jacobian_x1, tmp1, jacobian_x1)
+                    tmp2 = torch.einsum("bn,bnj,bj->bnj", jacobian_x2, tmp2, jacobian_x2)
+                    tmp3 = torch.einsum("bn,bnj,bj->bnj", jacobian_x1, tmp3, jacobian_x2)
                     
                     
                 elif isinstance(self.model[k], L2Norm):
@@ -306,20 +306,25 @@ class ContrastiveHessianCalculator(HessianCalculator):
                     jacobian_x2 = self.model[k]._jacobian_wrt_input(
                         feature_maps2[k], feature_maps2[k + 1]
                     )
+                    tmp1 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp1, jacobian_x1)
+                    tmp2 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x2, tmp2, jacobian_x2)
+                    tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
                 else:
                     raise NotImplementedError
 
                 # Calculate the product of the Jacobians
                 # TODO: make more efficent by using row vectors
                 # Right now this is 96-97% of our runtime
-                tmp1 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp1, jacobian_x1)
-                tmp2 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x2, tmp2, jacobian_x2)
-                tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
+                #tmp1 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp1, jacobian_x1)
+                #tmp2 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x2, tmp2, jacobian_x2)
+                #tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
         hessian = torch.cat(hessian, dim=1)
 
         # Set to zero for non-matches outside mask
         hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0.0, 1.0), hessian)
 
+
+        # TODO: this is veeeeeery wrong. The negative is ok, the scaling is not.
         # Set to negative for non-matches in mask, scale by 1/(n_classes-1)
         hessian = torch.einsum(
             "b,bm->bm",
@@ -337,7 +342,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
     def compute_batch_pairs(self, hard_pairs) -> Tensor:
         ap, p, an, n = hard_pairs
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         t = torch.cat(
             (
                 torch.ones(p.shape[0], device=self.device),
