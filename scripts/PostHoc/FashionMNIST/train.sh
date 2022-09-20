@@ -13,5 +13,5 @@ python3 -m src.laplace.train_post_hoc \
     --embedding_size 32 \
     --gpu_id 0 \
     --random_seed 42 \
-    --batch_size 16 \
+    --batch_size 64 \
     --to_visualize

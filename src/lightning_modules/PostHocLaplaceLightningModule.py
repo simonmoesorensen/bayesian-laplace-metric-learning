@@ -119,12 +119,12 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             for x, y in tqdm(self.train_loader):
                 output = self.forward(x)
                 hard_pairs = self.miner(output, y)
-                
+
                 # compute hessian
                 h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
 
                 # scale from batch size to data size
-                scale = self.data_size**2 / (len(hard_pairs[0]) + len(hard_pairs[2])) ** 2
+                scale = self.data_size**2 / (2 * len(hard_pairs[0]) + 2 * len(hard_pairs[2]))
                 hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches
@@ -147,7 +147,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         prior_prec = 1.0
         prior_prec = torch.tensor(prior_prec)
         prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
-        
+        print("prior precision is ==>> ", prior_prec)
         self.visualize_hessian(hessian + prior_prec, "precision_after")
         self.visualize_hessian( 1 / (hessian + prior_prec), "posterior_after")
 
@@ -173,6 +173,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         vis_path = vis_path / f"{name}.png"
         
         plt.plot(hessian.cpu().numpy())
+        plt.yscale("log")
         plt.savefig(vis_path)
         plt.close(); plt.cla(); plt.clf();
         

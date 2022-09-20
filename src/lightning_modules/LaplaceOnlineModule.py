@@ -61,7 +61,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
 
             # scale from batch to dataset size
-            scale = self.data_size**2 / (len(hard_pairs[0]) + len(hard_pairs[2])) ** 2
+            scale = self.data_size**2 / (2 * len(hard_pairs[0]) + 2 * len(hard_pairs[2]))
             h_s = torch.clamp(h_s * scale, min=0)
 
             # append results

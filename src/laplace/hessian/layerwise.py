@@ -36,6 +36,7 @@ class HessianCalculator:
 
         if not isinstance(self.model, nn.Sequential):
             raise ValueError("self.model must be a sequential self.model.")
+        
         self.handles.append(self.model[0].register_forward_hook(fw_hook_get_input))
         for k in range(len(self.model)):
             self.handles.append(self.model[k].register_forward_hook(fw_hook_get_latent))
@@ -112,10 +113,9 @@ class RmseHessianCalculator(HessianCalculator):
 
 
 class FixedContrastiveHessianCalculator(HessianCalculator):
-    def __init__(self, margin=0.2, alpha=0.01, num_classes=10, device="cpu") -> None:
+    def __init__(self, margin=0.2, num_classes=10, device="cpu") -> None:
         super().__init__(device)
         self.margin = margin
-        self.alpha = alpha
         self.num_classes = num_classes
         self.rmse_hessian_calculator = RmseHessianCalculator(device)
 
@@ -178,11 +178,10 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
 class ContrastiveHessianCalculator(HessianCalculator):
     def __init__(
-        self, margin=0.2, alpha=0.01, num_classes=10, device="cpu", force_positive=False
+        self, margin=0.2, num_classes=10, device="cpu", force_positive=False
     ) -> None:
         super().__init__(device)
         self.margin = margin
-        self.alpha = alpha
         self.num_classes = num_classes
         self.force_positive = force_positive
 
@@ -198,28 +197,36 @@ class ContrastiveHessianCalculator(HessianCalculator):
         *args,
         **kwargs
     ) -> Tensor:
+        
+        import pdb; pdb.set_trace()
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
 
         bs, output_size = z1.shape
 
         non_match_mask = (1 - y).bool()
+        
+        # use distance to find what is inside margin
         square_norms: Tensor = torch.einsum("no,no->n", z1 - z2, z1 - z2)
         in_margin_mask = square_norms < self.margin
 
+        # negative outside margin
         zero_mask = torch.logical_and(non_match_mask, ~in_margin_mask)
+        
+        # negative inside margin
         negative_mask = torch.logical_and(non_match_mask, in_margin_mask)
 
+        # track stuff
         self.zeros += zero_mask.sum().detach().item()
         self.negatives += negative_mask.sum().detach().item()
         self.total_pairs += bs
 
         # Saves the product of the Jacobians wrt layer input
         tmp1 = torch.diag_embed(
-            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+            torch.ones(bs, output_size, device=self.device)
         )
         tmp2 = torch.diag_embed(
-            (1 + self.alpha) * torch.ones(bs, output_size, device=self.device)
+            torch.ones(bs, output_size, device=self.device)
         )
         tmp3 = torch.diag_embed(torch.ones(bs, output_size, device=self.device))
 
@@ -228,6 +235,8 @@ class ContrastiveHessianCalculator(HessianCalculator):
             for k in range(len(self.model) - 1, -1, -1):
                 # Calculate Hessian for linear layers (since they have parameters)
                 if isinstance(self.model[k], torch.nn.Linear):
+                    
+                    # take diagonal elements
                     diag_elements1 = torch.einsum("bii->bi", tmp1)
                     diag_elements2 = torch.einsum("bii->bi", tmp2)
                     diag_elements3 = torch.einsum("bii->bi", tmp3)
@@ -269,18 +278,27 @@ class ContrastiveHessianCalculator(HessianCalculator):
                         (bs, *self.model[k].weight.shape)
                     )
                     jacobian_x2 = jacobian_x1
+                    
                 elif isinstance(self.model[k], torch.nn.Tanh):
+                    # feature map 1
                     jacobian_x1 = torch.diag_embed(
                         torch.ones(feature_maps1[k + 1].shape, device=self.device)
                         - feature_maps1[k + 1] ** 2
                     )
+                    
+                    # feature map 2
                     jacobian_x2 = torch.diag_embed(
                         torch.ones(feature_maps2[k + 1].shape, device=self.device)
                         - feature_maps2[k + 1] ** 2
                     )
+                    
                 elif isinstance(self.model[k], torch.nn.ReLU):
+                    # feature map 1
                     jacobian_x1 = torch.diag_embed((feature_maps1[k + 1] > 0).float())
+                    # feature map 2
                     jacobian_x2 = torch.diag_embed((feature_maps2[k + 1] > 0).float())
+                    
+                    
                 elif isinstance(self.model[k], L2Norm):
                     jacobian_x1 = self.model[k]._jacobian_wrt_input(
                         feature_maps1[k], feature_maps1[k + 1]
@@ -310,7 +328,6 @@ class ContrastiveHessianCalculator(HessianCalculator):
         )
 
         # Scale by the number of samples
-
         hessian = hessian.sum(dim=0)
 
         if self.force_positive:
@@ -320,7 +337,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
     def compute_batch_pairs(self, hard_pairs) -> Tensor:
         ap, p, an, n = hard_pairs
-
+        import pdb; pdb.set_trace()
         t = torch.cat(
             (
                 torch.ones(p.shape[0], device=self.device),
@@ -328,6 +345,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
             )
         ).to(self.device)
 
+        #TODO: do not copy, but use index to keep track. THis is crazy memory wise!!
         feature_maps1 = [x[torch.cat((ap, an))] for x in self.feature_maps]
         feature_maps2 = [x[torch.cat((p, n))] for x in self.feature_maps]
 
