@@ -39,16 +39,14 @@ class CIFAR10ConvNet(nn.Module):
             nn.Dropout2d(p),
             nn.Flatten(),
         )
-        linear_layers = [
+        self.linear = nn.Sequential(
             nn.Linear(16 * 5 * 5, 120),
             nn.Tanh(),
             nn.Linear(120, 84),
             nn.Tanh(),
             nn.Linear(84, latent_dim),
             L2Norm(),
-        ]
-
-        self.linear = nn.Sequential(*linear_layers)
+        )
 
     def forward(self, x):
         x = self.conv(x)

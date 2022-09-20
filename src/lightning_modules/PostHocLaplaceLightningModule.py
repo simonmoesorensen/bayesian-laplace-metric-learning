@@ -33,15 +33,15 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
     Post-hoc Laplace approximation of the posterior distribution.
     """
 
-    def init(self, model, miner, calculator_cls, data_size, args):
+    def init(self, model, miner, calculator_cls, dataset_size, args):
         super().init(model, DummyLoss(), miner, DummyOptimizer(), args)
 
-        self.data_size = data_size
+        self.dataset_size = dataset_size
 
         # Load model backbone
         if args.backbone_path:
             state_dict = torch.load(args.backbone_path)
-            model.backbone.load_state_dict(
+            model.load_state_dict(
                 filter_state_dict(state_dict, remove="module.0.")
             )
 
@@ -73,7 +73,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             # use sampled samples to compute the loss
             vector_to_parameters(sample, self.model.linear.parameters())
 
-            zs = self.model.linear(X)
+            zs = self.model.linear(x)
             z.append(zs)
 
         if len(z) > 1:
@@ -108,9 +108,9 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
         if not self.name:
             raise ValueError("Please run .init()")
-
+        
         hessian = torch.zeros_like(
-            parameters_to_vector(self.model.linear.parameters()), device=x.device
+            parameters_to_vector(self.model.linear.parameters()), device=self.device
         )
         self.model.eval()
         with torch.inference_mode():
@@ -119,25 +119,26 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
                 hard_pairs = self.miner(output, y)
 
                 # compute hessian
-                h_s = self.calculator.compute_batch_pairs(hard_pairs)
+                h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
 
                 # scale from batch size to data size
-                scale = self.data_size**2 / x.shape[0] ** 2
+                scale = self.dataset_size**2 / x.shape[0] ** 2
                 hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches
         hessian /= len(self.train_loader)
 
         print(
-            f"{100 * self.calculator.zeros / self.calculator.total_pairs:.2f}% of pairs are zero."
+            f"{100 * self.hessian_calculator.zeros / self.hessian_calculator.total_pairs:.2f}% of pairs are zero."
         )
         print(
-            f"{100 * self.calculator.negatives / self.calculator.total_pairs:.2f}% of pairs are negative."
+            f"{100 * self.hessian_calculator.negatives / self.hessian_calculator.total_pairs:.2f}% of pairs are negative."
         )
 
         mu_q = parameters_to_vector(self.model.linear.parameters())
 
         scale = 1.0
+        prior_prec = 1.0
         prior_prec = torch.tensor(prior_prec)
         prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
 

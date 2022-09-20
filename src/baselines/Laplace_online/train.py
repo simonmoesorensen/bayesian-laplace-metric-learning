@@ -9,7 +9,10 @@ from src.data_modules import (
 )
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
 from src.lightning_modules.LaplaceOnlineModule import LaplaceOnlineLightningModule
-
+from src.laplace.hessian.layerwise import (
+    ContrastiveHessianCalculator,
+    FixedContrastiveHessianCalculator,
+)
 
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
@@ -47,6 +50,16 @@ def run(args):
         neg_strategy="all",
         distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
     )
+    
+    if args.hessian == "positives":
+        calculator_cls = ContrastiveHessianCalculator
+    elif args.hessian == "fixed":
+        calculator_cls = FixedContrastiveHessianCalculator
+    elif args.hessian == "full":
+        calculator_cls = ContrastiveHessianCalculator
+    else:
+        raise ValueError(f"Unknown method: {args.hessian}")
+
 
     trainer = LaplaceOnlineLightningModule(
         accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
@@ -58,6 +71,7 @@ def run(args):
         model=model,
         loss_fn=loss,
         miner=miner,
+        calculator_cls=calculator_cls,
         optimizer=optimizer,
         dataset_size=dataset_size,
         args=args,

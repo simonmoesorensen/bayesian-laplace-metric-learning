@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument("--disp_freq", type=int, default=20)
 
     # ----- hessian details
+    parser.add_argument("--hessian", type=str, default="full")
 
     # ----- data loader details
     parser.add_argument("--num_workers", type=int, default=8)

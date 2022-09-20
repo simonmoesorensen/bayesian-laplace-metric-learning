@@ -25,9 +25,9 @@
 # if you want to receive e-mail notifications on a non-default address
 #BSUB -u moe.simon@gmail.com
 ### -- send notification at start --
-#BSUB -B
+###BSUB -B
 ### -- send notification at completion--
-#BSUB -N
+###BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
 
@@ -41,7 +41,7 @@ module load cuda/11.7
 # Load venv
 source venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
 echo "Waiting for debugger to attach..."
 python3 -m src.baselines.MCDropout.train \
@@ -49,7 +49,7 @@ python3 -m src.baselines.MCDropout.train \
     --name FashionMNIST \
     --batch_size 512 \
     --embedding_size 6 \
-    --num_epoch 100 \
+    --num_epoch 500 \
     --save_freq 25 \
     --gpu_id 0 1\
     --num_workers 8 \

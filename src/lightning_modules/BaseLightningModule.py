@@ -45,17 +45,6 @@ class BaseLightningModule(LightningLite):
 
         torch.manual_seed(args.random_seed)
 
-        # Learning rate scheduler options
-        self.base_lr = args.lr
-        max_lr = args.lr * 10
-        # Cycle every 5% of total epochs, results in base_lr around 60% of total epochs
-        # See https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling?scriptVersionId=38549725&cellId=17
-        step_size_up = max(1, args.num_epoch // 20)
-
-        print(" 'base_lr' : '{}' ".format(self.base_lr))
-        print(" 'max_lr' : '{}' ".format(max_lr))
-        print(" 'step_size_up' : '{}' ".format(step_size_up))
-
         self.args = args
 
         # LOGGING
@@ -80,16 +69,6 @@ class BaseLightningModule(LightningLite):
 
         # Lite setup
         self.model, self.optimizer = self.setup(model, optimizer)
-
-        # Scheduler
-        self.scheduler = lr_scheduler.CyclicLR(
-            self.optimizer,
-            base_lr=self.base_lr,
-            max_lr=max_lr,
-            step_size_up=step_size_up,
-            mode="triangular2",
-            cycle_momentum=False,
-        )
 
         knn_func = CustomKNN(distances.LpDistance())
 
@@ -389,7 +368,6 @@ class BaseLightningModule(LightningLite):
                 batch += 1
 
             self.epoch_end()
-            self.scheduler.step()
 
             # Validate @ frequency
             if (epoch + 1) % self.args.save_freq == 0:
@@ -416,7 +394,9 @@ class BaseLightningModule(LightningLite):
         with torch.no_grad():
             for image, target in tqdm(self.val_loader, desc="Validating"):
                 mu, sigma, _ = self.val_step(image, target)
-                val_sigma.append(sigma)
+                
+                if sigma is not None:
+                    val_sigma.append(sigma)
                 val_mu.append(mu)
                 val_images.append(image)
                 val_labels.append(target)
@@ -428,12 +408,13 @@ class BaseLightningModule(LightningLite):
                     same_source=True,
                 )
 
-                self.update_expected_accuracy(
-                    torch.stack((mu, sigma.square()), dim=-1),
-                    target,
-                    step="val",
-                    same_source=True,
-                )
+                if sigma is not None:
+                    self.update_expected_accuracy(
+                        torch.stack((mu, sigma.square()), dim=-1),
+                        target,
+                        step="val",
+                        same_source=True,
+                    )
 
         self.val_end()
 
@@ -463,20 +444,24 @@ class BaseLightningModule(LightningLite):
                 self.train_loader, desc="Preparing query DB for testing"
             ):
                 mu, sigma, out = self.test_step(image, target)
+                
                 train_mu.append(mu)
-                train_sigma.append(sigma)
+                if sigma is not None:
+                    train_sigma.append(sigma)
                 train_sampled.append(out)
                 train_labels.append(target)
 
             train_mu = torch.cat(train_mu, dim=0)
-            train_sigma = torch.cat(train_sigma, dim=0)
+            if sigma is not None:
+                train_sigma = torch.cat(train_sigma, dim=0)
             train_sampled = torch.cat(train_sampled, dim=0)
             train_labels = torch.cat(train_labels, dim=0)
 
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, out = self.test_step(image, target)
                 test_mu.append(mu)
-                test_sigma.append(sigma)
+                if sigma is not None:
+                    test_sigma.append(sigma)
                 test_images.append(image)
                 test_labels.append(target)
 
@@ -488,7 +473,7 @@ class BaseLightningModule(LightningLite):
                     y_db=train_labels,
                 )
 
-                if expected:
+                if expected and sigma is not None:
                     self.update_expected_accuracy(
                         z=torch.stack((mu, sigma.square()), dim=-1),
                         y=target,
@@ -501,14 +486,18 @@ class BaseLightningModule(LightningLite):
                     )
 
         self.test_end()
-
+        
         if self.to_visualize:
             self.visualize(
                 test_mu, test_sigma, test_images, test_labels, prefix="test_"
             )
 
     def visualize(self, id_mu, id_sigma, id_images, id_labels, prefix):
-        id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
+        
+        prob_model = (len(id_sigma) > 0) and (id_sigma is not None)
+        
+        if prob_model:
+            id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
         id_mu = torch.cat(id_mu, dim=0).detach().cpu()
         id_images = torch.cat(id_images, dim=0).detach().cpu()
         id_labels = torch.cat(id_labels, dim=0).detach().cpu()
@@ -525,92 +514,95 @@ class BaseLightningModule(LightningLite):
         )
         vis_path.mkdir(parents=True, exist_ok=True)
 
-        ood_sigma = []
-        ood_mu = []
-        ood_images = []
-        ood_labels = []
+        if prob_model:
+            ood_sigma = []
+            ood_mu = []
+            ood_images = []
+            ood_labels = []
 
-        with torch.no_grad():
-            for img, y in tqdm(self.ood_loader, desc="OOD"):
-                out = self.ood_step(img, y)
-                if len(out) == 2:
-                    mu_ood, std_ood = out
-                elif len(out) == 3:
-                    mu_ood, std_ood, _ = out
-                else:
-                    raise ValueError("Invalid output from OOD step")
+            with torch.no_grad():
+                for img, y in tqdm(self.ood_loader, desc="OOD"):
+                    out = self.ood_step(img, y)
+                    if len(out) == 2:
+                        mu_ood, std_ood = out
+                    elif len(out) == 3:
+                        mu_ood, std_ood, _ = out
+                    else:
+                        raise ValueError("Invalid output from OOD step")
 
-                ood_sigma.append(std_ood)
-                ood_mu.append(mu_ood)
-                ood_images.append(img)
-                ood_labels.append(y)
+                    ood_sigma.append(std_ood)
+                    ood_mu.append(mu_ood)
+                    ood_images.append(img)
+                    ood_labels.append(y)
 
-        ood_sigma = torch.cat(ood_sigma, dim=0).detach().cpu()
-        ood_mu = torch.cat(ood_mu, dim=0).detach().cpu()
-        ood_images = torch.cat(ood_images, dim=0).detach().cpu()
-        ood_labels = torch.cat(ood_labels, dim=0).detach().cpu()
+            ood_sigma = torch.cat(ood_sigma, dim=0).detach().cpu()
+            ood_mu = torch.cat(ood_mu, dim=0).detach().cpu()
+            ood_images = torch.cat(ood_images, dim=0).detach().cpu()
+            ood_labels = torch.cat(ood_labels, dim=0).detach().cpu()
 
-        # Visualize
-        visualize_all(
-            id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
-        )
+            # Visualize
+            visualize_all(
+                id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
+            )
 
-        model_name, dataset_name, run_name = get_names(vis_path)
+            model_name, dataset_name, run_name = get_names(vis_path)
 
-        print("Running calibration curve")
-        ece = plot_calibration_curve(
-            id_labels,
-            id_mu,
-            id_sigma,
-            100,
-            vis_path,
-            model_name,
-            dataset_name,
-            run_name,
-        )
-        self.additional_metrics.update(f"{prefix}ece", ece)
+            print("Running calibration curve")
+            ece = plot_calibration_curve(
+                id_labels,
+                id_mu,
+                id_sigma,
+                100,
+                vis_path,
+                model_name,
+                dataset_name,
+                run_name,
+            )
+            self.additional_metrics.update(f"{prefix}ece", ece)
 
-        print("Running sparsification curve")
+            print("Running sparsification curve")
 
-        ausc = plot_sparsification_curve(
-            id_labels, id_mu, id_sigma, vis_path, model_name, dataset_name, run_name
-        )
+            ausc = plot_sparsification_curve(
+                id_labels, id_mu, id_sigma, vis_path, model_name, dataset_name, run_name
+            )
 
-        self.additional_metrics.update(f"{prefix}ausc", ausc)
+            self.additional_metrics.update(f"{prefix}ausc", ausc)
 
-        # Read ood metrics
-        with open(vis_path / "ood_metrics.json", "r") as f:
-            ood_metrics = json.load(f)
-            self.additional_metrics.update(f"{prefix}auroc", ood_metrics["auroc"])
-            self.additional_metrics.update(f"{prefix}auprc", ood_metrics["auprc"])
+            # Read ood metrics
+            with open(vis_path / "ood_metrics.json", "r") as f:
+                ood_metrics = json.load(f)
+                self.additional_metrics.update(f"{prefix}auroc", ood_metrics["auroc"])
+                self.additional_metrics.update(f"{prefix}auprc", ood_metrics["auprc"])
 
         # Save metrics
         metrics = self.metrics.get_dict()
         with open(vis_path / "metrics.json", "w") as f:
             json.dump(metrics, f)
 
-        expected_metrics = self.expected_metrics.get_dict()
-        with open(vis_path / "expected_metrics.json", "w") as f:
-            json.dump(expected_metrics, f)
+        if prob_model:
+            expected_metrics = self.expected_metrics.get_dict()
+            with open(vis_path / "expected_metrics.json", "w") as f:
+                json.dump(expected_metrics, f)
 
-        additional_metrics = self.additional_metrics.get_dict()
-        with open(vis_path / "additional_metrics.json", "w") as f:
-            json.dump(additional_metrics, f)
+            additional_metrics = self.additional_metrics.get_dict()
+            with open(vis_path / "additional_metrics.json", "w") as f:
+                json.dump(additional_metrics, f)
 
         # Save hparams
         with open(vis_path / "hparams.json", "w") as f:
             json.dump(self.get_hparams(), f)
 
-        # Save additional metrics for tensorboard in log_hyperparams
-        add_metrics = [
-            f"{prefix}ece",
-            f"{prefix}ausc",
-            f"{prefix}auroc",
-            f"{prefix}auprc",
-        ]
+        if prob_model:
+            # Save additional metrics for tensorboard in log_hyperparams
+            add_metrics = [
+                f"{prefix}ece",
+                f"{prefix}ausc",
+                f"{prefix}auroc",
+                f"{prefix}auprc",
+            ]
 
-        # Update tensorboard
-        self.log_additional(add_metrics)
+            # Update tensorboard
+            self.log_additional(add_metrics)
 
     def forward(self, x):
         return self.model(x)

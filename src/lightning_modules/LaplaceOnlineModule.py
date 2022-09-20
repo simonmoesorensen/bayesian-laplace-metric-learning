@@ -12,10 +12,9 @@ logging.getLogger(__name__).setLevel(logging.INFO)
 
 
 class LaplaceOnlineLightningModule(BaseLightningModule):
-    def init(self, model, loss_fn, miner, optimizer, dataset_size, args):
+    def init(self, model, loss_fn, miner, calculator_cls, optimizer, dataset_size, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-        self.to_visualize = True
         self.hessian_memory_factor = args.hessian_memory_factor
         self.data_size = dataset_size
         device = (
@@ -31,19 +30,13 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.n_val_samples = 1
         self.n_test_samples = 100
 
-        self.hessian_calculator = ContrastiveHessianCalculator(
-            margin=args.margin, device=device
-        )
+        self.hessian_calculator = calculator_cls
         self.hessian_calculator.init_model(self.model.linear)
 
-        self.scheduler.max_lrs = self.scheduler._format_param(
-            "max_lr", optimizer, self.base_lr
-        )
-
-    def train_step(self, X, y):
+    def train_step(self, x, y):
 
         # pass the data through the deterministic model
-        X = self.model.conv(X)
+        x = self.model.conv(x)
 
         mu_q = parameters_to_vector(self.model.linear.parameters())
 
@@ -59,7 +52,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             # use sampled samples to compute the loss
             vector_to_parameters(sample, self.model.linear.parameters())
 
-            zs = self.model.linear(X)
+            zs = self.model.linear(x)
 
             hard_pairs = self.miner(zs, y)
             loss_running_sum = self.loss_fn(zs, y, indices_tuple=hard_pairs)
@@ -89,7 +82,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
         return z_mu, loss
 
-    def forward_samples(self, X, n_samples):
+    def forward_samples(self, x, n_samples):
 
         # pass the data through the deterministic model
         x = self.model.conv(x)
@@ -105,7 +98,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             # use sampled samples to compute the loss
             vector_to_parameters(sample, self.model.linear.parameters())
 
-            zs = self.model.linear(X)
+            zs = self.model.linear(x)
             z.append(zs)
 
         if len(z) > 1:
@@ -121,9 +114,9 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
         return z_mu, z_sigma, z
 
-    def val_step(self, X, y):
+    def val_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(X, self.n_val_samples)
+        z_mu, z_sigma, z = self.forward_samples(x, self.n_val_samples)
 
         # evaluate mean metrics
         hard_pairs = self.miner(z_mu, y)
@@ -132,12 +125,12 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
         return z_mu, z_sigma, z
 
-    def test_step(self, X, y):
+    def test_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(X, self.n_val_samples)
+        z_mu, z_sigma, z = self.forward_samples(x, self.n_val_samples)
         return z_mu, z_sigma, z
 
-    def ood_step(self, X, y):
+    def ood_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(X, self.n_val_samples)
-        return z_mu, z_sigma, z
+        z_mu, z_sigma, _ = self.forward_samples(x, self.n_val_samples)
+        return z_mu, z_sigma

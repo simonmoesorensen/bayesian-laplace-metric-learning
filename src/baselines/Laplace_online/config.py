@@ -48,6 +48,7 @@ def parse_args():
 
     # ----- hessian details
     parser.add_argument("--hessian_memory_factor", type=float, default=0.999)
+    parser.add_argument("--hessian", type=str, default="full")
 
     # ----- data loader details
     parser.add_argument("--num_workers", type=int, default=8)

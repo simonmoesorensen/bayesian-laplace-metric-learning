@@ -60,13 +60,14 @@ def run(args):
         accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
     )
 
-    inference_model = getattr(model.backbone, args.inference_model)
 
+    data_module.setup()
+    dataset_size = data_module.dataset_train.__len__()
     trainer.init(
         model=model,
         miner=miner,
         calculator_cls=calculator_cls,
-        inference_model=inference_model,
+        dataset_size=dataset_size,
         args=args,
     )
 

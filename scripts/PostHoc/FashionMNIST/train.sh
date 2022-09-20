@@ -9,7 +9,7 @@ python3 -m src.laplace.train_post_hoc \
     --dataset FashionMNIST \
     --name train_script_32_42_no_opt \
     --backbone_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
-    --hessian fixed \
+    --hessian full \
     --embedding_size 32 \
     --gpu_id 0 \
     --random_seed 42 \

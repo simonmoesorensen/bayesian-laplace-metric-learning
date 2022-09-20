@@ -47,11 +47,6 @@ class HIBLightningModule(BaseLightningModule):
 
             loss_fn.load_state_dict(new_state_dict)
 
-        max_lr = 0.0003
-        self.scheduler.max_lrs = self.scheduler._format_param(
-            "max_lr", optimizer, max_lr
-        )
-
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.001)
 

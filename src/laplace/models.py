@@ -11,17 +11,17 @@ class LaplaceHead(SampleNet):
     def __init__(self, backbone):
         super().__init__()
         self.linear = backbone.linear
-        self.convnet = backbone.conv
+        self.conv = backbone.conv
 
     def pass_through(self, x):
-        x = self.backbone(x)
+        x = self.conv(x)
         x = self.linear(x)
         return x
 
     def sample(self, X, samples):
         preds = []
 
-        conv_out = self.convnet(X)
+        conv_out = self.conv(X)
 
         mu = parameters_to_vector(self.linear.parameters())
 

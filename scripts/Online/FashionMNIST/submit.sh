@@ -11,14 +11,28 @@
 #BSUB -n 8
 
 ### -- Select the resources: 2 gpus -- 
-#BSUB -gpu "num=1"
+#BSUB -gpu "num=1:mode=exclusive_process"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
 
 # Request GPU resources
 #BSUB -R "rusage[mem=12GB]"
-#BSUB -R "select[gpu12gb]"
+
+### -- set the email address --
+# please uncomment the following line and put in your e-mail address,
+# if you want to receive e-mail notifications on a non-default address
+###BSUB -u moe.simon@gmail.com
+### -- send notification at start --
+###BSUB -B
+### -- send notification at completion--
+###BSUB -N
+### -- Specify the output and error file. %J is the job-id --
+### -- -o and -e mean append, -oo and -eo mean overwrite --
+
+
+#BSUB -oo outputs/Laplace_online/logs/FashionMNIST/FashionMNIST/run.out
+#BSUB -eo outputs/Laplace_online/logs/FashionMNIST/FashionMNIST/run.err
 
 # -- end of LSF options --
 
@@ -36,7 +50,7 @@ python3 -m src.baselines.Laplace_online.train \
     --name FashionMNIST \
     --batch_size 128 \
     --embedding_size 32 \
-    --num_epoch 100 \
+    --num_epoch 500 \
     --save_freq 20 \
     --gpu_id 0\
     --num_workers 8 \
