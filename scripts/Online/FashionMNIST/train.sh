@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES=2
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Laplace_online/train.py \
     --dataset FashionMNIST \
-    --name train_script \
+    --name train_script_full \
     --batch_size 128 \
     --embedding_size 32 \
     --num_epoch 100 \

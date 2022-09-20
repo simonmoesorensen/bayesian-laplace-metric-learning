@@ -30,7 +30,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.n_val_samples = 1
         self.n_test_samples = 100
 
-        self.hessian_calculator = calculator_cls
+        self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
 
     def train_step(self, x, y):

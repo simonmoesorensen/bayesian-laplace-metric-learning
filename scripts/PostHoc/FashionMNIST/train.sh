@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 python3 -m src.laplace.train_post_hoc \
     --dataset FashionMNIST \
-    --name train_script_32_42_no_opt \
+    --name train_script \
     --backbone_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
     --hessian positives \
     --embedding_size 32 \
