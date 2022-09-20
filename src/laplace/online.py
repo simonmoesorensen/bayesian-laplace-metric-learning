@@ -145,7 +145,7 @@ def train_online(
             for nn_i in sampled_nn:
                 vector_to_parameters(nn_i, net_inference.parameters())
                 output = net(x)
-                hard_pairs = miner(output, y)
+                pairs = miner(output, y)
 
                 if compute_hessian:
                     # Adjust hessian to the batch size
@@ -153,7 +153,7 @@ def train_online(
                         dataset_size**2
                         / (len(hard_pairs[0]) + len(hard_pairs[2])) ** 2
                     )
-                    hessian_batch = hessian_calculator.compute_batch_pairs(hard_pairs)
+                    hessian_batch = hessian_calculator.compute_batch_pairs(pairs)
                     hessian_batch = torch.clamp(hessian_batch, min=0)
                     h += hessian_batch * scaler
 
@@ -189,8 +189,6 @@ def train_online(
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
 
-    sampler = None
-
     if args.dataset == "MNIST":
         model = MNIST_Backbone(embedding_size=args.embedding_size)
         data_module = MNISTDataModule
@@ -200,7 +198,6 @@ def run(args):
     elif args.dataset == "Casia":
         model = Casia_Backbone(embedding_size=args.embedding_size)
         data_module = CasiaDataModule
-        sampler = "WeightedRandomSampler"
     elif args.dataset == "FashionMNIST":
         model = MNIST_Backbone(embedding_size=args.embedding_size)
         data_module = FashionMNISTDataModule
@@ -211,12 +208,8 @@ def run(args):
         args.data_dir,
         args.batch_size,
         args.num_workers,
-        shuffle=args.shuffle,
-        pin_memory=args.pin_memory,
-        sampler=sampler,
     )
     model.to(device)
-    data_module.setup()
 
     name = f"{args.hessian}_{args.embedding_size}_seed_{args.random_seed}"
 

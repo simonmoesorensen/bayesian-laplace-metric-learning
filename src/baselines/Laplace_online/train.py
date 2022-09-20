@@ -18,8 +18,6 @@ from src.miners import AllCombinationsMiner, AllPositiveMiner
 def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
 
-    sampler = None
-
     if args.dataset == "MNIST":
         model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = MNISTDataModule
@@ -34,9 +32,6 @@ def run(args):
         args.data_dir,
         args.batch_size,
         args.num_workers,
-        shuffle=args.shuffle,
-        pin_memory=args.pin_memory,
-        sampler=sampler,
     )
 
     optimizer = optim.Adam(

@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
-from src.utils import L2Norm
+from src.utils import L2Norm, get_pairs
 
 
 class HessianCalculator:
@@ -159,9 +159,10 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
         return hessian.sum(dim=0)
 
-    def compute_batch_pairs(self, hard_pairs) -> Tensor:
-        ap, p, an, n = hard_pairs
-
+    def compute_batch_pairs(self, pairs) -> Tensor:
+                
+        ap, p, an, n = pairs
+        
         t = torch.cat(
             (
                 torch.ones(p.shape[0], device=self.device),
@@ -197,7 +198,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
         **kwargs
     ) -> Tensor:
         
-        #import pdb; pdb.set_trace()
+
         z1 = feature_maps1[-1]
         z2 = feature_maps2[-1]
 
@@ -340,9 +341,10 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
         return hessian
 
-    def compute_batch_pairs(self, hard_pairs) -> Tensor:
-        ap, p, an, n = hard_pairs
-        #import pdb; pdb.set_trace()
+    def compute_batch_pairs(self, pairs) -> Tensor:
+                
+        ap, p, an, n = pairs
+        
         t = torch.cat(
             (
                 torch.ones(p.shape[0], device=self.device),

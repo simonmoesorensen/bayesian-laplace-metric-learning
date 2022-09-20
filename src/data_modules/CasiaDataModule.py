@@ -5,7 +5,7 @@ import torch
 import torchvision.datasets as d
 from src.data_modules.BaseDataModule import BaseDataModule
 from src.data_modules.gdrive import download_file_from_google_drive
-from torch.utils.data import DataLoader, Subset, random_split, sampler
+from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -40,16 +40,15 @@ class CasiaDataModule(BaseDataModule):
             [
                 transforms.ToTensor(),
                 transforms.Normalize(
-                    # Found from `self._compute_mean_and_std()`
-                    [0.4668, 0.3803, 0.3344],
-                    [0.2949, 0.2649, 0.2588],
+                    #TODO: insert image net mean and std
+                    [], []
                 ),
                 transforms.RandomCrop((128, 128), padding=16),
                 transforms.RandomHorizontalFlip(0.5),
             ]
         )
 
-    def prepare_data(self):
+    def download_data(self):
         file_id = "1Of_EVz-yHV7QVWQGihYfvtny9Ne8qXVz"
         file_path = self.data_dir / "casia.zip"
 
@@ -110,40 +109,12 @@ class CasiaDataModule(BaseDataModule):
                 dataset_full, range(n_train + n_val, n_train + n_val + n_test)
             )
 
-        # Set OOD dataset
-        ood_transforms = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    # Found from `self._compute_mean_and_std()`
-                    (0.49139968, 0.48215841, 0.44653091),
-                    (0.24703223, 0.24348513, 0.26158784),
-                ),
-                transforms.RandomCrop((128, 128), pad_if_needed=True),
-                transforms.RandomHorizontalFlip(0.5),
-            ]
-        )
-
         self.dataset_ood = d.CIFAR10(
-            self.data_dir, train=False, transform=ood_transforms
+            self.data_dir, train=False, transform=self.transform
         )
 
-        # OOD noise
-        ood_noise_transforms = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    # Found from `self._compute_mean_and_std()`
-                    [0.4668, 0.3803, 0.3344],
-                    [0.2949, 0.2649, 0.2588],
-                ),
-                transforms.RandomCrop((128, 128), padding=16),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.GaussianBlur(kernel_size=31, sigma=5),
-            ]
-        )
 
-        ood_full = d.ImageFolder(self.img_path, transform=ood_noise_transforms)
+        ood_full = d.ImageFolder(self.img_path, transform=self.transform)
         ood_size = 10000
         print(f"OOD set size: {ood_size}")
 

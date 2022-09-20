@@ -4,7 +4,7 @@ from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
 from tqdm import tqdm
 
-from src.utils import filter_state_dict
+from src.utils import filter_state_dict, get_pairs
 from src.baselines.Laplace_online.utils import sample_nn
 from src.baselines.Laplace_posthoc.utils import optimize_prior_precision
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
@@ -116,15 +116,23 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         )
         self.model.eval()
         with torch.inference_mode():
-            for x, y in tqdm(self.train_loader):
+            for x, y, class_labels in tqdm(self.train_loader):
+                                
+                bs, nobs, c, h, w = x.shape
+                
+                # put triplets in batch dim (nobs = [a, p, n])
+                x = x.view(bs * nobs, c, h, w)
                 output = self.forward(x)
-                hard_pairs = self.miner(output, y)
-
+                
+                # put triplets back in its on dim
+                output = output.view(bs, nobs, -1)
+                
                 # compute hessian
-                h_s = self.hessian_calculator.compute_batch_pairs(hard_pairs)
+                pairs = get_pairs(y)
+                h_s = self.hessian_calculator.compute_batch_pairs(pairs)
 
                 # scale from batch size to data size
-                scale = self.data_size**2 / (2 * len(hard_pairs[0]) + 2 * len(hard_pairs[2]))
+                scale = self.data_size*(self.data_size-1) / (len(pairs[0]) + len(pairs[2]))
                 hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches

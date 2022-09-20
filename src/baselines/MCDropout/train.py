@@ -9,8 +9,6 @@ from src.lightning_modules.MCDropoutLightningModule import MCDropoutLightningMod
 def run(MCDropout_args):
     MCDropout_args.gpu_id = [int(item) for item in MCDropout_args.gpu_id]
 
-    sampler = None
-
     if MCDropout_args.dataset == "MNIST":
         model = MNIST_MCDropout(embedding_size=MCDropout_args.embedding_size)
         data_module = MNISTDataModule
@@ -27,9 +25,6 @@ def run(MCDropout_args):
         MCDropout_args.data_dir,
         MCDropout_args.batch_size,
         MCDropout_args.num_workers,
-        shuffle=MCDropout_args.shuffle,
-        pin_memory=MCDropout_args.pin_memory,
-        sampler=sampler,
     )
 
     optimizer = optim.Adam(model.parameters(), lr=MCDropout_args.lr)

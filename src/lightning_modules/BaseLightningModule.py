@@ -22,7 +22,7 @@ from src.visualize import (
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.utils import filter_state_dict
+from src.utils import filter_state_dict, get_pairs
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -339,10 +339,15 @@ class BaseLightningModule(LightningLite):
 
             self.epoch = epoch
 
-            for image, target in tqdm(self.train_loader, desc="Training"):
+            for image, target, class_labels in tqdm(self.train_loader, desc="Training"):
                 self.optimizer.zero_grad()
+                
+                bs, nobs, c, h, w = image.shape
+                image = image.view(bs * nobs, c, h, w)
+                
+                pairs = get_pairs(target)
 
-                out, loss = self.train_step(image, target)
+                out, loss = self.train_step(image, pairs)
 
                 self.backward(loss)
 
@@ -351,9 +356,11 @@ class BaseLightningModule(LightningLite):
                 # display and log metrics every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     with torch.no_grad():
+                        
+                        class_labels = class_labels.view(-1)
                         self.update_accuracy(
                             out,
-                            target,
+                            class_labels,
                             step="train",
                             same_source=True,
                         )
@@ -412,7 +419,7 @@ class BaseLightningModule(LightningLite):
 
                 if sigma is not None:
                     self.update_expected_accuracy(
-                        torch.stack((mu, sigma.square()), dim=-1),
+                        torch.stack((mu, sigma**2), dim=-1),
                         target,
                         step="val",
                         same_source=True,
@@ -437,28 +444,7 @@ class BaseLightningModule(LightningLite):
         test_labels = []
         test_samples = []
 
-        train_mu = []
-        train_sigma = []
-        train_sampled = []
-        train_labels = []
-
         with torch.no_grad():
-            for image, target in tqdm(
-                self.train_loader, desc="Preparing query DB for testing"
-            ):
-                mu, sigma, samples = self.test_step(image, target)
-                
-                train_mu.append(mu)
-                if sigma is not None:
-                    train_sigma.append(sigma)
-                train_sampled.append(samples)
-                train_labels.append(target)
-
-            train_mu = torch.cat(train_mu, dim=0)
-            if sigma is not None:
-                train_sigma = torch.cat(train_sigma, dim=0)
-            train_sampled = torch.cat(train_sampled, dim=0)
-            train_labels = torch.cat(train_labels, dim=0)
 
             for image, target in tqdm(self.test_loader, desc="Testing"):
                 mu, sigma, samples = self.test_step(image, target)
@@ -473,8 +459,7 @@ class BaseLightningModule(LightningLite):
                     mu,
                     target,
                     "test",
-                    z_db=train_mu,
-                    y_db=train_labels,
+                    same_source=True,
                 )
 
                 if expected and sigma is not None:
@@ -482,11 +467,7 @@ class BaseLightningModule(LightningLite):
                         z=torch.stack((mu, sigma**2), dim=-1),
                         y=target,
                         step="test",
-                        z_db=torch.stack(
-                            (train_mu, train_sigma**2),
-                            dim=-1,
-                        ),
-                        y_db=train_labels,
+                        same_source=True,
                     )
 
         self.test_end()
@@ -645,8 +626,6 @@ class BaseLightningModule(LightningLite):
         )
 
     def add_data_module(self, data_module):
-        data_module.prepare_data()
-        data_module.setup()
 
         (
             self.train_loader,
@@ -658,7 +637,6 @@ class BaseLightningModule(LightningLite):
             data_module.val_dataloader(),
             data_module.test_dataloader(),
             data_module.ood_dataloader(),
-            replace_sampler=False if data_module.sampler else True,
         )
 
     def save_model(self, prefix=None):

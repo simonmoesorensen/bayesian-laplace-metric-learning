@@ -19,8 +19,6 @@ from src.utils import separate_batchnorm_params
 def run(Backbone_args):
     Backbone_args.gpu_id = [int(item) for item in Backbone_args.gpu_id]
 
-    sampler = None
-
     if Backbone_args.dataset == "MNIST":
         model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = MNISTDataModule
@@ -30,7 +28,6 @@ def run(Backbone_args):
     elif Backbone_args.dataset == "Casia":
         model = Casia_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = CasiaDataModule
-        sampler = "WeightedRandomSampler"
     elif Backbone_args.dataset == "FashionMNIST":
         model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
         data_module = FashionMNISTDataModule
@@ -41,9 +38,6 @@ def run(Backbone_args):
         Backbone_args.data_dir,
         Backbone_args.batch_size,
         Backbone_args.num_workers,
-        shuffle=Backbone_args.shuffle,
-        pin_memory=Backbone_args.pin_memory,
-        sampler=sampler,
     )
 
     # Don't apply weight decay to batchnorm layers

@@ -3,6 +3,22 @@ import torch.nn as nn
 from torch import Tensor, nn
 
 
+def get_pairs(y):
+    
+    y = y.view(-1)
+    
+    ap = an = torch.where(y == 0)[0]
+    p = torch.where(y == 1)[0]
+    n = torch.where(y == -1)[0]
+    
+    num_neg_per_anchor = n.shape[0] // ap.shape[0]
+    an = an.repeat_interleave(num_neg_per_anchor)
+    
+    num_pos_per_anchor = p.shape[0] // ap.shape[0]
+    ap = ap.repeat_interleave(num_pos_per_anchor)
+    
+    return (ap, p, an, n)
+
 def filter_state_dict(state_dict, remove="module."):
     new_state_dict = {}
     for key in state_dict:

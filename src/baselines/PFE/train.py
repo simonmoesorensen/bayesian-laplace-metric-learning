@@ -16,8 +16,6 @@ from src.utils import separate_batchnorm_params
 def run(PFE_args):
     PFE_args.gpu_id = [int(item) for item in PFE_args.gpu_id]
 
-    sampler = None
-
     if PFE_args.dataset == "MNIST":
         model = MNIST_PFE(
             embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
@@ -33,20 +31,19 @@ def run(PFE_args):
             embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
         )
         data_module = CasiaDataModule
-        sampler = "WeightedRandomSampler"
     elif PFE_args.dataset == "FashionMNIST":
         model = FashionMNIST_PFE(
             embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
         )
         data_module = FashionMNISTDataModule
 
+    # do not use negative in training.
     data_module = data_module(
         PFE_args.data_dir,
         PFE_args.batch_size,
         PFE_args.num_workers,
-        shuffle=PFE_args.shuffle,
-        pin_memory=PFE_args.pin_memory,
-        sampler=sampler,
+        npos=1,
+        nneg=0,
     )
 
     # Don't apply weight decay to batchnorm layers

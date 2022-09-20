@@ -20,8 +20,6 @@ def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
     torch.manual_seed(args.random_seed)
 
-    sampler = None
-
     if args.dataset == "MNIST":
         raise NotImplementedError()
     elif args.dataset == "CIFAR10":
@@ -39,9 +37,6 @@ def run(args):
         args.data_dir,
         args.batch_size,
         args.num_workers,
-        shuffle=args.shuffle,
-        pin_memory=args.pin_memory,
-        sampler=sampler,
     )
 
     if args.hessian == "positives":
@@ -61,7 +56,6 @@ def run(args):
     )
 
 
-    data_module.setup()
     dataset_size = data_module.dataset_train.__len__()
     trainer.init(
         model=model,
