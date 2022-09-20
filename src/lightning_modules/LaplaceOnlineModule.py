@@ -106,12 +106,13 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             z_mu = z.mean(0)
             z_sigma = z.std(0)
         else:
+            z = torch.stack(z, dim = 0)
             z_mu = zs
             z_sigma = torch.zeros_like(z_mu)
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
-
+        
         return z_mu, z_sigma, z
 
     def val_step(self, x, y):

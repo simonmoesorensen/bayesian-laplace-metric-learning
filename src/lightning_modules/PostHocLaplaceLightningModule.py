@@ -8,7 +8,8 @@ from src.utils import filter_state_dict
 from src.baselines.Laplace_online.utils import sample_nn
 from src.baselines.Laplace_posthoc.utils import optimize_prior_precision
 from src.lightning_modules.BaseLightningModule import BaseLightningModule
-
+from matplotlib import pyplot as plt
+from pathlib import Path
 
 class DummyOptimizer(optim.Optimizer):
     def __init__(self, lr=1e-3):
@@ -81,6 +82,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             z_mu = z.mean(0)
             z_sigma = z.std(0)
         else:
+            z = torch.stack(z, dim=0)
             z_mu = zs
             z_sigma = torch.zeros_like(z_mu)
 
@@ -135,15 +137,42 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             f"{100 * self.hessian_calculator.negatives / self.hessian_calculator.total_pairs:.2f}% of pairs are negative."
         )
 
+        self.visualize_hessian(hessian, "hessian_before")
+        self.visualize_hessian(hessian + 1, "precision_before")
+        self.visualize_hessian(1 / (hessian + 1), "posterior_before")
+        
         mu_q = parameters_to_vector(self.model.linear.parameters())
 
         scale = 1.0
         prior_prec = 1.0
         prior_prec = torch.tensor(prior_prec)
         prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
+        
+        self.visualize_hessian(hessian + prior_prec, "precision_after")
+        self.visualize_hessian( 1 / (hessian + prior_prec), "posterior_after")
 
         self.hessian = hessian
         self.prior_prec = prior_prec
         self.scale = scale
 
         print("Finished optimizing post-hoc")
+
+
+    def visualize_hessian(self, hessian, name):
+        
+        # Set path
+        vis_path = (
+            Path(self.args.vis_dir)
+            / self.args.dataset
+            / self.name
+            / f"epoch_{self.epoch + 1}"
+        )
+        
+        vis_path.mkdir(parents=True, exist_ok=True)
+        
+        vis_path = vis_path / f"{name}.png"
+        
+        plt.plot(hessian.cpu().numpy())
+        plt.savefig(vis_path)
+        plt.close(); plt.cla(); plt.clf();
+        

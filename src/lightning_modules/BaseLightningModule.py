@@ -391,15 +391,17 @@ class BaseLightningModule(LightningLite):
         val_mu = []
         val_images = []
         val_labels = []
+        val_samples = []
         with torch.no_grad():
             for image, target in tqdm(self.val_loader, desc="Validating"):
-                mu, sigma, _ = self.val_step(image, target)
+                mu, sigma, samples = self.val_step(image, target)
                 
                 if sigma is not None:
                     val_sigma.append(sigma)
                 val_mu.append(mu)
                 val_images.append(image)
                 val_labels.append(target)
+                val_samples.append(samples)
 
                 self.update_accuracy(
                     mu,
@@ -419,7 +421,7 @@ class BaseLightningModule(LightningLite):
         self.val_end()
 
         if self.to_visualize:
-            self.visualize(val_mu, val_sigma, val_images, val_labels, prefix="val_")
+            self.visualize(val_mu, val_sigma, val_images, val_labels, val_samples, prefix="val_")
 
         self.model.train()
 
@@ -433,6 +435,7 @@ class BaseLightningModule(LightningLite):
         test_mu = []
         test_images = []
         test_labels = []
+        test_samples = []
 
         train_mu = []
         train_sigma = []
@@ -443,12 +446,12 @@ class BaseLightningModule(LightningLite):
             for image, target in tqdm(
                 self.train_loader, desc="Preparing query DB for testing"
             ):
-                mu, sigma, out = self.test_step(image, target)
+                mu, sigma, samples = self.test_step(image, target)
                 
                 train_mu.append(mu)
                 if sigma is not None:
                     train_sigma.append(sigma)
-                train_sampled.append(out)
+                train_sampled.append(samples)
                 train_labels.append(target)
 
             train_mu = torch.cat(train_mu, dim=0)
@@ -458,12 +461,13 @@ class BaseLightningModule(LightningLite):
             train_labels = torch.cat(train_labels, dim=0)
 
             for image, target in tqdm(self.test_loader, desc="Testing"):
-                mu, sigma, out = self.test_step(image, target)
+                mu, sigma, samples = self.test_step(image, target)
                 test_mu.append(mu)
                 if sigma is not None:
                     test_sigma.append(sigma)
                 test_images.append(image)
                 test_labels.append(target)
+                test_samples.append(samples)
 
                 self.update_accuracy(
                     mu,
@@ -475,11 +479,11 @@ class BaseLightningModule(LightningLite):
 
                 if expected and sigma is not None:
                     self.update_expected_accuracy(
-                        z=torch.stack((mu, sigma.square()), dim=-1),
+                        z=torch.stack((mu, sigma**2), dim=-1),
                         y=target,
                         step="test",
                         z_db=torch.stack(
-                            (train_mu, train_sigma.square()),
+                            (train_mu, train_sigma**2),
                             dim=-1,
                         ),
                         y_db=train_labels,
@@ -489,10 +493,10 @@ class BaseLightningModule(LightningLite):
         
         if self.to_visualize:
             self.visualize(
-                test_mu, test_sigma, test_images, test_labels, prefix="test_"
+                test_mu, test_sigma, test_images, test_labels, test_samples, prefix="test_"
             )
 
-    def visualize(self, id_mu, id_sigma, id_images, id_labels, prefix):
+    def visualize(self, id_mu, id_sigma, id_images, id_labels, id_samples, prefix):
         
         prob_model = (len(id_sigma) > 0) and (id_sigma is not None)
         
@@ -501,6 +505,9 @@ class BaseLightningModule(LightningLite):
         id_mu = torch.cat(id_mu, dim=0).detach().cpu()
         id_images = torch.cat(id_images, dim=0).detach().cpu()
         id_labels = torch.cat(id_labels, dim=0).detach().cpu()
+        
+        # N, num_samples, D
+        id_samples = torch.cat(id_samples, dim=1).detach().cpu().permute(1,0,2)
 
         print("=" * 60, flush=True)
         print("Visualizing...")
@@ -550,9 +557,7 @@ class BaseLightningModule(LightningLite):
             print("Running calibration curve")
             ece = plot_calibration_curve(
                 id_labels,
-                id_mu,
-                id_sigma,
-                100,
+                id_samples,
                 vis_path,
                 model_name,
                 dataset_name,

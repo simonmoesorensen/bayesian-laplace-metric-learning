@@ -216,7 +216,7 @@ class HIBLightningModule(BaseLightningModule):
         mu, std = self.forward(X)
 
         # Reparameterization trick
-        cov = torch.diag_embed(std.square())
+        cov = torch.diag_embed(std ** 2)
         pdist = tdist.MultivariateNormal(mu, cov)
         samples = pdist.rsample()
 

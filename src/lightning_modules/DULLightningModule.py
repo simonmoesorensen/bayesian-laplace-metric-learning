@@ -118,7 +118,7 @@ class DULLightningModule(BaseLightningModule):
         mu_dul, std_dul = self.forward(X)
 
         # Reparameterization trick
-        cov = torch.diag_embed(std_dul.square())
+        cov = torch.diag_embed(std_dul ** 2)
         pdist = dist.MultivariateNormal(mu_dul, cov)
         samples = pdist.rsample()
 

@@ -35,11 +35,11 @@ class BackboneLightningModule(BaseLightningModule):
         loss = self.loss_fn(z, y, indices_tuple=hard_pairs)
 
         self.metrics.update("val_loss", loss.item())
-        return z, None, z
+        return z, None, None
 
     def test_step(self, X, y):
         z = self.forward(X)
-        return z, None, z
+        return z, None, None
 
     def ood_step(self, X, y):
         raise ValueError("Backbone module is not probabilistic")

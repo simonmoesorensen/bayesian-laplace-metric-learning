@@ -337,24 +337,22 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
 
 
 def plot_calibration_curve(
-    targets, mus, sigmas, samples, path, model_name, dataset_name, run_name
+    targets, samples, path, model_name, dataset_name, run_name
 ):
     knn_func = CustomKNN(distance=distances.LpDistance())
-
+    
     predicted = []
     confidences = []
-    for target, mu, sigma in tqdm(DataLoader(TensorDataset(targets, mus, sigmas), 128)):
-        cov = torch.diag_embed(sigma)
-        pdist = torch.distributions.MultivariateNormal(mu, cov)
-
+    for target, pred in tqdm(DataLoader(TensorDataset(targets, samples), 128)):
+        
         pred_labels = []
 
-        for _ in range(samples):
-            # Save space by sampling once every iteration instead of all in one go
-            sample = pdist.sample()
+        pred = pred.permute(1,0,2)
 
+        for sample_i in pred:
+            #TODO: we only calculate the knn on the batch... It would be better to calculate it on the whole dataset
             # knn_func(query, k, reference, shares_datapoints)
-            _, indices = knn_func(sample, 1, sample, True)
+            _, indices = knn_func(sample_i, 1, sample_i, embeddings_come_from_same_source = True)
             pred_labels.append(target[indices].squeeze())
 
         pred_labels = torch.stack(pred_labels, dim=1)
