@@ -25,6 +25,8 @@ def run(MCDropout_args):
         MCDropout_args.data_dir,
         MCDropout_args.batch_size,
         MCDropout_args.num_workers,
+        npos=1,
+        nneg=5,
     )
 
     optimizer = optim.Adam(model.parameters(), lr=MCDropout_args.lr)

@@ -91,7 +91,7 @@ class FashionMNISTDataModule(BaseDataModule):
 
         self.name = "FashionMNIST"
         self.n_classes = 10
-        
+                
         dataset_train = d.FashionMNIST(data_dir, train=True, download=True, transform=transforms.ToTensor())
         self.dataset_train = FashionMnist(dataset_train.data.float() / 255.0, dataset_train.targets, npos, nneg)
         

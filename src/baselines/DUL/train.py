@@ -29,7 +29,11 @@ def run(dul_args):
         data_module = FashionMNISTDataModule
 
     data_module = data_module(
-        dul_args.data_dir, dul_args.batch_size, dul_args.num_workers
+        dul_args.data_dir, 
+        dul_args.batch_size, 
+        dul_args.num_workers,
+        npos=1,
+        nneg=5,
     )
 
     # Don't apply weight decay to batchnorm layers

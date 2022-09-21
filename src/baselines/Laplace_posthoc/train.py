@@ -25,12 +25,12 @@ def run(args):
     if args.dataset == "MNIST":
         raise NotImplementedError()
     elif args.dataset == "CIFAR10":
-        model = CIFAR10ConvNet(latent_size=args.embedding_size)
+        model = CIFAR10ConvNet(latent_dim=args.embedding_size)
         data_module = CIFAR10DataModule
     elif args.dataset == "Casia":
         raise NotImplementedError()
     elif args.dataset == "FashionMNIST":
-        model = FashionMNISTConvNet(latent_size=args.embedding_size)
+        model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
     else:
         raise ValueError("Dataset not supported")
@@ -39,6 +39,8 @@ def run(args):
         args.data_dir,
         args.batch_size,
         args.num_workers,
+        npos=1,
+        nneg=0,
     )
 
     if args.hessian == "positives":

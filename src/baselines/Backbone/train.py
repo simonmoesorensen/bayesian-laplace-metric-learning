@@ -38,6 +38,8 @@ def run(Backbone_args):
         Backbone_args.data_dir,
         Backbone_args.batch_size,
         Backbone_args.num_workers,
+        npos=1,
+        nneg=5,
     )
 
     # Don't apply weight decay to batchnorm layers

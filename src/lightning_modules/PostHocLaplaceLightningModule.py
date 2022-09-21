@@ -40,8 +40,8 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.data_size = dataset_size
 
         # Load model backbone
-        if args.backbone_path:
-            state_dict = torch.load(args.backbone_path)
+        if args.model_path:
+            state_dict = torch.load(args.model_path)
             model.load_state_dict(
                 filter_state_dict(state_dict, remove="module.0.")
             )
@@ -49,7 +49,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
 
-        self.n_test_samples = args.posterior_samples
+        self.n_test_samples = args.test_samples
 
     def forward(self, x):
 
@@ -117,7 +117,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.model.eval()
         with torch.inference_mode():
             for x, y, class_labels in tqdm(self.train_loader):
-                                
+                       
                 bs, nobs, c, h, w = x.shape
                 
                 # put triplets in batch dim (nobs = [a, p, n])

@@ -11,7 +11,7 @@ python3 -m debugpy --listen $node_ip:1334 ./src/baselines/Laplace_online/train.p
     --batch_size 128 \
     --embedding_size 32 \
     --num_epoch 100 \
-    --save_freq 1 \
+    --save_freq 10 \
     --gpu_id 0\
     --hessian full \
     --num_workers 8 \

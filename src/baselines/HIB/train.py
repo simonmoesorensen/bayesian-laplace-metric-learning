@@ -32,6 +32,8 @@ def run(HIB_args):
         HIB_args.data_dir,
         HIB_args.batch_size,
         HIB_args.num_workers,
+        npos=1,
+        nneg=5,
     )
 
     # Don't apply weight decay to batchnorm layers
