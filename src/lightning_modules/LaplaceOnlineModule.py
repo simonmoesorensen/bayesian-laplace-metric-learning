@@ -32,6 +32,14 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
+        
+    def epoch_start(self):
+        self.metrics.reset(
+            ["train/loss", "train/accuracy", "train/map_k", "train/recall_k", "hessian/norm", "hessian/min", "hessian/max", "hessian/avg"]
+        )
+
+    def epoch_end(self):
+        self.log(["train/loss", "train/accuracy", "train/map_k", "train/recall_k", "hessian/norm", "hessian/min", "hessian/max", "hessian/avg"])
 
     def train_step(self, x, pairs):
 
@@ -60,44 +68,13 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             h_s = self.hessian_calculator.compute_batch_pairs(pairs)
 
             # scale from batch to dataset size
-            scale = self.data_size**2 / (2 * len(pairs[0]) + 2 * len(pairs[2]))
+            scale = self.data_size*(self.data_size-1) / (len(pairs[0]) + len(pairs[2]))
             h_s = torch.clamp(h_s * scale, min=0)
 
             # append results
             hessian.append(h_s)
             z.append(zs)
             
-        '''
-        # it is super expensive to compute the hessian for each sample, it is not expensive to backpropagate the loss for each sample
-        # ---> we shold compute the loss in the for loop, but the hessian just once (in the mean parameter)
-        # this commented code should replace the previous for loop and averything should works smoothly, perhaps we can place an if statement
-        for sample in samples:
-            # use sampled samples to compute the loss
-            vector_to_parameters(sample, self.model.linear.parameters())
-
-            zs = self.model.linear(x)
-
-            pairs = self.miner(zs, y)
-            loss_running_sum = self.loss_fn(zs, y, indices_tuple=pairs)
-            
-            # append results
-            z.append(zs)
-
-        # compute forward pass in the mean parameter in order to obtain hard pairs
-        vector_to_parameters(mu_q, self.model.linear.parameters())
-        z_with_mu_q = self.model.linear(x)
-        pairs = self.miner(z_with_mu_q, y)
-        # compute hessian
-        h_s = self.hessian_calculator.compute_batch_pairs(pairs)
-
-        # scale from batch to dataset size
-        scale = self.data_size**2 / (2 * len(pairs[0]) + 2 * len(pairs[2]))
-        h_s = torch.clamp(h_s * scale, min=0)
-
-        # append results
-        hessian.append(h_s)
-        '''
-
         loss = loss_running_sum / self.n_train_samples
         hessian = torch.stack(h_s).mean(0) if len(hessian) > 1 else h_s
         z_mu = torch.stack(z).mean(0) if len(z) > 1 else zs
@@ -108,7 +85,11 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
 
-        self.metrics.update("train_loss", loss.item())
+        self.metrics.update("train/loss", loss.item())
+        self.metrics.update("hessian/norm", self.hessian.norm().item())
+        self.metrics.update("hessian/min", self.hessian.min().item())
+        self.metrics.update("hessian/max", self.hessian.max().item())
+        self.metrics.update("hessian/avg", self.hessian.mean().item())
 
         return z_mu, loss
     
@@ -190,7 +171,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         # update hessian
         self.hessian = self.hessian_memory_factor * self.hessian + hessian
 
-        self.metrics.update("train_loss", loss.item())
+        self.metrics.update("train/loss", loss.item())
 
         return z_mu, loss
 
@@ -235,7 +216,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         # evaluate mean metrics
         pairs = self.miner(z_mu, y)
         loss = self.loss_fn(z_mu, y, indices_tuple=pairs)
-        self.metrics.update("val_loss", loss.item())
+        self.metrics.update("val/loss", loss.item())
 
         return z_mu, z_sigma, z
 

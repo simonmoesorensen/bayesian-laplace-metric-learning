@@ -28,7 +28,7 @@ class PFELightningModule(BaseLightningModule):
 
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
 
-        self.metrics.update("train_loss", loss.item())
+        self.metrics.update("train/loss", loss.item())
 
         return sample, loss
 
@@ -44,7 +44,7 @@ class PFELightningModule(BaseLightningModule):
 
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
 
-        self.metrics.update("val_loss", loss.item())
+        self.metrics.update("val/loss", loss.item())
                 
         return mu, std, sample.unsqueeze(0)
 

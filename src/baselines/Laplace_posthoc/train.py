@@ -40,7 +40,7 @@ def run(args):
         args.batch_size,
         args.num_workers,
         npos=1,
-        nneg=5,
+        nneg=1,
     )
 
     if args.hessian == "positives":

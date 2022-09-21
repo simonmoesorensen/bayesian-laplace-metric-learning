@@ -92,46 +92,50 @@ class BaseLightningModule(LightningLite):
         # Meters
         self.metrics = MetricMeter(
             meters={
-                "train_accuracy": AverageMeter(),
-                "train_map_k": AverageMeter(),
-                "train_recall_k": AverageMeter(),
-                "val_accuracy": AverageMeter(),
-                "val_map_k": AverageMeter(),
-                "val_recall_k": AverageMeter(),
-                "test_accuracy": AverageMeter(),
-                "test_map_k": AverageMeter(),
-                "test_recall_k": AverageMeter(),
-                "train_loss": AverageMeter(),
-                "val_loss": AverageMeter(),
+                "train/accuracy": AverageMeter(),
+                "train/map_k": AverageMeter(),
+                "train/recall_k": AverageMeter(),
+                "val/accuracy": AverageMeter(),
+                "val/map_k": AverageMeter(),
+                "val/recall_k": AverageMeter(),
+                "test/accuracy": AverageMeter(),
+                "test/map_k": AverageMeter(),
+                "test/recall_k": AverageMeter(),
+                "train/loss": AverageMeter(),
+                "val/loss": AverageMeter(),
+                "hessian/norm": AverageMeter(),
+                "hessian/min": AverageMeter(),
+                "hessian/max": AverageMeter(),
+                "hessian/avg": AverageMeter(),
             },
             batch_size=self.batch_size,
         )
 
         self.expected_metrics = MetricMeter(
             meters={
-                "train_expected_accuracy": AverageMeter(),
-                "train_expected_map_k": AverageMeter(),
-                "train_expected_recall_k": AverageMeter(),
-                "val_expected_accuracy": AverageMeter(),
-                "val_expected_map_k": AverageMeter(),
-                "val_expected_recall_k": AverageMeter(),
-                "test_expected_accuracy": AverageMeter(),
-                "test_expected_map_k": AverageMeter(),
-                "test_expected_recall_k": AverageMeter(),
+                "train_expected/accuracy": AverageMeter(),
+                "train_expected/map_k": AverageMeter(),
+                "train_expected/recall_k": AverageMeter(),
+                "val_expected/accuracy": AverageMeter(),
+                "val_expected/map_k": AverageMeter(),
+                "val_expected/recall_k": AverageMeter(),
+                "test_expected/accuracy": AverageMeter(),
+                "test_expected/map_k": AverageMeter(),
+                "test_expected/recall_k": AverageMeter(),
             },
             batch_size=self.batch_size,
         )
 
         self.additional_metrics = MetricMeter(
             meters={
-                "val_ece": AverageMeter(),
-                "val_ausc": AverageMeter(),
-                "val_auroc": AverageMeter(),
-                "val_auprc": AverageMeter(),
-                "test_ece": AverageMeter(),
-                "test_ausc": AverageMeter(),
-                "test_auroc": AverageMeter(),
-                "test_auprc": AverageMeter(),
+                "val/ece": AverageMeter(),
+                "val/ausc": AverageMeter(),
+                "val/auroc": AverageMeter(),
+                "val/auprc": AverageMeter(),
+                "test/ece": AverageMeter(),
+                "test/ausc": AverageMeter(),
+                "test/auroc": AverageMeter(),
+                "test/auprc": AverageMeter(),
             },
             batch_size=self.batch_size,
         )
@@ -176,11 +180,11 @@ class BaseLightningModule(LightningLite):
 
     def epoch_start(self):
         self.metrics.reset(
-            ["train_loss", "train_accuracy", "train_map_k", "train_recall_k"]
+            ["train/loss", "train/accuracy", "train/map_k", "train/recall_k"]
         )
 
     def epoch_end(self):
-        self.log(["train_loss", "train_accuracy", "train_map_k", "train_recall_k"])
+        self.log(["train/loss", "train/accuracy", "train/map_k", "train/recall_k"])
 
     def train_start(self):
         pass
@@ -189,10 +193,10 @@ class BaseLightningModule(LightningLite):
         pass
 
     def val_start(self):
-        self.metrics.reset(["val_loss", "val_accuracy", "val_map_k", "val_recall_k"])
+        self.metrics.reset(["val/loss", "val/accuracy", "val/map_k", "val/recall_k"])
 
     def val_end(self):
-        self.log(["val_loss", "val_accuracy", "val_map_k", "val_recall_k"])
+        self.log(["val/loss", "val/accuracy", "val/map_k", "val/recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
@@ -202,19 +206,19 @@ class BaseLightningModule(LightningLite):
             "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
             "Validation Recall@k {recall_k.val:4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
-                loss=self.metrics.get("val_loss"),
-                acc=self.metrics.get("val_accuracy"),
-                map_k=self.metrics.get("val_map_k"),
-                recall_k=self.metrics.get("val_recall_k"),
+                loss=self.metrics.get("val/loss"),
+                acc=self.metrics.get("val/accuracy"),
+                map_k=self.metrics.get("val/map_k"),
+                recall_k=self.metrics.get("val/recall_k"),
             ),
             flush=True,
         )
 
     def test_start(self):
-        self.metrics.reset(["test_accuracy", "test_map_k", "test_recall_k"])
+        self.metrics.reset(["test/accuracy", "test/map_k", "test/recall_k"])
 
     def test_end(self):
-        self.log(["test_accuracy", "test_map_k", "test_recall_k"])
+        self.log(["test/accuracy", "test/map_k", "test/recall_k"])
 
         # display training loss & acc every DISP_FREQ
         print(
@@ -223,9 +227,9 @@ class BaseLightningModule(LightningLite):
             "Test MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
             "Test Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})".format(
                 time.asctime(time.localtime(time.time())),
-                acc=self.metrics.get("test_accuracy"),
-                map_k=self.metrics.get("test_map_k"),
-                recall_k=self.metrics.get("test_recall_k"),
+                acc=self.metrics.get("test/accuracy"),
+                map_k=self.metrics.get("test/map_k"),
+                recall_k=self.metrics.get("test/recall_k"),
             ),
             flush=True,
         )
@@ -245,10 +249,10 @@ class BaseLightningModule(LightningLite):
                 batch + 1,
                 len(self.train_loader) * self.args.num_epoch,
                 time.asctime(time.localtime(time.time())),
-                loss=self.metrics.get("train_loss"),
-                acc=self.metrics.get("train_accuracy"),
-                map_k=self.metrics.get("train_map_k"),
-                recall_k=self.metrics.get("train_recall_k"),
+                loss=self.metrics.get("train/loss"),
+                acc=self.metrics.get("train/accuracy"),
+                map_k=self.metrics.get("train/map_k"),
+                recall_k=self.metrics.get("train/recall_k"),
                 lr=self.optimizer.param_groups[0]["lr"],
             )
         )
@@ -275,9 +279,9 @@ class BaseLightningModule(LightningLite):
                 embeddings_come_from_same_source=same_source,
             )
 
-            self.metrics.update(f"{step}_accuracy", metrics["precision_at_1"])
-            self.metrics.update(f"{step}_map_k", metrics["mean_average_precision"])
-            self.metrics.update(f"{step}_recall_k", metrics["recall_at_k"])
+            self.metrics.update(f"{step}/accuracy", metrics["precision_at_1"])
+            self.metrics.update(f"{step}/map_k", metrics["mean_average_precision"])
+            self.metrics.update(f"{step}/recall_k", metrics["recall_at_k"])
 
     def update_expected_accuracy(
         self, z, y, step="train", z_db=None, y_db=None, same_source=False
@@ -302,13 +306,13 @@ class BaseLightningModule(LightningLite):
             )
 
             self.expected_metrics.update(
-                f"{step}_expected_accuracy", metrics["precision_at_1"]
+                f"{step}_expected/accuracy", metrics["precision_at_1"]
             )
             self.expected_metrics.update(
-                f"{step}_expected_map_k", metrics["mean_average_precision"]
+                f"{step}_expected/map_k", metrics["mean_average_precision"]
             )
             self.expected_metrics.update(
-                f"{step}_expected_recall_k", metrics["recall_at_k"]
+                f"{step}_expected/recall_k", metrics["recall_at_k"]
             )
 
     def optimizer_step(self):
@@ -428,7 +432,8 @@ class BaseLightningModule(LightningLite):
         self.val_end()
 
         if self.to_visualize:
-            self.visualize(val_mu, val_sigma, val_images, val_labels, val_samples, prefix="val_")
+            hessian = self.hessian if hasattr(self, "hessian") else None
+            self.visualize(val_mu, val_sigma, val_images, val_labels, val_samples, hessian, prefix="val")
 
         self.model.train()
 
@@ -473,14 +478,15 @@ class BaseLightningModule(LightningLite):
         self.test_end()
         
         if self.to_visualize:
+            hessian = self.hessian if hasattr(self, "hessian") else None
             self.visualize(
-                test_mu, test_sigma, test_images, test_labels, test_samples, prefix="test_"
+                test_mu, test_sigma, test_images, test_labels, test_samples, hessian, prefix="test"
             )
 
-    def visualize(self, id_mu, id_sigma, id_images, id_labels, id_samples, prefix):
+    def visualize(self, id_mu, id_sigma, id_images, id_labels, id_samples, hessian, prefix):
         
         prob_model = (len(id_sigma) > 0) and (id_sigma is not None)
-        
+                
         if prob_model:
             id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
         id_mu = torch.cat(id_mu, dim=0).detach().cpu()
@@ -501,6 +507,11 @@ class BaseLightningModule(LightningLite):
             / f"epoch_{self.epoch + 1}"
         )
         vis_path.mkdir(parents=True, exist_ok=True)
+        
+        if hessian is not None:
+            plt.plot(hessian.cpu().numpy())
+            plt.yscale("log")
+            plt.savefig(vis_path / "hessian.png")
 
         if prob_model:
             ood_sigma = []
@@ -544,7 +555,7 @@ class BaseLightningModule(LightningLite):
                 dataset_name,
                 run_name,
             )
-            self.additional_metrics.update(f"{prefix}ece", ece)
+            self.additional_metrics.update(f"{prefix}/ece", ece)
 
             print("Running sparsification curve")
 
@@ -552,13 +563,13 @@ class BaseLightningModule(LightningLite):
                 id_labels, id_mu, id_sigma, vis_path, model_name, dataset_name, run_name
             )
 
-            self.additional_metrics.update(f"{prefix}ausc", ausc)
+            self.additional_metrics.update(f"{prefix}/ausc", ausc)
 
             # Read ood metrics
             with open(vis_path / "ood_metrics.json", "r") as f:
                 ood_metrics = json.load(f)
-                self.additional_metrics.update(f"{prefix}auroc", ood_metrics["auroc"])
-                self.additional_metrics.update(f"{prefix}auprc", ood_metrics["auprc"])
+                self.additional_metrics.update(f"{prefix}/auroc", ood_metrics["auroc"])
+                self.additional_metrics.update(f"{prefix}/auprc", ood_metrics["auprc"])
 
         # Save metrics
         metrics = self.metrics.get_dict()
@@ -581,10 +592,10 @@ class BaseLightningModule(LightningLite):
         if prob_model:
             # Save additional metrics for tensorboard in log_hyperparams
             add_metrics = [
-                f"{prefix}ece",
-                f"{prefix}ausc",
-                f"{prefix}auroc",
-                f"{prefix}auprc",
+                f"{prefix}/ece",
+                f"{prefix}/ausc",
+                f"{prefix}/auroc",
+                f"{prefix}/auprc",
             ]
 
             # Update tensorboard
