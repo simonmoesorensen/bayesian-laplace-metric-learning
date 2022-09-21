@@ -27,7 +27,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.prior_prec = 1
 
         self.n_train_samples = 1
-        self.n_val_samples = 1
+        self.n_val_samples = 100
         self.n_test_samples = 100
 
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
@@ -222,10 +222,10 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
     def test_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(x, self.n_val_samples)
+        z_mu, z_sigma, z = self.forward_samples(x, self.n_test_samples)
         return z_mu, z_sigma, z
 
     def ood_step(self, x, y):
 
-        z_mu, z_sigma, _ = self.forward_samples(x, self.n_val_samples)
+        z_mu, z_sigma, _ = self.forward_samples(x, self.n_test_samples)
         return z_mu, z_sigma
