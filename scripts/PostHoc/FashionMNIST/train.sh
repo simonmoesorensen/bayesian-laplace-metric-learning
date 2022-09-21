@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Laplace_posthoc/train.py \
     --dataset FashionMNIST \
-    --name train_script_full_nneg_1 \
+    --name train_script_full_nneg_1_scale3 \
     --model_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
     --hessian full \
     --embedding_size 32 \

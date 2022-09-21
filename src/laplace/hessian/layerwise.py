@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils.convert_parameters import parameters_to_vector
 
-from src.utils import L2Norm, get_pairs
+from src.utils import L2Norm
 
 
 class HessianCalculator:
@@ -159,10 +159,9 @@ class FixedContrastiveHessianCalculator(HessianCalculator):
 
         return hessian.sum(dim=0)
 
-    def compute_batch_pairs(self, pairs) -> Tensor:
-                
-        ap, p, an, n = pairs
-        
+    def compute_batch_pairs(self, hard_pairs) -> Tensor:
+        ap, p, an, n = hard_pairs
+
         t = torch.cat(
             (
                 torch.ones(p.shape[0], device=self.device),
@@ -321,6 +320,7 @@ class ContrastiveHessianCalculator(HessianCalculator):
                 #tmp3 = torch.einsum("bnm,bnj,bjk->bmk", jacobian_x1, tmp3, jacobian_x2)
         hessian = torch.cat(hessian, dim=1)
 
+        # TODO: Super important to avoid computing the hessian for negative pairs outside the margin! It make no sense to compute them and then multiply by 0
         # Set to zero for non-matches outside mask
         hessian = torch.einsum("b,bm->bm", torch.where(zero_mask, 0.0, 1.0), hessian)
 
@@ -341,9 +341,8 @@ class ContrastiveHessianCalculator(HessianCalculator):
 
         return hessian
 
-    def compute_batch_pairs(self, pairs) -> Tensor:
-                
-        ap, p, an, n = pairs
+    def compute_batch_pairs(self, hard_pairs) -> Tensor:
+        ap, p, an, n = hard_pairs
         
         t = torch.cat(
             (
@@ -351,6 +350,8 @@ class ContrastiveHessianCalculator(HessianCalculator):
                 torch.zeros(n.shape[0], device=self.device),
             )
         ).to(self.device)
+        
+        #TODO: look at distances and only use pairs inside the margin
 
         #TODO: do not copy, but use index to keep track. THis is crazy memory wise!!
         feature_maps1 = [x[torch.cat((ap, an))] for x in self.feature_maps]

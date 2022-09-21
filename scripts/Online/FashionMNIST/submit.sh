@@ -47,12 +47,13 @@ export CUDA_VISIBLE_DEVICES=0
 echo "Waiting for debugger to attach..."
 python3 -m src.baselines.Laplace_online.train \
     --dataset FashionMNIST \
-    --name FashionMNIST \
+    --name FashionMNIST_nneg_1 \
     --batch_size 128 \
     --embedding_size 32 \
-    --num_epoch 500 \
+    --num_epoch 1000 \
     --save_freq 20 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \
     --to_visualize \
+    --random_seed 42

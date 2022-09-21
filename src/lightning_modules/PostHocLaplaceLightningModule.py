@@ -80,24 +80,32 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         if len(z) > 1:
             z = torch.stack(z)
             z_mu = z.mean(0)
-            z_sigma = z.std(0)
+            
+            rhat = z_mu.norm(dim=1, keepdim=True)
+            
+            # reproject z_mu back to unit sphere
+            z_mu = z_mu / rhat
+            
+            # compute concentration: kappa
+            p = z.shape[1]
+            z_kappa = rhat * (p - rhat**2) / (1 - rhat**2) * torch.ones_like(z_mu)
         else:
-            z = torch.stack(z, dim=0)
+            z = torch.stack(z, dim = 0)
             z_mu = zs
-            z_sigma = torch.zeros_like(z_mu)
+            z_kappa = None
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
 
-        return z_mu, z_sigma, z
+        return z_mu, z_kappa, z
 
     def ood_step(self, X, y):
-        mean, std, samples = self.forward_samples(X, self.n_test_samples)
-        return mean, std, samples
+        z_mu, z_kappa, samples = self.forward_samples(X, self.n_test_samples)
+        return z_mu, z_kappa, samples
 
     def test_step(self, X, y):
-        mean, std, samples = self.forward_samples(X, self.n_test_samples)
-        return mean, std, samples
+        z_mu, z_kappa, samples = self.forward_samples(X, self.n_test_samples)
+        return z_mu, z_kappa, samples
 
     def train_start(self):
         self.epoch = 0
@@ -132,7 +140,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
                 h_s = self.hessian_calculator.compute_batch_pairs(pairs)
 
                 # scale from batch size to data size
-                scale = self.data_size*(self.data_size-1) / (len(pairs[0]) + len(pairs[2]))
+                scale = self.data_size / (len(pairs[0]) + len(pairs[2]))
                 hessian += torch.clamp(h_s * scale, min=0)
 
         # Scale by number of batches

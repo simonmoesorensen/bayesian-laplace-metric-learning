@@ -21,6 +21,7 @@ from src.visualize import (
 )
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from src.evaluate import compute_map_k, compute_recall_k, compute_rank, compute_pidx
 
 from src.utils import filter_state_dict, get_pairs
 
@@ -107,6 +108,10 @@ class BaseLightningModule(LightningLite):
                 "hessian/min": AverageMeter(),
                 "hessian/max": AverageMeter(),
                 "hessian/avg": AverageMeter(),
+                "curr_hessian/norm": AverageMeter(),
+                "curr_hessian/min": AverageMeter(),
+                "curr_hessian/max": AverageMeter(),
+                "curr_hessian/avg": AverageMeter(),
             },
             batch_size=self.batch_size,
         )
@@ -437,44 +442,49 @@ class BaseLightningModule(LightningLite):
 
         self.model.train()
 
+    def compute_features(self, loader):
+        self.model.eval()
+
+        z_mu = []
+        z_sigma = []
+        z_samples = []
+        labels = []
+        with torch.no_grad():
+            for image, target in tqdm(loader, desc="Computing features"):
+                mu, sigma, samples = self.test_step(image, target)
+                z_mu.append(mu.cpu())
+                z_sigma.append(sigma.cpu())
+                z_samples.append(samples.cpu())
+                labels.append(target)
+
+        z_mu = torch.cat(z_mu, dim=0)
+        z_sigma = torch.cat(z_sigma, dim=0)
+        z_samples = torch.cat(z_samples, dim=1).permute(1, 0, 2)
+        labels = torch.cat(labels, dim=0)
+
+        return z_mu, z_sigma, z_samples, labels
+    
     def test(self, expected=True):
         print(f"Testing @ epoch: {self.epoch + 1}")
         self.model.eval()
 
         self.test_start()
-
-        test_sigma = []
-        test_mu = []
-        test_images = []
-        test_labels = []
-        test_samples = []
-
-        with torch.no_grad():
-
-            for image, target in tqdm(self.test_loader, desc="Testing"):
-                mu, sigma, samples = self.test_step(image, target)
-                test_mu.append(mu)
-                if sigma is not None:
-                    test_sigma.append(sigma)
-                test_images.append(image)
-                test_labels.append(target)
-                test_samples.append(samples)
-
-                self.update_accuracy(
-                    mu,
-                    target,
-                    "test",
-                    same_source=True,
-                )
-
-                if expected and sigma is not None:
-                    self.update_expected_accuracy(
-                        z=torch.stack((mu, sigma**2), dim=-1),
-                        y=target,
-                        step="test",
-                        same_source=True,
-                    )
-
+        
+        z_mu, z_sigma, z_samples, labels = self.compute_features(self.test_loader)
+        # ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels = self.compute_features(self.ood_loader)
+        
+        ks = [1, 5, 10, 20]
+        
+        pos_idx = compute_pidx(labels.cpu().numpy())
+        rank = compute_rank(z_mu.numpy(), None, samesource=True)
+        mapk = [compute_map_k(rank, pos_idx, k) for k in ks]
+        recallk = compute_recall_k(rank, pos_idx, ks)
+        
+        if expected:
+            rank = compute_rank(z_mu, z_sigma, samesource=True)
+            expected_mapk = [compute_map_k(rank, pos_idx, k) for k in ks]
+            expected_recallk = compute_recall_k(rank, pos_idx, ks)
+            
         self.test_end()
         
         if self.to_visualize:
@@ -488,13 +498,13 @@ class BaseLightningModule(LightningLite):
         prob_model = (len(id_sigma) > 0) and (id_sigma is not None)
                 
         if prob_model:
-            id_sigma = torch.cat(id_sigma, dim=0).detach().cpu()
-        id_mu = torch.cat(id_mu, dim=0).detach().cpu()
-        id_images = torch.cat(id_images, dim=0).detach().cpu()
-        id_labels = torch.cat(id_labels, dim=0).detach().cpu()
+            id_sigma = torch.cat(id_sigma, dim=0).cpu()
+        id_mu = torch.cat(id_mu, dim=0).cpu()
+        id_images = torch.cat(id_images, dim=0).cpu()
+        id_labels = torch.cat(id_labels, dim=0).cpu()
         
         # N, num_samples, D
-        id_samples = torch.cat(id_samples, dim=1).detach().cpu().permute(1,0,2)
+        id_samples = torch.cat(id_samples, dim=1).cpu().permute(1,0,2)
 
         print("=" * 60, flush=True)
         print("Visualizing...")
@@ -534,10 +544,10 @@ class BaseLightningModule(LightningLite):
                     ood_images.append(img)
                     ood_labels.append(y)
 
-            ood_sigma = torch.cat(ood_sigma, dim=0).detach().cpu()
-            ood_mu = torch.cat(ood_mu, dim=0).detach().cpu()
-            ood_images = torch.cat(ood_images, dim=0).detach().cpu()
-            ood_labels = torch.cat(ood_labels, dim=0).detach().cpu()
+            ood_sigma = torch.cat(ood_sigma, dim=0).cpu()
+            ood_mu = torch.cat(ood_mu, dim=0).cpu()
+            ood_images = torch.cat(ood_images, dim=0).cpu()
+            ood_labels = torch.cat(ood_labels, dim=0).cpu()
 
             # Visualize
             visualize_all(

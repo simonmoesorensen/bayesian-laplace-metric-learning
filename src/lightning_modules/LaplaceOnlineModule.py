@@ -20,7 +20,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
-        self.hessian = self.data_size**2 * torch.ones_like(
+        self.hessian = self.data_size * torch.ones_like(
             parameters_to_vector(self.model.linear.parameters())
         ).to(device)
         self.scale = 1
@@ -68,7 +68,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             h_s = self.hessian_calculator.compute_batch_pairs(pairs)
 
             # scale from batch to dataset size
-            scale = self.data_size*(self.data_size-1) / (len(pairs[0]) + len(pairs[2]))
+            scale = self.data_size / (len(pairs[0]) + len(pairs[2]))
             h_s = torch.clamp(h_s * scale, min=0)
 
             # append results
@@ -78,6 +78,9 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         loss = loss_running_sum / self.n_train_samples
         hessian = torch.stack(h_s).mean(0) if len(hessian) > 1 else h_s
         z_mu = torch.stack(z).mean(0) if len(z) > 1 else zs
+        
+        # reproject z_mu back to unit sphere
+        z_mu = z_mu / z_mu.norm(dim=1, keepdim=True)
 
         # update hessian
         self.hessian = self.hessian_memory_factor * self.hessian + hessian
@@ -90,92 +93,16 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.metrics.update("hessian/min", self.hessian.min().item())
         self.metrics.update("hessian/max", self.hessian.max().item())
         self.metrics.update("hessian/avg", self.hessian.mean().item())
+        
+        
+        self.metrics.update("curr_hessian/norm", hessian.norm().item())
+        self.metrics.update("curr_hessian/min", hessian.min().item())
+        self.metrics.update("curr_hessian/max", hessian.max().item())
+        self.metrics.update("curr_hessian/avg", hessian.mean().item())
 
         return z_mu, loss
     
     
-    def train_step_marco(self, x, y):
-
-        # pass the data through the deterministic model
-        x = self.model.conv(x)
-
-        mu_q = parameters_to_vector(self.model.linear.parameters())
-
-        # get posterior scale
-        sigma_q = 1 / (self.hessian * self.scale + self.prior_prec + 1e-8).sqrt()
-
-        samples = sample_nn(mu_q, sigma_q, self.n_train_samples)
-
-        z = []
-        hessian = []
-        loss_running_sum = 0
-        
-        if True:  # slower!! one hessian for each sample
-            for sample in samples:
-                # use sampled samples to compute the loss
-                vector_to_parameters(sample, self.model.linear.parameters())
-
-                zs = self.model.linear(x)
-
-                pairs = self.miner(zs, y)
-                loss_running_sum = self.loss_fn(zs, y, indices_tuple=pairs)
-
-                # compute hessian
-                h_s = self.hessian_calculator.compute_batch_pairs(pairs)
-
-                # scale from batch to dataset size
-                scale = self.data_size**2 / (2 * len(pairs[0]) + 2 * len(pairs[2]))
-                h_s = torch.clamp(h_s * scale, min=0)
-
-                # append results
-                hessian.append(h_s)
-                z.append(zs)
-            
-            # put mean parameter as before
-            vector_to_parameters(mu_q, self.model.linear.parameters())
-            
-            hessian = torch.stack(h_s).mean(0) if len(hessian) > 1 else h_s
-            
-        else: # faster!! only one hessian with the mean parameter
-            for sample in samples:
-                # use sampled samples to compute the loss
-                vector_to_parameters(sample, self.model.linear.parameters())
-
-                zs = self.model.linear(x)
-
-                pairs = self.miner(zs, y)
-                loss_running_sum = self.loss_fn(zs, y, indices_tuple=pairs)
-                
-                # append results
-                z.append(zs)
-
-            # put mean parameter as before
-            vector_to_parameters(mu_q, self.model.linear.parameters())
-        
-            # compute forward pass in the mean parameter in order to obtain hard pairs
-            z_with_mu_q = self.model.linear(x)
-            pairs = self.miner(z_with_mu_q, y)
-            # compute hessian
-            h_s = self.hessian_calculator.compute_batch_pairs(pairs)
-
-            # scale from batch to dataset size
-            scale = self.data_size**2 / (2 * len(pairs[0]) + 2 * len(pairs[2]))
-            h_s = torch.clamp(h_s * scale, min=0)
-
-            # append results
-            hessian = h_s
-
-        loss = loss_running_sum / self.n_train_samples
-        z_mu = torch.stack(z).mean(0) if len(z) > 1 else zs
-
-        # update hessian
-        self.hessian = self.hessian_memory_factor * self.hessian + hessian
-
-        self.metrics.update("train/loss", loss.item())
-
-        return z_mu, loss
-
-
     def forward_samples(self, x, n_samples):
 
         # pass the data through the deterministic model
@@ -198,34 +125,42 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         if len(z) > 1:
             z = torch.stack(z)
             z_mu = z.mean(0)
-            z_sigma = z.std(0)
+            
+            rhat = z_mu.norm(dim=1, keepdim=True)
+            
+            # reproject z_mu back to unit sphere
+            z_mu = z_mu / rhat
+            
+            # compute concentration: kappa
+            p = z.shape[1]
+            z_kappa = rhat * (p - rhat**2) / (1 - rhat**2)  * torch.ones_like(z_mu)
         else:
             z = torch.stack(z, dim = 0)
             z_mu = zs
-            z_sigma = torch.zeros_like(z_mu)
+            z_kappa = None
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
         
-        return z_mu, z_sigma, z
+        return z_mu, z_kappa, z
 
     def val_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(x, self.n_val_samples)
+        z_mu, z_kappa, z = self.forward_samples(x, self.n_val_samples)
 
         # evaluate mean metrics
         pairs = self.miner(z_mu, y)
         loss = self.loss_fn(z_mu, y, indices_tuple=pairs)
         self.metrics.update("val/loss", loss.item())
 
-        return z_mu, z_sigma, z
+        return z_mu, z_kappa, z
 
     def test_step(self, x, y):
 
-        z_mu, z_sigma, z = self.forward_samples(x, self.n_test_samples)
-        return z_mu, z_sigma, z
+        z_mu, z_kappa, z = self.forward_samples(x, self.n_test_samples)
+        return z_mu, z_kappa, z
 
     def ood_step(self, x, y):
 
-        z_mu, z_sigma, _ = self.forward_samples(x, self.n_test_samples)
-        return z_mu, z_sigma
+        z_mu, z_kappa, _ = self.forward_samples(x, self.n_test_samples)
+        return z_mu, z_kappa
