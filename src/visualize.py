@@ -50,16 +50,18 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
     prob_model = dict_["z_sigma"] is not None
     if prob_model:
         
-        # Visualize
-        visualize_all(
-            dict_["z_mu"], 
-            dict_["z_sigma"],
-            dict_["images"],
-            dict_ood["z_mu"], 
-            dict_ood["z_sigma"],
-            dict_ood["images"],
-            vis_path, prefix
-        )
+        if dict_ood is not None:
+        
+            # Visualize
+            ood_visualisations(
+                dict_["z_mu"], 
+                dict_["z_sigma"],
+                dict_["images"],
+                dict_ood["z_mu"], 
+                dict_ood["z_sigma"],
+                dict_ood["images"],
+                vis_path, prefix
+            )
         model_name, dataset_name, run_name = get_names(vis_path)
 
         # calibration curve
@@ -198,7 +200,7 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
     fig.savefig(vis_path / f"{prefix}top_bot_5_var.png")
 
 
-def visualize_all(
+def ood_visualisations(
     id_mu, id_sigma, id_images, ood_mu, ood_sigma, ood_images, vis_path, prefix
 ):
 
