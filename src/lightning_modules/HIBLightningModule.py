@@ -59,37 +59,10 @@ class HIBLightningModule(BaseLightningModule):
 
         self.loss_fn.apply(self.loss_fn.weight_clipper)
 
-    def loss_step(self, mu, std, y, step, n_samples=1):
-        # Matrix of positive pairs
-        pos_mask = y.view(-1, 1) == y.view(1, -1)
-
-        # Don't sample diagonal (same images)
-        pos_mask = pos_mask.fill_diagonal_(False)
-
-        # Get lower triangular matrix to avoid duplicates
-        pos_mask = torch.tril(pos_mask, -1)
-
-        # Get indicies where matrix is true
-        pos_idx = torch.nonzero(pos_mask)
-
-        # Get negative pair indicies (not same image)
-        neg_mask = pos_mask.fill_diagonal_(True)
-        neg_idx = torch.nonzero(~neg_mask)
-
-        # Random select n samples from neg_idx
-        neg_idx = neg_idx[
-            torch.randint(
-                low=0,
-                high=neg_idx.shape[0],
-                size=(pos_idx.shape[0],),
-                device=self.device,
-            )
-        ]
-
-        # Get positive pairs from indices
-        ap, pos = pos_idx.tensor_split(2, dim=1)
-        an, neg = neg_idx.tensor_split(2, dim=1)
-        ap, pos, an, neg = ap.view(-1), pos.view(-1), an.view(-1), neg.view(-1)
+    def loss_step(self, mu, std, pairs, step, n_samples=1):
+        #TODO: I might have removed something special. Check this...
+        #TODO: not gonna work....
+        ap, pos, an, neg = pairs
 
         # Create sample distribution
         cov = torch.diag_embed(std.square())
@@ -156,11 +129,11 @@ class HIBLightningModule(BaseLightningModule):
 
         return samples, loss
 
-    def train_step(self, X, y):
+    def train_step(self, X, pairs):
         # Pass images through the model
         mu, std = self.forward(X)
 
-        samples, loss = self.loss_step(mu, std, y, step="train", n_samples=self.n_train_samples)
+        samples, loss = self.loss_step(mu, std, pairs, step="train", n_samples=self.n_train_samples)
 
         return samples[0], loss
 

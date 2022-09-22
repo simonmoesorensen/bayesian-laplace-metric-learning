@@ -5,9 +5,9 @@ export CUDA_VISIBLE_DEVICES=0
 
 #node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Laplace_posthoc/train.py \
+python3 -m debugpy --listen $node_ip:1337 ./src/baselines/Laplace_posthoc/train.py \
     --dataset FashionMNIST \
-    --name train_script_full_nneg_1_scale3 \
+    --name train_script_full_no_opt \
     --model_path src/baselines/PFE/pretrained/FashionMNIST/latentdim_32_seed_42.pth \
     --hessian full \
     --embedding_size 32 \

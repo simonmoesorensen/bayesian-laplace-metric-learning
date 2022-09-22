@@ -72,7 +72,7 @@ class BaseLightningModule(LightningLite):
         writer = SummaryWriter(logdir)
         return writer
 
-    def train_step(self, X, y):
+    def train_step(self, X, pairs):
         raise NotImplementedError()
 
     def val_step(self, X, y, n_samples=1):
@@ -186,15 +186,21 @@ class BaseLightningModule(LightningLite):
             for image, target in tqdm(loader, desc="Computing features"):
                 mu, sigma, samples = self.test_step(image, target, n_samples=n_samples)
                 z_mu.append(mu.cpu())
-                z_sigma.append(sigma.cpu())
-                z_samples.append(samples.cpu())
+                if sigma is not None:
+                    z_sigma.append(sigma.cpu())
+                if samples is not None:
+                    z_samples.append(samples.cpu())
                 labels.append(target.cpu())
                 images.append(image.cpu())
                 
         z_mu = torch.cat(z_mu, dim=0)
-        z_sigma = torch.cat(z_sigma, dim=0)
         
-        z_samples = torch.cat(z_samples, dim=1).permute(1, 0, 2)
+        if len(z_sigma) > 0:
+            z_sigma = torch.cat(z_sigma, dim=0)
+
+        if len(z_samples) > 0:    
+            z_samples = torch.cat(z_samples, dim=1).permute(1, 0, 2)
+            
         labels = torch.cat(labels, dim=0)
         images = torch.cat(images, dim=0)
 

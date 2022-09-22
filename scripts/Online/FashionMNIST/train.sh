@@ -10,7 +10,7 @@ python3 -m debugpy --listen $node_ip:1334 ./src/baselines/Laplace_online/train.p
     --name train_script_full_nneg_1 \
     --batch_size 128 \
     --embedding_size 32 \
-    --num_epoch 1 \
+    --num_epoch 1000 \
     --save_freq 10 \
     --gpu_id 0\
     --hessian full \

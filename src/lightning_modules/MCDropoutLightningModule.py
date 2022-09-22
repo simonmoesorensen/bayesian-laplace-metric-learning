@@ -26,12 +26,10 @@ class MCDropoutLightningModule(BaseLightningModule):
     def forward(self, X, samples=100):
         return self.model(X, samples)
 
-    def train_step(self, X, y):
+    def train_step(self, X, pairs):
         mu = self.forward(X, samples=None)
 
-        pairs = self.miner(mu, y)
-
-        loss = self.loss_fn(mu, y, indices_tuple=pairs)
+        loss = self.loss_fn(mu, pairs, indices_tuple=pairs)
 
         return mu, loss
 

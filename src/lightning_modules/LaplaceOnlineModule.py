@@ -129,7 +129,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
     def val_step(self, x, y, n_samples=1):
 
-        z_mu, z_inv_kappa, z = self.forward_samples(x, self.n_val_samples)
+        z_mu, z_inv_kappa, z = self.forward_samples(x, n_samples)
 
         # evaluate mean metrics
         pairs = self.miner(z_mu, y)
@@ -139,5 +139,5 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
     def test_step(self, x, y, n_samples=1):
 
-        z_mu, z_inv_kappa, z = self.forward_samples(x, self.n_test_samples)
+        z_mu, z_inv_kappa, z = self.forward_samples(x, n_samples)
         return z_mu, z_inv_kappa, z

@@ -34,26 +34,32 @@ def run(args):
         data_module = FashionMNISTDataModule
     else:
         raise ValueError("Dataset not supported")
+    
+    
+    if args.hessian == "positives":
+        calculator_cls = ContrastiveHessianCalculator
+        miner = AllPositiveMiner()
+        n_neg = 0
+    elif args.hessian == "fixed":
+        calculator_cls = FixedContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
+        n_neg = 1
+    elif args.hessian == "full":
+        calculator_cls = ContrastiveHessianCalculator
+        miner = AllCombinationsMiner()
+        n_neg = 1
+    else:
+        raise ValueError(f"Unknown method: {args.hessian}")
 
     data_module = data_module(
         args.data_dir,
         args.batch_size,
         args.num_workers,
         npos=1,
-        nneg=1,
+        nneg=n_neg,
     )
 
-    if args.hessian == "positives":
-        calculator_cls = ContrastiveHessianCalculator
-        miner = AllPositiveMiner()
-    elif args.hessian == "fixed":
-        calculator_cls = FixedContrastiveHessianCalculator
-        miner = AllCombinationsMiner()
-    elif args.hessian == "full":
-        calculator_cls = ContrastiveHessianCalculator
-        miner = AllCombinationsMiner()
-    else:
-        raise ValueError(f"Unknown method: {args.hessian}")
+
 
     trainer = PostHocLaplaceLightningModule(
         accelerator="gpu", devices=len(args.gpu_id), strategy="dp"

@@ -24,15 +24,14 @@ class DULLightningModule(BaseLightningModule):
         super().optimizer_step()
         self.loss_optimizer.step()
 
-    def loss_step(self, mu, std, y, step, n_samples=1):
+    def loss_step(self, mu, std, pairs, step, n_samples=1):
         variance_dul = std.square()
 
         cov = torch.diag_embed(variance_dul)
         pdist = dist.MultivariateNormal(mu, cov)
         samples = pdist.rsample([n_samples])
 
-        hard_pairs = self.miner(samples, y)
-        loss_backbone = self.loss_fn(samples, y, hard_pairs)
+        loss_backbone = self.loss_fn(samples, None, pairs)
 
         loss_kl = (
             ((variance_dul + mu.square() - torch.log(variance_dul) - 1) * 0.5)
@@ -44,17 +43,18 @@ class DULLightningModule(BaseLightningModule):
         
         return samples, loss
 
-    def train_step(self, X, y):
+    def train_step(self, X, pairs):
         mu_dul, std_dul = self.forward(X)
 
-        samples, loss = self.loss_step(mu_dul, std_dul, y, step="train", n_samples=self.train_samples)
+        samples, loss = self.loss_step(mu_dul, std_dul, pairs, step="train", n_samples=self.train_samples)
 
         return samples, loss
 
     def val_step(self, X, y, n_samples=1):
         mu_dul, std_dul = self.forward(X)
 
-        samples, _ = self.loss_step(mu_dul, std_dul, y, step="val", n_samples=self.val_samples)
+        pairs = self.miner(mu_dul, y)
+        samples, _ = self.loss_step(mu_dul, std_dul, pairs, step="val", n_samples=self.val_samples)
 
         return mu_dul, std_dul, samples
 

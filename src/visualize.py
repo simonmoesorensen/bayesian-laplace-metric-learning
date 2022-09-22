@@ -47,13 +47,13 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
         plt.savefig(vis_path / "hessian.png");
         plt.close(); plt.cla();
 
-    prob_model = dict_["z_sigma"] is not None
+    prob_model = dict_["z_sigma"] is not None and len(dict_["z_sigma"]) > 0
     if prob_model:
         
         if dict_ood is not None:
         
             # Visualize
-            ood_visualisations(
+            tmp = ood_visualisations(
                 dict_["z_mu"], 
                 dict_["z_sigma"],
                 dict_["images"],
@@ -62,6 +62,9 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
                 dict_ood["images"],
                 vis_path, prefix
             )
+            for k in tmp:
+                metrics[k] = tmp[k]
+
         model_name, dataset_name, run_name = get_names(vis_path)
 
         # calibration curve
@@ -210,11 +213,12 @@ def ood_visualisations(
     visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix)
 
     # Visualize
-    plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
+    metrics = plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
 
-    id_var = id_sigma ** 2
-    ood_var = ood_sigma ** 2
-    plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
+
+    plot_ood(id_mu, id_sigma, ood_mu, ood_sigma, vis_path, prefix)
+    
+    return metrics
 
 
 def plot_samples(
@@ -356,6 +360,8 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     # save metrics
     with open(vis_path / "ood_metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
+
+    return {"auroc": float(auroc_score.numpy()), "auprc": float(auprc_score.numpy())}
 
 
 def get_names(vis_path):

@@ -20,12 +20,10 @@ class BackboneLightningModule(BaseLightningModule):
         self.n_val_samples = 1
         self.n_test_samples = 1
 
-    def train_step(self, X, y):
+    def train_step(self, X, pairs):
         z = self.forward(X)
 
-        hard_pairs = self.miner(z, y)
-
-        loss = self.loss_fn(z, y, indices_tuple=hard_pairs)
+        loss = self.loss_fn(z, None, indices_tuple=pairs)
 
         return z, loss
 
