@@ -7,7 +7,6 @@ import seaborn as sns
 import torch
 import torchmetrics
 from matplotlib.patches import Ellipse
-from scipy.stats import hmean
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
 from torch.utils.data import DataLoader, TensorDataset
@@ -45,7 +44,8 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
     if "hessian" in dict_other:
         plt.plot(dict_other["hessian"].cpu().numpy())
         plt.yscale("log")
-        plt.savefig(vis_path / "hessian.png")
+        plt.savefig(vis_path / "hessian.png");
+        plt.close(); plt.cla();
 
     prob_model = dict_["z_sigma"] is not None
     if prob_model:
@@ -75,7 +75,6 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
             run_name,
         )
         metrics[f"{prefix}/ece"] = ece
-
 
         # Sparsification curve
         print("Running sparsification curve")
@@ -111,18 +110,18 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
         cmap = None
 
     # Get l2 norm of ID variances
-    id_sigma_mu = hmean(id_sigma**2, axis=1)
+    id_var_mu = np.mean(id_sigma**2, axis=1)
 
     # get top 5 and bottom 5 of  l2 norm of ID variances
-    top_5_id = (-id_sigma_mu).argsort()[:n]
-    bot_5_id = (-id_sigma_mu).argsort()[-n:]
+    top_5_id = (-id_var_mu).argsort()[:n]
+    bot_5_id = (-id_var_mu).argsort()[-n:]
 
     # Get l2 norm of OOD variances
-    ood_sigma_mu = hmean(ood_sigma**2, axis=1)
+    ood_var_mu = np.mean(ood_sigma**2, axis=1)
 
     # get top 5 and bottom 5 of  l2 norm of OOD variances
-    top_5_ood = (-ood_sigma_mu).argsort()[:n]
-    bot_5_ood = (-ood_sigma_mu).argsort()[-n:]
+    top_5_ood = (-ood_var_mu).argsort()[:n]
+    bot_5_ood = (-ood_var_mu).argsort()[-n:]
 
     # plot top and bottom 5 images
     rows = 4
@@ -140,7 +139,7 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
         image = (image - image.min()) / (image.max() - image.min())
 
         plt.imshow(image, cmap=cmap)
-        plt.title(f"ID V={id_sigma_mu[top_5_id[col]]:.2E}")
+        plt.title(f"ID V={id_var_mu[top_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var ID")
         counter += 1
@@ -156,7 +155,7 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
         image = (image - image.min()) / (image.max() - image.min())
 
         plt.imshow(image, cmap=cmap)
-        plt.title(f"ID V={id_sigma_mu[bot_5_id[col]]:.2E}")
+        plt.title(f"ID V={id_var_mu[bot_5_id[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var ID")
         counter += 1
@@ -172,7 +171,7 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
         image = (image - image.min()) / (image.max() - image.min())
 
         plt.imshow(image, cmap=cmap)
-        plt.title(f"OOD V={ood_sigma_mu[top_5_ood[col]]:.2E}")
+        plt.title(f"OOD V={ood_var_mu[top_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Top 5 var OOD")
         counter += 1
@@ -188,7 +187,7 @@ def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix
         image = (image - image.min()) / (image.max() - image.min())
 
         plt.imshow(image, cmap=cmap)
-        plt.title(f"OOD V={ood_sigma_mu[bot_5_ood[col]]:.2E}")
+        plt.title(f"OOD V={ood_var_mu[bot_5_ood[col]]:.2E}")
         if col == 0:
             plt.ylabel("Bot 5 var OOD")
         counter += 1
@@ -213,8 +212,8 @@ def ood_visualisations(
     # Visualize
     plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix)
 
-    id_var = id_sigma.square()
-    ood_var = ood_sigma.square()
+    id_var = id_sigma ** 2
+    ood_var = ood_sigma ** 2
     plot_ood(id_mu, id_var, ood_mu, ood_var, vis_path, prefix)
 
 
@@ -249,16 +248,11 @@ def plot_samples(
     )
 
 
-def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
+def plot_histogram(sigma_sq, ax=None, color="b", label=None):
     if ax is None:
         _, ax = plt.subplots()
 
-    if mean == "harmonic":
-        mean_sigma_sq = hmean(sigma_sq, axis=1)
-    elif mean == "arithmetic":
-        mean_sigma_sq = np.mean(sigma_sq, axis=1)
-    else:
-        raise NotImplementedError
+    mean_sigma_sq = np.mean(sigma_sq.numpy(), axis=1)
 
     sns.kdeplot(mean_sigma_sq, ax=ax, color=color, label=label)
     ax.set(xlabel="Variance")
@@ -266,6 +260,7 @@ def plot_histogram(sigma_sq, mean="harmonic", ax=None, color="b", label=None):
 
 def plot_ood(mu_id, var_id, mu_ood, var_ood, vis_path, prefix):
     model_name, dataset, run_name = get_names(vis_path)
+    
     fig, ax = plt.subplots(ncols=2, figsize=(10, 4))
     plot_samples(mu_id, var_id, limit=100, color=c_id, label="ID", ax=ax[0])
     plot_histogram(var_id, color=c_id, ax=ax[1])
@@ -506,61 +501,37 @@ def plot_calibration_curve(
 
 
 def plot_sparsification_curve(
-    targets, mus, sigmas, path, model_name, dataset_name, run_name
+    targets, z_mu, z_sigma, path, model_name, dataset_name, run_name
 ):
-    knn_func = CustomKNN(distance=distances.LpDistance())
-
-    metric = AccuracyCalculator(
-        include=("precision_at_1",),
-        k="max_bin_count",
-        device=device,
-        knn_func=knn_func,
-    )
-
+    
+    neigh = NearestNeighbors(n_neighbors=2)
+    neigh.fit(z_mu)
+    dist, idx = neigh.kneighbors(z_mu)
+    
+    # remove itself from
+    dist = dist[:, 1]
+    idx = idx[:, 1]
+    
+    preds = targets[idx]
+    correct = (preds == targets).float()
+    # query variance + database variance
+    covar = (z_sigma + z_sigma[idx]).mean(dim=1)
+    
+    _, indices = torch.sort(-covar)
+    
     accuracies = []
-
-    for target, mu, sigma in tqdm(DataLoader(TensorDataset(targets, mus, sigmas), 128)):
-
-        # Start with all images and remove the highest uncertainty image until
-        # there is only 10 images with the lowest uncertainty left
-        acc_temp = []
-
-        for i in range(mu.shape[0], 10, -1):
-            # Find lowest i element in uncertainty
-            _, indices = torch.topk(sigma.sum(dim=1), i, largest=False)
-
-            # Get query elements with lowest uncertainty
-            lowest_query = mu[indices]
-            lowest_target = target[indices]
-
-            # Compute accuracy where high uncertainty elements are removed
-            metrics = metric.get_accuracy(
-                query=lowest_query,
-                reference=lowest_query,
-                query_labels=lowest_target,
-                reference_labels=lowest_target,
-                embeddings_come_from_same_source=True,
-            )
-
-            acc_temp.append(metrics["precision_at_1"])
-
-        accuracies.append(torch.tensor(acc_temp))
-
-    # Ignore last element as it may not have the same batch size
-    accuracies = torch.stack(accuracies[:-1], dim=0)
-    # Calculate average over batches
-    accuracies = accuracies.mean(dim=0).cpu().numpy()
-
+    for i in range(100):
+        n = int(len(indices) * i / 100)
+        accuracies.append(torch.mean(correct[indices[n:]]))
+    
+    accuracies = torch.stack(accuracies[:-1], dim=0).numpy()
+    
     # Calculate AUSC (Area Under the Sparsification Curve)
     ausc = np.trapz(accuracies, dx=1 / len(accuracies))
 
     # Plot sparsification curve
     fig, ax = plt.subplots()
-
-    # X-axis of % of elements removed
-    x = np.arange(0, accuracies.shape[0]) / accuracies.shape[0] * 100
-
-    ax.plot(x, accuracies)
+    ax.plot(accuracies)
 
     ax.set(
         xlabel="Filter Out Rate (%)",
@@ -588,7 +559,6 @@ def plot_sparsification_curve(
     metrics = {
         "ausc": float(ausc),
         "accuracies": accuracies.tolist(),
-        "filter_out_rate": x.tolist(),
     }
     with open(path / "uncertainty_metrics.json", "w") as f:
         json.dump(metrics, f)
