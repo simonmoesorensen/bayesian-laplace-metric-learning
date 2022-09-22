@@ -16,7 +16,7 @@ from pytorch_metric_learning import distances
 from tqdm import tqdm
 import time
 from pathlib import Path, PosixPath
-
+from sklearn.neighbors import NearestNeighbors
 
 sns.set()
 
@@ -409,30 +409,28 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
 def plot_calibration_curve(
     targets, samples, path, model_name, dataset_name, run_name
 ):
-    knn_func = CustomKNN(distance=distances.LpDistance())
     
-    predicted = []
-    confidences = []
-    for target, pred in tqdm(DataLoader(TensorDataset(targets, samples), 128)):
+    N, n_samples, d = samples.shape
+    
+    pred_labels = []
+    print(f"==> Computing ece predictions for {n_samples} samples")
+    for i in tqdm(range(n_samples)):
         
-        pred_labels = []
-
-        pred = pred.permute(1,0,2)
-
-        for sample_i in pred:
-            #TODO: we only calculate the knn on the batch... It would be better to calculate it on the whole dataset
-            # knn_func(query, k, reference, shares_datapoints)
-            _, indices = knn_func(sample_i, 1, sample_i, embeddings_come_from_same_source = True)
-            pred_labels.append(target[indices].squeeze())
-
-        pred_labels = torch.stack(pred_labels, dim=1)
-        pred = torch.mode(pred_labels, dim=1).values
-
-        predicted.append(pred)
-        confidences.append((pred == pred_labels.T).to(torch.float16).mean(dim=0))
-
-    predicted = torch.cat(predicted, dim=0)
-    confidences = torch.cat(confidences, dim=0)
+        sample_i = samples[:, i, :]
+        
+        neigh = NearestNeighbors(n_neighbors=2)
+        neigh.fit(sample_i)
+        dist, idx = neigh.kneighbors(sample_i)
+        
+        # remove itself from
+        dist = dist[:, 1]
+        idx = idx[:, 1]
+        
+        pred_labels.append(targets[idx])
+    
+    pred_labels = torch.stack(pred_labels)
+    predicted, _ = torch.mode(pred_labels, dim=0)   
+    confidences = torch.mean((pred_labels == predicted).float(), dim=0)   
 
     # Plotting ECE
     bins = 10

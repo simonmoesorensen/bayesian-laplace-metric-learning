@@ -11,7 +11,7 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/PFE/train.py \
     --batch_size 128 \
     --embedding_size 32 \
     --num_epoch 100 \
-    --save_freq 10 \
+    --save_freq 1 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \

@@ -192,6 +192,7 @@ class BaseLightningModule(LightningLite):
                 
         z_mu = torch.cat(z_mu, dim=0)
         z_sigma = torch.cat(z_sigma, dim=0)
+        
         z_samples = torch.cat(z_samples, dim=1).permute(1, 0, 2)
         labels = torch.cat(labels, dim=0)
         images = torch.cat(images, dim=0)
@@ -205,6 +206,7 @@ class BaseLightningModule(LightningLite):
         self.model.eval()
 
         z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.val_loader)
+        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader)
         
         pos_idx = compute_pidx(labels.cpu().numpy())
         rank = compute_rank(z_mu.numpy(), None, samesource=True)
@@ -217,7 +219,11 @@ class BaseLightningModule(LightningLite):
                      "z_samples": z_samples, 
                      "labels": labels, 
                      "images": images}
-
+            dict_ood = {"z_mu": ood_z_mu, 
+                        "z_sigma": ood_z_sigma, 
+                        "z_samples": ood_z_samples, 
+                        "labels": ood_labels, 
+                        "images": ood_images}
             dict_other = {}
             if hasattr(self, "hessian") :
                 dict_other["hessian"] = self.hessian
@@ -228,7 +234,7 @@ class BaseLightningModule(LightningLite):
             
             metrics = visualize(
                 dict_, 
-                None, 
+                dict_ood, 
                 dict_other,
                 dict_log, 
                 prefix="val",
