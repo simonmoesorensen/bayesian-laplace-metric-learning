@@ -35,7 +35,7 @@ class MCDropoutLightningModule(BaseLightningModule):
 
         return mu, loss
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         enable_dropout(self.model)
 
         mu, std, samples = self.forward(X)
@@ -46,14 +46,9 @@ class MCDropoutLightningModule(BaseLightningModule):
 
         return mu, std, samples
 
-    def test_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         enable_dropout(self.model)
 
         mu, std, samples = self.forward(X)
 
         return mu, std, samples
-
-    def ood_step(self, X, y):
-        enable_dropout(self.model)
-
-        return self.forward(X)

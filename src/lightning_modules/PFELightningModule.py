@@ -17,10 +17,6 @@ class PFELightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
         
-        self.train_samples = torch.Size([8])
-        self.val_samples = torch.Size([100])
-        self.test_samples = torch.Size([100])
-
     def train_step(self, x, pairs):
                 
         mu, std = self.forward(x)
@@ -33,12 +29,12 @@ class PFELightningModule(BaseLightningModule):
 
         return mu, loss
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         mu, std = self.forward(X)
         var = std ** 2
         cov = torch.diag_embed(var)
         pdist = torch.distributions.MultivariateNormal(mu, cov)
-        samples = pdist.rsample(self.val_samples)
+        samples = pdist.rsample([n_samples])
 
         panc, pos, _, _ = self.miner(samples, y)
         pairs = (panc, pos, [], [])
@@ -47,14 +43,11 @@ class PFELightningModule(BaseLightningModule):
         
         return mu, std, samples
 
-    def test_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         mu, std = self.forward(X)
         var = std ** 2
         cov = torch.diag_embed(var)
         pdist = torch.distributions.MultivariateNormal(mu, cov)
-        samples = pdist.rsample(self.test_samples)
+        samples = pdist.rsample([n_samples])
         
         return mu, std, samples
-
-    def ood_step(self, X, y):
-        return self.forward(X)

@@ -61,6 +61,10 @@ class BaseLightningModule(LightningLite):
         self.model, self.optimizer = self.setup(model, optimizer)
 
         self.epoch = 0
+        
+        self.n_train_samples = 1
+        self.n_val_samples = 10
+        self.n_test_samples = 100
 
     def setup_logger(self, name):
         subdir = get_time()
@@ -71,13 +75,10 @@ class BaseLightningModule(LightningLite):
     def train_step(self, X, y):
         raise NotImplementedError()
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         raise NotImplementedError()
 
-    def test_step(self, X, y):
-        raise NotImplementedError()
-
-    def ood_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         raise NotImplementedError()
 
     def epoch_start(self):
@@ -173,7 +174,7 @@ class BaseLightningModule(LightningLite):
         print(f"Finished training @ epoch: {self.epoch + 1}")
         return self.model
 
-    def compute_features(self, loader):
+    def compute_features(self, loader, n_samples=1):
         self.model.eval()
 
         z_mu = []
@@ -183,7 +184,7 @@ class BaseLightningModule(LightningLite):
         images = []
         with torch.no_grad():
             for image, target in tqdm(loader, desc="Computing features"):
-                mu, sigma, samples = self.test_step(image, target)
+                mu, sigma, samples = self.test_step(image, target, n_samples=n_samples)
                 z_mu.append(mu.cpu())
                 z_sigma.append(sigma.cpu())
                 z_samples.append(samples.cpu())
@@ -205,8 +206,8 @@ class BaseLightningModule(LightningLite):
         self.val_start()
         self.model.eval()
 
-        z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.val_loader)
-        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader)
+        z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.val_loader, n_samples=self.n_val_samples)
+        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_val_samples)
         
         pos_idx = compute_pidx(labels.cpu().numpy())
         rank = compute_rank(z_mu.numpy(), None, samesource=True)
@@ -263,8 +264,8 @@ class BaseLightningModule(LightningLite):
 
         self.test_start()
         
-        z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.test_loader)
-        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader)
+        z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.test_loader, n_samples=self.n_test_samples)
+        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_test_samples)
                 
         pos_idx = compute_pidx(labels.cpu().numpy())
         rank = compute_rank(z_mu.numpy(), None, samesource=True)

@@ -50,9 +50,6 @@ class HIBLightningModule(BaseLightningModule):
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.001)
 
-        # Monte Carlo K times sampling
-        self.K = args.K
-
         # Move loss fn parameters to GPU
         self.loss_fn.cast_params(self.device)
 
@@ -62,7 +59,7 @@ class HIBLightningModule(BaseLightningModule):
 
         self.loss_fn.apply(self.loss_fn.weight_clipper)
 
-    def loss_step(self, mu, std, y, step):
+    def loss_step(self, mu, std, y, step, n_samples=1):
         # Matrix of positive pairs
         pos_mask = y.view(-1, 1) == y.view(1, -1)
 
@@ -107,39 +104,39 @@ class HIBLightningModule(BaseLightningModule):
         # Monte Carlo K times sampling, reparameterization trick in order
         # to do backprop
         # [K_samples, batch_size, embedding_space]
-        samples = self.to_device(pdist.rsample([self.K]))
+        samples = pdist.rsample([n_samples])
 
         # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes
         # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
-        k1_samples = samples.repeat_interleave(self.K, dim=0)
+        k1_samples = samples.repeat_interleave(n_samples, dim=0)
 
         # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
         # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
-        k2_samples = samples.repeat(self.K, 1, 1)
+        k2_samples = samples.repeat(n_samples, 1, 1)
 
         # Convert 3D to 2D, we use self.K**3 because we have K_samples, repeated K times
         # Concatenates all K samples into one large
         # [batch_size * K, embedding_space] tensor
         k1_samples = k1_samples.view(
-            self.K**2 * mu.shape[0], self.args.embedding_size
+            n_samples**2 * mu.shape[0], self.args.embedding_size
         )
         k2_samples = k2_samples.view(
-            self.K**2 * mu.shape[0], self.args.embedding_size
+            n_samples**2 * mu.shape[0], self.args.embedding_size
         )
 
         # Repeat target to match the shape of the samples
         # [batch_size * K, embedding_space]
-        y_k1 = y.repeat_interleave(self.K**2, dim=0)
-        y_k2 = y.repeat(self.K**2, 1).view(-1)
+        y_k1 = y.repeat_interleave(n_samples**2, dim=0)
+        y_k2 = y.repeat(n_samples**2, 1).view(-1)
 
         # See hib-pair-indicies.ipynb for more info
         # Scale the indices to match the shape of the samples
         def scale_indices(x):
             step = self.to_device(
-                torch.arange(0, self.K**2).repeat_interleave(x.shape[0]) * mu.shape[0]
+                torch.arange(0, n_samples**2).repeat_interleave(x.shape[0]) * mu.shape[0]
             )
 
-            return x.repeat(self.K**2) + step
+            return x.repeat(n_samples**2) + step
 
         # Scale indices to match repeated labels
         indices_tuple = [scale_indices(x) for x in [ap, pos, an, neg]]
@@ -163,29 +160,27 @@ class HIBLightningModule(BaseLightningModule):
         # Pass images through the model
         mu, std = self.forward(X)
 
-        samples, loss = self.loss_step(mu, std, y, step="train")
+        samples, loss = self.loss_step(mu, std, y, step="train", n_samples=self.n_train_samples)
 
         return samples[0], loss
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         mu, std = self.forward(X)
 
-        samples, _ = self.loss_step(mu, std, y, step="val")
+        samples, _ = self.loss_step(mu, std, y, step="val", n_samples=n_samples)
 
         return mu, std, samples[0]
 
-    def test_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         mu, std = self.forward(X)
 
         # Reparameterization trick
         cov = torch.diag_embed(std ** 2)
         pdist = tdist.MultivariateNormal(mu, cov)
-        samples = pdist.rsample()
+        samples = pdist.rsample([n_samples])
 
         return mu, std, samples
 
-    def ood_step(self, X, y):
-        return self.forward(X)
 
     def save_model(self, prefix=None):
         current_time = get_time()

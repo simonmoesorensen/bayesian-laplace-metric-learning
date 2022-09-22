@@ -26,10 +26,6 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.scale = 1
         self.prior_prec = 1
 
-        self.n_train_samples = 1
-        self.n_val_samples = 100
-        self.n_test_samples = 100
-
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
         
@@ -120,32 +116,28 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             # compute concentration: kappa
             p = z.shape[1]
             z_kappa = rhat * (p - rhat**2) / (1 - rhat**2)  * torch.ones_like(z_mu)
+            z_inv_kappa = 1 / z_kappa
         else:
             z = torch.stack(z, dim = 0)
             z_mu = zs
-            z_kappa = None
+            z_inv_kappa = None
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
         
-        return z_mu, z_kappa, z
+        return z_mu, z_inv_kappa, z
 
-    def val_step(self, x, y):
+    def val_step(self, x, y, n_samples=1):
 
-        z_mu, z_kappa, z = self.forward_samples(x, self.n_val_samples)
+        z_mu, z_inv_kappa, z = self.forward_samples(x, self.n_val_samples)
 
         # evaluate mean metrics
         pairs = self.miner(z_mu, y)
         loss = self.loss_fn(z_mu, y, indices_tuple=pairs)
 
-        return z_mu, z_kappa, z
+        return z_mu, z_inv_kappa, z
 
-    def test_step(self, x, y):
+    def test_step(self, x, y, n_samples=1):
 
-        z_mu, z_kappa, z = self.forward_samples(x, self.n_test_samples)
-        return z_mu, z_kappa, z
-
-    def ood_step(self, x, y):
-
-        z_mu, z_kappa, _ = self.forward_samples(x, self.n_test_samples)
-        return z_mu, z_kappa
+        z_mu, z_inv_kappa, z = self.forward_samples(x, self.n_test_samples)
+        return z_mu, z_inv_kappa, z

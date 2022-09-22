@@ -24,12 +24,12 @@ class DULLightningModule(BaseLightningModule):
         super().optimizer_step()
         self.loss_optimizer.step()
 
-    def loss_step(self, mu, std, y, step):
+    def loss_step(self, mu, std, y, step, n_samples=1):
         variance_dul = std.square()
 
         cov = torch.diag_embed(variance_dul)
         pdist = dist.MultivariateNormal(mu, cov)
-        samples = pdist.rsample()
+        samples = pdist.rsample([n_samples])
 
         hard_pairs = self.miner(samples, y)
         loss_backbone = self.loss_fn(samples, y, hard_pairs)
@@ -41,32 +41,29 @@ class DULLightningModule(BaseLightningModule):
         )
 
         loss = loss_backbone + self.args.kl_scale * loss_kl
-
+        
         return samples, loss
 
     def train_step(self, X, y):
         mu_dul, std_dul = self.forward(X)
 
-        samples, loss = self.loss_step(mu_dul, std_dul, y, step="train")
+        samples, loss = self.loss_step(mu_dul, std_dul, y, step="train", n_samples=self.train_samples)
 
         return samples, loss
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         mu_dul, std_dul = self.forward(X)
 
-        samples, _ = self.loss_step(mu_dul, std_dul, y, step="val")
+        samples, _ = self.loss_step(mu_dul, std_dul, y, step="val", n_samples=self.val_samples)
 
         return mu_dul, std_dul, samples
 
-    def test_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         mu_dul, std_dul = self.forward(X)
 
         # Reparameterization trick
         cov = torch.diag_embed(std_dul ** 2)
         pdist = dist.MultivariateNormal(mu_dul, cov)
-        samples = pdist.rsample()
+        samples = pdist.rsample([n_samples])
 
         return mu_dul, std_dul, samples
-
-    def ood_step(self, X, y):
-        return self.forward(X)

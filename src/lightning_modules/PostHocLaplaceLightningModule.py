@@ -49,8 +49,6 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
 
-        self.n_test_samples = args.test_samples
-
     def forward(self, x):
 
         x = self.model.conv(x)
@@ -89,23 +87,20 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
             # compute concentration: kappa
             p = z.shape[1]
             z_kappa = rhat * (p - rhat**2) / (1 - rhat**2) * torch.ones_like(z_mu)
+            z_inv_kappa = 1 / z_kappa
         else:
             z = torch.stack(z, dim = 0)
             z_mu = zs
-            z_kappa = None
+            z_inv_kappa = None
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
 
-        return z_mu, z_kappa, z
+        return z_mu, z_inv_kappa, z
 
-    def ood_step(self, X, y):
-        z_mu, z_kappa, samples = self.forward_samples(X, self.n_test_samples)
-        return z_mu, z_kappa, samples
-
-    def test_step(self, X, y):
-        z_mu, z_kappa, samples = self.forward_samples(X, self.n_test_samples)
-        return z_mu, z_kappa, samples
+    def test_step(self, X, y, n_samples=1):
+        z_mu, z_inv_kappa, samples = self.forward_samples(X, n_samples)
+        return z_mu, z_inv_kappa, samples
 
     def train_start(self):
         self.epoch = 0

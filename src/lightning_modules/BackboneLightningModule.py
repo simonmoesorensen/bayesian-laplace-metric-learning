@@ -15,6 +15,10 @@ def get_time():
 class BackboneLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
+        
+        self.n_train_samples = 1
+        self.n_val_samples = 1
+        self.n_test_samples = 1
 
     def train_step(self, X, y):
         z = self.forward(X)
@@ -25,7 +29,7 @@ class BackboneLightningModule(BaseLightningModule):
 
         return z, loss
 
-    def val_step(self, X, y):
+    def val_step(self, X, y, n_samples=1):
         z = self.forward(X)
 
         hard_pairs = self.miner(z, y)
@@ -34,9 +38,6 @@ class BackboneLightningModule(BaseLightningModule):
 
         return z, None, None
 
-    def test_step(self, X, y):
+    def test_step(self, X, y, n_samples=1):
         z = self.forward(X)
         return z, None, None
-
-    def ood_step(self, X, y):
-        raise ValueError("Backbone module is not probabilistic")
