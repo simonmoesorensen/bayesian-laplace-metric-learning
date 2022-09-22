@@ -33,8 +33,6 @@ class MCDropoutLightningModule(BaseLightningModule):
 
         loss = self.loss_fn(mu, y, indices_tuple=pairs)
 
-        self.metrics.update("train/loss", loss.item())
-
         return mu, loss
 
     def val_step(self, X, y):
@@ -46,7 +44,6 @@ class MCDropoutLightningModule(BaseLightningModule):
 
         loss = self.loss_fn(mu, y, indices_tuple=pairs)
 
-        self.metrics.update("val/loss", loss.item())
         return mu, std, samples
 
     def test_step(self, X, y):

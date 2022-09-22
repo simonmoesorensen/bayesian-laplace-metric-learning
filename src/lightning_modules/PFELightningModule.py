@@ -28,8 +28,6 @@ class PFELightningModule(BaseLightningModule):
 
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
 
-        self.metrics.update("train/loss", loss.item())
-
         return sample, loss
 
     def val_step(self, X, y):
@@ -43,8 +41,6 @@ class PFELightningModule(BaseLightningModule):
         pairs = (panc, pos, [], [])
 
         loss = self.loss_fn(embeddings=mu, ref_emb=var, indices_tuple=pairs)
-
-        self.metrics.update("val/loss", loss.item())
                 
         return mu, std, sample.unsqueeze(0)
 

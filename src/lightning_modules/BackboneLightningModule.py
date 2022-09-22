@@ -23,8 +23,6 @@ class BackboneLightningModule(BaseLightningModule):
 
         loss = self.loss_fn(z, y, indices_tuple=hard_pairs)
 
-        self.metrics.update("train/loss", loss.item())
-
         return z, loss
 
     def val_step(self, X, y):
@@ -34,7 +32,6 @@ class BackboneLightningModule(BaseLightningModule):
 
         loss = self.loss_fn(z, y, indices_tuple=hard_pairs)
 
-        self.metrics.update("val/loss", loss.item())
         return z, None, None
 
     def test_step(self, X, y):

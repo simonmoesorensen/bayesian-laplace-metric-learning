@@ -33,14 +33,6 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.hessian_calculator = calculator_cls(device=self.device, margin=args.margin)
         self.hessian_calculator.init_model(self.model.linear)
         
-    def epoch_start(self):
-        self.metrics.reset(
-            ["train/loss", "train/accuracy", "train/map_k", "train/recall_k", "hessian/norm", "hessian/min", "hessian/max", "hessian/avg"]
-        )
-
-    def epoch_end(self):
-        self.log(["train/loss", "train/accuracy", "train/map_k", "train/recall_k", "hessian/norm", "hessian/min", "hessian/max", "hessian/avg"])
-
     def train_step(self, x, pairs):
 
         # pass the data through the deterministic model
@@ -87,18 +79,12 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
-
-        self.metrics.update("train/loss", loss.item())
-        self.metrics.update("hessian/norm", self.hessian.norm().item())
-        self.metrics.update("hessian/min", self.hessian.min().item())
-        self.metrics.update("hessian/max", self.hessian.max().item())
-        self.metrics.update("hessian/avg", self.hessian.mean().item())
         
-        
-        self.metrics.update("curr_hessian/norm", hessian.norm().item())
-        self.metrics.update("curr_hessian/min", hessian.min().item())
-        self.metrics.update("curr_hessian/max", hessian.max().item())
-        self.metrics.update("curr_hessian/avg", hessian.mean().item())
+        # log stuff
+        self.writer.add_scalar("hessian/norm", self.hessian.norm(), self.batch)
+        self.writer.add_scalar("hessian/min", self.hessian.min(), self.batch)
+        self.writer.add_scalar("hessian/max", self.hessian.max(), self.batch)
+        self.writer.add_scalar("hessian/avg", self.hessian.mean(), self.batch)
 
         return z_mu, loss
     
@@ -151,7 +137,6 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         # evaluate mean metrics
         pairs = self.miner(z_mu, y)
         loss = self.loss_fn(z_mu, y, indices_tuple=pairs)
-        self.metrics.update("val/loss", loss.item())
 
         return z_mu, z_kappa, z
 

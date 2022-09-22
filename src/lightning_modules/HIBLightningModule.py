@@ -50,9 +50,6 @@ class HIBLightningModule(BaseLightningModule):
         # REQUIRED FOR SOFT CONTRASTIVE LOSS
         self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.001)
 
-        self.metrics.add("train/loss_kl")
-        self.metrics.add("val/loss_kl")
-
         # Monte Carlo K times sampling
         self.K = args.K
 
@@ -64,14 +61,6 @@ class HIBLightningModule(BaseLightningModule):
         self.loss_optimizer.step()
 
         self.loss_fn.apply(self.loss_fn.weight_clipper)
-
-    def epoch_start(self):
-        self.metrics.reset(
-            ["train/loss", "train/loss_kl", "train/accuracy", "train/map_k"]
-        )
-
-    def epoch_end(self):
-        self.log(["train/loss", "train/loss_kl", "train/accuracy", "train/map_k"])
 
     def loss_step(self, mu, std, y, step):
         # Matrix of positive pairs
@@ -168,9 +157,6 @@ class HIBLightningModule(BaseLightningModule):
 
         loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
 
-        self.metrics.update(f"{step}_loss", loss_soft_contrastive.item())
-        self.metrics.update(f"{step}_loss_kl", loss_kl.item())
-
         return samples, loss
 
     def train_step(self, X, y):
@@ -181,36 +167,12 @@ class HIBLightningModule(BaseLightningModule):
 
         return samples[0], loss
 
-    def val_start(self):
-        self.metrics.reset(["val/loss", "val/loss_kl", "val/accuracy", "val/map_k"])
-
     def val_step(self, X, y):
         mu, std = self.forward(X)
 
         samples, _ = self.loss_step(mu, std, y, step="val")
 
         return mu, std, samples[0]
-
-    def val_end(self):
-        self.log(["val/loss", "val/loss_kl", "val/accuracy", "val/map_k"])
-
-        # display training loss & acc every DISP_FREQ
-        print(
-            "Time {}\t"
-            "Validation Loss {loss.val:.4f} ({loss.avg:.4f})\t"
-            "Validation Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
-            "Validation Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Validation MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
-            "Validation Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})".format(
-                time.asctime(time.localtime(time.time())),
-                loss=self.metrics.get("val/loss"),
-                loss_KL=self.metrics.get("val/loss_kl"),
-                acc=self.metrics.get("val/accuracy"),
-                map_k=self.metrics.get("val/map_k"),
-                recall_k=self.metrics.get("val/recall_k"),
-            ),
-            flush=True,
-        )
 
     def test_step(self, X, y):
         mu, std = self.forward(X)
@@ -224,35 +186,6 @@ class HIBLightningModule(BaseLightningModule):
 
     def ood_step(self, X, y):
         return self.forward(X)
-
-    def display(self, epoch, batch):
-        tqdm.write("=" * 60)
-        tqdm.write(
-            "Epoch {}/{} Batch (Step) {}/{}\t"
-            "Time {}\t"
-            "Training Loss {loss.val:.4f} ({loss.avg:.4f})\t"
-            "Training Loss_KL {loss_KL.val:.4f} ({loss_KL.avg:.4f})\t"
-            "Training Accuracy {acc.val:.4f} ({acc.avg:.4f})\t"
-            "Training MAP@k {map_k.val:.4f} ({map_k.avg:.4f})\t"
-            "Training Recall@k {recall_k.val:.4f} ({recall_k.avg:.4f})\t"
-            "Lr {lr:.4f}\t"
-            "a {a:.4f}\t"
-            "b {b:.4f}\t".format(
-                epoch + 1,
-                self.args.num_epoch,
-                batch + 1,
-                len(self.train_loader) * self.args.num_epoch,
-                time.asctime(time.localtime(time.time())),
-                loss=self.metrics.get("train/loss"),
-                loss_KL=self.metrics.get("train/loss_kl"),
-                acc=self.metrics.get("train/accuracy"),
-                map_k=self.metrics.get("train/map_k"),
-                lr=self.optimizer.param_groups[0]["lr"],
-                a=self.loss_fn.A.data.item(),
-                b=self.loss_fn.B.data.item(),
-                recall_k=self.metrics.get("train/recall_k"),
-            )
-        )
 
     def save_model(self, prefix=None):
         current_time = get_time()

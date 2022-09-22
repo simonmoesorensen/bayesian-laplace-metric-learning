@@ -14,6 +14,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from pytorch_metric_learning.utils.inference import CustomKNN
 from pytorch_metric_learning import distances
 from tqdm import tqdm
+import time
+from pathlib import Path, PosixPath
 
 
 sns.set()
@@ -21,6 +23,72 @@ sns.set()
 c_id = "b"
 c_ood = "r"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def get_vis_path(dict_log):
+    
+    # Set path
+    vis_path = Path(dict_log["path"]) / dict_log["dataset"] / dict_log["name"] / f"epoch_{dict_log['epoch']}"
+
+    vis_path.mkdir(parents=True, exist_ok=True)
+    
+    return vis_path
+
+def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
+
+    print("=" * 60, flush=True)
+    print("Visualizing...")
+    metrics = {}
+    
+    vis_path = get_vis_path(dict_log)
+
+    if "hessian" in dict_other:
+        plt.plot(dict_other["hessian"].cpu().numpy())
+        plt.yscale("log")
+        plt.savefig(vis_path / "hessian.png")
+
+    prob_model = dict_["z_sigma"] is not None
+    if prob_model:
+        
+        # Visualize
+        visualize_all(
+            dict_["z_mu"], 
+            dict_["z_sigma"],
+            dict_["images"],
+            dict_ood["z_mu"], 
+            dict_ood["z_sigma"],
+            dict_ood["images"],
+            vis_path, prefix
+        )
+        model_name, dataset_name, run_name = get_names(vis_path)
+
+        # calibration curve
+        print("Running calibration curve")
+        ece = plot_calibration_curve(
+            dict_["labels"],
+            dict_["z_samples"],
+            vis_path,
+            model_name,
+            dataset_name,
+            run_name,
+        )
+        metrics[f"{prefix}/ece"] = ece
+
+
+        # Sparsification curve
+        print("Running sparsification curve")
+        ausc = plot_sparsification_curve(
+            dict_["labels"], 
+            dict_["z_mu"], 
+            dict_["z_sigma"], 
+            vis_path, 
+            model_name, 
+            dataset_name, 
+            run_name
+        )
+        metrics[f"{prefix}/ausc"] = ausc
+
+    return metrics
 
 
 def visualize_top_5(id_sigma, id_images, ood_sigma, ood_images, vis_path, prefix, n=5):
