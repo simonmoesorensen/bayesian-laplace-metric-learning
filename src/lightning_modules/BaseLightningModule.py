@@ -40,7 +40,8 @@ class BaseLightningModule(LightningLite):
         
         # LOGGING
         self.name = args.name
-        self.writer = self.setup_logger(args.name)
+        self.name = self.name + "_linear" if args.linear else self.name + "_conv"
+        self.writer = self.setup_logger(self.name)
 
         self.to_visualize = args.to_visualize
 

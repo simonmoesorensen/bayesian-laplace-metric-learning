@@ -1,13 +1,8 @@
 import torch.optim as optim
 from pytorch_metric_learning import losses, miners
 from src.baselines.Backbone.config import parse_args
-from src.baselines.Backbone.models import (
-    Casia_Backbone,
-    CIFAR10_Backbone,
-    MNIST_Backbone,
-)
+from src.baselines.models import FashionMNISTLinearNet, FashionMNISTConvNet, CIFAR10ConvNet
 from src.data_modules import (
-    CasiaDataModule,
     CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
@@ -16,28 +11,31 @@ from src.lightning_modules.BackboneLightningModule import BackboneLightningModul
 from src.utils import separate_batchnorm_params
 
 
-def run(Backbone_args):
-    Backbone_args.gpu_id = [int(item) for item in Backbone_args.gpu_id]
+def run(args):
+    args.gpu_id = [int(item) for item in args.gpu_id]
 
-    if Backbone_args.dataset == "MNIST":
-        model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
+    if args.dataset == "MNIST":
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = MNISTDataModule
-    elif Backbone_args.dataset == "CIFAR10":
-        model = CIFAR10_Backbone(embedding_size=Backbone_args.embedding_size)
+    elif args.dataset == "CIFAR10":
+        model = CIFAR10ConvNet(embedding_size=args.embedding_size)
         data_module = CIFAR10DataModule
-    elif Backbone_args.dataset == "Casia":
-        model = Casia_Backbone(embedding_size=Backbone_args.embedding_size)
-        data_module = CasiaDataModule
-    elif Backbone_args.dataset == "FashionMNIST":
-        model = MNIST_Backbone(embedding_size=Backbone_args.embedding_size)
+    elif args.dataset == "FashionMNIST":
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
     else:
         raise ValueError("Dataset not supported")
 
     data_module = data_module(
-        Backbone_args.data_dir,
-        Backbone_args.batch_size,
-        Backbone_args.num_workers,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
         npos=1,
         nneg=5,
     )
@@ -49,11 +47,11 @@ def run(Backbone_args):
         [
             {
                 "params": params_no_bn,
-                "weight_decay": Backbone_args.weight_decay,
+                "weight_decay": args.weight_decay,
             },
             {"params": params_w_bn},
         ],
-        lr=Backbone_args.lr,
+        lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
     )
@@ -70,11 +68,11 @@ def run(Backbone_args):
     )
 
     trainer = BackboneLightningModule(
-        accelerator="gpu", devices=len(Backbone_args.gpu_id), strategy="dp"
+        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
     )
 
     trainer.init(
-        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=Backbone_args
+        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=args
     )
 
     trainer.add_data_module(data_module)

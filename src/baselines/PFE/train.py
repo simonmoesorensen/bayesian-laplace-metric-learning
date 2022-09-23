@@ -13,35 +13,35 @@ from src.lightning_modules.PFELightningModule import PFELightningModule
 from src.utils import separate_batchnorm_params
 import torch
 
-def run(PFE_args):
-    PFE_args.gpu_id = [int(item) for item in PFE_args.gpu_id]
+def run(args):
+    args.gpu_id = [int(item) for item in args.gpu_id]
     
-    if PFE_args.dataset == "MNIST":
+    if args.dataset == "MNIST":
         model = MNIST_PFE(
-            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+            embedding_size=args.embedding_size, seed=args.random_seed, linear=args.linear
         )
         data_module = MNISTDataModule
-    elif PFE_args.dataset == "CIFAR10":
+    elif args.dataset == "CIFAR10":
         model = CIFAR10_PFE(
-            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+            embedding_size=args.embedding_size, seed=args.random_seed, linear=args.linear
         )
         data_module = CIFAR10DataModule
-    elif PFE_args.dataset == "Casia":
+    elif args.dataset == "Casia":
         model = Casia_PFE(
-            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+            embedding_size=args.embedding_size, seed=args.random_seed, linear=args.linear
         )
         data_module = CasiaDataModule
-    elif PFE_args.dataset == "FashionMNIST":
+    elif args.dataset == "FashionMNIST":
         model = FashionMNIST_PFE(
-            embedding_size=PFE_args.embedding_size, seed=PFE_args.random_seed
+            embedding_size=args.embedding_size, seed=args.random_seed, linear=args.linear
         )
         data_module = FashionMNISTDataModule
 
     # do not use negative in training.
     data_module = data_module(
-        PFE_args.data_dir,
-        PFE_args.batch_size,
-        PFE_args.num_workers,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
         npos=1,
         nneg=0,
     )
@@ -53,14 +53,14 @@ def run(PFE_args):
         [
             {
                 "params": params_no_bn,
-                "weight_decay": PFE_args.weight_decay,
+                "weight_decay": args.weight_decay,
             },
             {"params": params_w_bn},
             # Add beta and gamma as learnable parameters to the optimizer
             {"params": model.beta},
             {"params": model.gamma},
         ],
-        lr=PFE_args.lr,
+        lr=args.lr,
     )
 
     loss = MLSLoss()
@@ -72,11 +72,11 @@ def run(PFE_args):
     )
 
     trainer = PFELightningModule(
-        accelerator="gpu", devices=len(PFE_args.gpu_id), strategy="dp"
+        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
     )
 
     trainer.init(
-        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=PFE_args
+        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=args
     )
 
     trainer.add_data_module(data_module)

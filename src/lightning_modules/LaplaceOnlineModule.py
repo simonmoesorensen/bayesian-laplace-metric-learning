@@ -63,6 +63,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
             hessian.append(h_s)
             z.append(zs)
             
+        # take average over samples
         loss = loss_running_sum / self.n_train_samples
         hessian = torch.stack(h_s).mean(0) if len(hessian) > 1 else h_s
         z_mu = torch.stack(z).mean(0) if len(z) > 1 else zs

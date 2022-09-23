@@ -8,7 +8,7 @@ from src.data_modules import (
     FashionMNISTDataModule,
     MNISTDataModule,
 )
-from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet, FashionMNISTLinearNet
 from src.lightning_modules.LaplaceOnlineModule import LaplaceOnlineLightningModule
 from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
@@ -20,13 +20,19 @@ def run(args):
     args.gpu_id = [int(item) for item in args.gpu_id]
 
     if args.dataset == "MNIST":
-        model = FashionMNISTConvNet(latent_dim=args.embedding_size)
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = MNISTDataModule
     elif args.dataset == "CIFAR10":
         model = CIFAR10ConvNet(latent_dim=args.embedding_size)
         data_module = CIFAR10DataModule
     elif args.dataset == "FashionMNIST":
-        model = FashionMNISTConvNet(latent_dim=args.embedding_size)
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
 
     optimizer = optim.Adam(

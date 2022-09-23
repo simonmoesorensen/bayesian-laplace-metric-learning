@@ -1,7 +1,6 @@
 import torch
 
-from pytorch_metric_learning import distances, miners, losses
-from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet,FashionMNISTLinearNet
 from src.lightning_modules.PostHocLaplaceLightningModule import (
     PostHocLaplaceLightningModule,
 )
@@ -10,6 +9,7 @@ from src.baselines.Laplace_posthoc.config import parse_args
 from src.data_modules import (
     CIFAR10DataModule,
     FashionMNISTDataModule,
+    MNISTDataModule,
 )
 from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
@@ -23,17 +23,20 @@ def run(args):
     torch.manual_seed(args.random_seed)
 
     if args.dataset == "MNIST":
-        raise NotImplementedError()
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
+        data_module = MNISTDataModule
     elif args.dataset == "CIFAR10":
         model = CIFAR10ConvNet(latent_dim=args.embedding_size)
         data_module = CIFAR10DataModule
-    elif args.dataset == "Casia":
-        raise NotImplementedError()
     elif args.dataset == "FashionMNIST":
-        model = FashionMNISTConvNet(latent_dim=args.embedding_size)
+        if args.linear:
+            model = FashionMNISTLinearNet(latent_dim=args.embedding_size)
+        else:
+            model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
-    else:
-        raise ValueError("Dataset not supported")
     
     
     if args.hessian == "positives":

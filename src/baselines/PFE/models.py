@@ -1,11 +1,7 @@
 from turtle import back
 import torch
 import torch.nn as nn
-from src.baselines.Backbone.models import (
-    CIFAR10_Backbone,
-    MNIST_Backbone,
-    Casia_Backbone,
-)
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTLinearNet, FashionMNISTConvNet
 from src.utils import filter_state_dict
 
 
@@ -58,20 +54,32 @@ class UncertaintyModule(nn.Module):
         return mu, std
 
 
-def MNIST_PFE(embedding_size=128, seed=42):
+def MNIST_PFE(embedding_size=128, seed=42, linear=False):
     """
     Construct a mnist model for PFE.
     """
-    # Embedding dimension
-    backbone = MNIST_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(
-        filter_state_dict(
-            torch.load(
-                "src/baselines/PFE/pretrained/MNIST/"
-                f"latentdim_{embedding_size}_seed_{seed}.pth"
+    if linear:
+        # Embedding dimension
+        backbone = FashionMNISTLinearNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/MNIST/linaer/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
+            )
+        )   
+    else:
+        # Embedding dimension
+        backbone = FashionMNISTConvNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/MNIST/conv/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
             )
         )
-    )
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
@@ -79,20 +87,33 @@ def MNIST_PFE(embedding_size=128, seed=42):
     return model_PFE
 
 
-def FashionMNIST_PFE(embedding_size=128, seed=42):
+def FashionMNIST_PFE(embedding_size=128, seed=42, linear=False):
     """
     Construct a fashion mnist model for PFE.
     """
-    # Embedding dimension
-    backbone = MNIST_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(
-        filter_state_dict(
-            torch.load(
-                "src/baselines/PFE/pretrained/FashionMNIST/"
-                f"latentdim_{embedding_size}_seed_{seed}.pth"
+    if linear:
+        # Embedding dimension
+        backbone = FashionMNISTLinearNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/FashionMNIST/linaer/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
+            )
+        )   
+    else:
+        # Embedding dimension
+        backbone = FashionMNISTConvNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/FashionMNIST/conv/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
             )
         )
-    )
+
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
@@ -100,20 +121,33 @@ def FashionMNIST_PFE(embedding_size=128, seed=42):
     return model_PFE
 
 
-def CIFAR10_PFE(embedding_size=128, seed=42):
+def CIFAR10_PFE(embedding_size=128, seed=42, linear=False):
     """
     Construct a cifar10 model for PFE.
     """
-    # Embedding dimension
-    backbone = CIFAR10_Backbone(embedding_size=embedding_size)
-    backbone.load_state_dict(
-        filter_state_dict(
-            torch.load(
-                "src/baselines/PFE/pretrained/CIFAR10/"
-                f"latentdim_{embedding_size}_seed_{seed}.pth"
+    if linear:
+        # Embedding dimension
+        backbone = CIFAR10LinearNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/CIFAR10/linaer/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
+            )
+        )   
+    else:
+        # Embedding dimension
+        backbone = CIFAR10ConvNet(latent_dim=embedding_size)
+        backbone.load_state_dict(
+            filter_state_dict(
+                torch.load(
+                    "src/baselines/PFE/pretrained/CIFAR10/conv/"
+                    f"latentdim_{embedding_size}_seed_{seed}.pth"
+                )
             )
         )
-    )
+
 
     # Wrap in PFE framework
     model_PFE = UncertaintyModule(backbone, embedding_size)
