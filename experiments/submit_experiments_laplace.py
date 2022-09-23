@@ -8,9 +8,10 @@ from pathlib import Path
 
 root = Path(__file__).parent.parent
 
-for config in [FashionMNISTConfigLaplace]:  # , CIFAR10ConfigLaplace]:
+for config in [FashionMNISTConfigLaplace, CIFAR10ConfigLaplace]:
     for latent_dim in config.latent_dims:
         for model in config.models:
+            batch_size = 128
             if model == "PostHoc":
                 train_script = "train_post_hoc"
             elif model == "Online":
@@ -25,8 +26,6 @@ for config in [FashionMNISTConfigLaplace]:  # , CIFAR10ConfigLaplace]:
                     if model == "PostHoc":
                         backbone_path = f"src/baselines/PFE/pretrained/{config.dataset}/latentdim_{latent_dim}_seed_{seed}.pth"
                         additional_args_backbone = f"--backbone_path {backbone_path} "
-
-                    batch_size = 16
 
                     name = f"{hessian}_{latent_dim}_seed_{seed}"
                     log_dir = root / "outputs" / model / "logs" / config.dataset / name

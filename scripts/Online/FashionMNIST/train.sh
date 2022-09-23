@@ -7,13 +7,14 @@ export CUDA_VISIBLE_DEVICES=1
 
 python3 -m debugpy --listen $node_ip:1330 ./src/baselines/Laplace_online/train.py \
     --dataset FashionMNIST \
-    --name train_script_debug \
+    --name train_script_mem0_9 \
     --batch_size 128 \
     --embedding_size 32 \
     --num_epoch 100 \
     --save_freq 10 \
     --gpu_id 0\
     --hessian full \
+    --hessian_memory_factor 0.9 \
     --num_workers 8 \
     --shuffle \
     --to_visualize \

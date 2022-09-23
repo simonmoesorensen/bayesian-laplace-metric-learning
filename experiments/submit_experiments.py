@@ -9,7 +9,7 @@ root = Path(__file__).parent.parent
 for config in [FashionMNISTConfig, CIFAR10Config]:
     for latent_dim in config.latent_dims:
         for model in config.models:
-            batch_size = 256
+            batch_size = 128
 
             if model == "DUL":
                 if config.dataset == "FashionMNIST":

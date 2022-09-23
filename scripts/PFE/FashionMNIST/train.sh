@@ -5,13 +5,13 @@ export CUDA_VISIBLE_DEVICES=2
 
 node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1332 ./src/baselines/PFE/train.py \
+python3 -m debugpy --listen $node_ip:1329 ./src/baselines/PFE/train.py \
     --dataset FashionMNIST \
     --name train_script \
     --batch_size 128 \
     --embedding_size 32 \
-    --num_epoch 100 \
-    --save_freq 10 \
+    --num_epoch 500 \
+    --save_freq 20 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \

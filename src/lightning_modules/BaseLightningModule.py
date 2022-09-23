@@ -33,6 +33,7 @@ class BaseLightningModule(LightningLite):
             print(" '{}' : '{}' ".format(k, str(args.__dict__[k])))
 
         torch.manual_seed(args.random_seed)
+        self.seed_everything(args.random_seed)
 
         self.args = args
         self.ks = [1, 5, 10, 20]

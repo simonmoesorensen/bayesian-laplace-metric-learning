@@ -394,8 +394,8 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
             if n_in_range > 0
             else 0
         )
-        #range_prob = np.sum(probs_in_range) / n_in_range if n_in_range > 0 else 0
-        range_prob = (upper + lower) / 2
+        range_prob = np.sum(probs_in_range) / n_in_range if n_in_range > 0 else 0
+        #range_prob = (upper + lower) / 2
 
         real_probs[i] = range_acc
         pred_probs[i] = range_prob
@@ -448,8 +448,7 @@ def plot_calibration_curve(
     fig, ax = plt.subplots()
     
     # Plot ECE 
-    #TODO: we are not really plotting the ECE here, but the accuracy
-    ax.plot(conf.tolist(), acc.tolist(), '-o', label="Calibration curve")
+    ax.plot(np.linspace(0.05,0.95,10).tolist(), acc.tolist(), '-o', label="Calibration curve")
 
     # Add histogram of confidences scaled between 0 and 1
     confidences = confidences.cpu().numpy()

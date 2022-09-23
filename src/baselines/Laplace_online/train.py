@@ -1,3 +1,4 @@
+from operator import neg
 import torch.optim as optim
 from pytorch_metric_learning import losses
 from src.baselines.Laplace_online.config import parse_args
@@ -28,14 +29,6 @@ def run(args):
         model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
 
-    data_module = data_module(
-        args.data_dir,
-        args.batch_size,
-        args.num_workers,
-        npos=1,
-        nneg=1,
-    )
-
     optimizer = optim.Adam(
         model.parameters(),
         lr=args.lr,
@@ -43,19 +36,28 @@ def run(args):
 
     loss = losses.ContrastiveLoss(neg_margin=args.margin)
 
-
     if args.hessian == "positives":
         calculator_cls = ContrastiveHessianCalculator
         miner = AllPositiveMiner()
+        n_neg=0
     elif args.hessian == "fixed":
         calculator_cls = FixedContrastiveHessianCalculator
         miner = AllCombinationsMiner()
+        n_neg=1
     elif args.hessian == "full":
         calculator_cls = ContrastiveHessianCalculator
         miner = AllCombinationsMiner()
+        n_neg=1
     else:
         raise ValueError(f"Unknown method: {args.hessian}")
 
+    data_module = data_module(
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
+        npos=1,
+        nneg=n_neg,
+    )
 
     trainer = LaplaceOnlineLightningModule(
         accelerator="gpu", devices=len(args.gpu_id), strategy="dp"

@@ -4,16 +4,16 @@ from typing import List
 class Config:
     latent_dims: List[int]
     dataset: str
-    models: List[str] = ["PFE", "DUL", "HIB", "MCDropout"]
-    seeds: List[int] = [46]  # [42, 43, 44, 45, 46]
+    models: List[str] = ["Backbone"] #["PFE", "Online"] #"DUL", "HIB", "MCDropout"]
+    seeds: List[int] = [43]  # [42, 43, 44, 45, 46]
     gpu_queue: str = "gpuv100"
     gpu_mem: str
 
 
 class FashionMNISTConfig(Config):
-    latent_dims = [32]  # [2, 16, 32]
+    latent_dims = [2, 16, 32]
     dataset = "FashionMNIST"
-    num_epoch = 150
+    num_epoch = 200
     gpu_mem = "16"
 
 
