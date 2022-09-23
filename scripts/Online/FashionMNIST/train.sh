@@ -5,13 +5,13 @@ export CUDA_VISIBLE_DEVICES=1
 
 #node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1334 ./src/baselines/Laplace_online/train.py \
+python3 -m debugpy --listen $node_ip:1330 ./src/baselines/Laplace_online/train.py \
     --dataset FashionMNIST \
-    --name train_script_full_nneg_1 \
+    --name train_script_debug \
     --batch_size 128 \
     --embedding_size 32 \
-    --num_epoch 1000 \
-    --save_freq 20 \
+    --num_epoch 100 \
+    --save_freq 10 \
     --gpu_id 0\
     --hessian full \
     --num_workers 8 \

@@ -1,4 +1,5 @@
 import json
+from turtle import up
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -377,7 +378,7 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
     real_probs = np.zeros((bins,))
     pred_probs = np.zeros((bins,))
     bin_sizes = np.zeros((bins,))
-
+    
     _, lims = np.histogram(confidences, range=(0.0, 1.0), bins=bins)
     for i in range(bins):
         lower, upper = lims[i], lims[i + 1]
@@ -393,7 +394,8 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
             if n_in_range > 0
             else 0
         )
-        range_prob = np.sum(probs_in_range) / n_in_range if n_in_range > 0 else 0
+        #range_prob = np.sum(probs_in_range) / n_in_range if n_in_range > 0 else 0
+        range_prob = (upper + lower) / 2
 
         real_probs[i] = range_acc
         pred_probs[i] = range_prob
@@ -401,10 +403,9 @@ def calibration_curves(targets, confidences, preds, bins=10, fill_nans=False):
 
     bin_weights = bin_sizes / np.sum(bin_sizes)
     ece = np.sum(np.abs(real_probs - pred_probs) * bin_weights)
-
-    if fill_nans:
-        return ece, real_probs, pred_probs, bin_sizes
-    return ece, real_probs[bin_sizes > 0], pred_probs[bin_sizes > 0], bin_sizes
+    
+    return ece, real_probs, pred_probs, bin_sizes
+    #return ece, real_probs[bin_sizes > 0], pred_probs[bin_sizes > 0], bin_sizes
 
 
 def plot_calibration_curve(
@@ -445,15 +446,17 @@ def plot_calibration_curve(
     )
 
     fig, ax = plt.subplots()
-
-    # Plot ECE
-    ax.plot(conf, acc, label="ECE")
+    
+    # Plot ECE 
+    #TODO: we are not really plotting the ECE here, but the accuracy
+    ax.plot(conf.tolist(), acc.tolist(), '-o', label="Calibration curve")
 
     # Add histogram of confidences scaled between 0 and 1
     confidences = confidences.cpu().numpy()
     ax.hist(
         confidences,
         bins=bins,
+        range=(0.0, 1.0),
         density=True,
         label="Distribution of confidences",
         alpha=0.5,
@@ -480,8 +483,8 @@ def plot_calibration_curve(
 
     # Set axis options
     ax.set(
-        xlim=[0, 1],
-        ylim=[0, 1],
+        xlim=[-0.1, 1.1],
+        ylim=[-0.1, 1.1],
         xlabel="Confidence",
         ylabel="Accuracy",
         title=f"ECE curve for {model_name} ({run_name}) on {dataset_name}",

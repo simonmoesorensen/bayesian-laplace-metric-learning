@@ -157,7 +157,7 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
         scale = 1.0
         prior_prec = 1.0
         prior_prec = torch.tensor(prior_prec)
-        # prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
+        #prior_prec = optimize_prior_precision(mu_q, hessian, prior_prec)
         print("prior precision is ==>> ", prior_prec)
         self.visualize_hessian(hessian + prior_prec, "precision_after")
         self.visualize_hessian( 1 / (hessian + prior_prec), "posterior_after")
