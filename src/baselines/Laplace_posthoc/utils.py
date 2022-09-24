@@ -1,7 +1,7 @@
 import torch
 
 def scatter(mu_q, prior_precision_diag):
-    return (mu_q * prior_precision_diag) @ mu_q
+    return (mu_q * prior_precision_diag) @ mu_q 
 
 def log_det_ratio(hessian, prior_prec):
     posterior_precision = hessian + prior_prec

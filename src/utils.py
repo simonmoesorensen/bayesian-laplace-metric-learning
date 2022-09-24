@@ -43,17 +43,22 @@ class L2Norm(nn.Module):
         b, d = x.shape
 
         norm = torch.norm(x, p=2, dim=1)
-        
-        out = torch.einsum("bi,bj->bij", x, x)
-        out = torch.einsum("b,bij->bij", 1 / (norm**3 + 1e-6), out)
-        out = (
-            torch.einsum(
-                "b,bij->bij",
-                1 / (norm + 1e-6),
-                torch.diag(torch.ones(d, device=x.device)).expand(b, d, d),
-            )
-            - out
-        )
+
+        #out = torch.einsum("bi,bj->bij", x, x)
+        #out = torch.einsum("b,bij->bij", 1 / (norm**3 + 1e-6), out)
+        #out = (
+        #    torch.einsum(
+        #        "b,bij->bij",
+        #        1 / (norm + 1e-6),
+        #        torch.diag(torch.ones(d, device=x.device)).expand(b, d, d),
+        #    )
+        #    - out
+        #)
+
+        normalized_x = torch.einsum("b,bi->bi", 1 / (norm + 1e-6), x)
+        out = torch.einsum("bi,bj->bij", normalized_x, normalized_x)
+        out = torch.diag(torch.ones(d, device=x.device)).expand(b, d, d) - out
+        out = torch.einsum("b,bij->bij", 1 / (norm + 1e-6), out)
 
         return out
 

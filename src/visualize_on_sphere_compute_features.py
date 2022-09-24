@@ -27,7 +27,7 @@ args = {"latent_dim": 3,
         "batch_size": 32,
         "num_workers": 8,
         "gpu_id": [0],
-        "model": "Online",
+        "model": "Posthoc",
         "random_seed": 42,
         "log_dir": "",
         "vis_dir": ""}
@@ -78,8 +78,10 @@ trainer.n_test_samples = 100
 if args.model in ("Posthoc", "Online"):
     if args.model == "Posthoc":
         path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/"
-        trainer.scale = torch.load(path + "scale.pth").to("cuda:0")
-        trainer.prior_prec = torch.load(path + "pror_prec.pth").to("cuda:0")
+        #trainer.scale = torch.load(path + "scale.pth").to("cuda:0")
+        #trainer.prior_prec = torch.load(path + "pror_prec.pth").to("cuda:0")
+        trainer.scale = torch.tensor(1.0).to("cuda:0")
+        trainer.prior_prec = torch.tensor(1.0).to("cuda:0")
     else:
         path = "outputs/Laplace_online/checkpoints/FashionMNIST/latent_dim_3_seed_42_mem_0_999_conv/"
         trainer.scale = torch.tensor(1.0).to("cuda:0")
