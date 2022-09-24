@@ -255,7 +255,7 @@ class BaseLightningModule(LightningLite):
             
         # Save metrics
         vis_path = get_vis_path(dict_log)
-        with open(vis_path / "metrics.json", "w") as f:
+        with open(vis_path / "val_metrics.json", "w") as f:
             json.dump(metrics, f)
             
         # Save hparams
@@ -285,40 +285,39 @@ class BaseLightningModule(LightningLite):
             
         self.test_end()
         
-        if self.to_visualize:
-            dict_ = {"z_mu": z_mu, 
-                     "z_sigma": z_sigma, 
-                     "z_samples": z_samples, 
-                     "labels": labels, 
-                     "images": images}
-            dict_ood = {"z_mu": ood_z_mu, 
-                        "z_sigma": ood_z_sigma, 
-                        "z_samples": ood_z_samples, 
-                        "labels": ood_labels, 
-                        "images": ood_images}
-            dict_other = {}
-            if hasattr(self, "hessian") :
-                dict_other["hessian"] = self.hessian
-            dict_log = {"path": self.args.vis_dir,
-                        "dataset": self.args.dataset,
-                        "name": self.name,
-                        "epoch": self.epoch +1}
-            
-            metrics = visualize(
-                dict_, 
-                dict_ood, 
-                dict_other,
-                dict_log, 
-                prefix="test",
-            )
-            
+        dict_ = {"z_mu": z_mu, 
+                    "z_sigma": z_sigma, 
+                    "z_samples": z_samples, 
+                    "labels": labels, 
+                    "images": images}
+        dict_ood = {"z_mu": ood_z_mu, 
+                    "z_sigma": ood_z_sigma, 
+                    "z_samples": ood_z_samples, 
+                    "labels": ood_labels, 
+                    "images": ood_images}
+        dict_other = {}
+        if hasattr(self, "hessian") :
+            dict_other["hessian"] = self.hessian
+        dict_log = {"path": self.args.vis_dir,
+                    "dataset": self.args.dataset,
+                    "name": self.name,
+                    "epoch": self.epoch +1}
+        
+        metrics = visualize(
+            dict_, 
+            dict_ood, 
+            dict_other,
+            dict_log, 
+            prefix="test",
+        )
+        
         for i, k in enumerate(self.ks):
             metrics[f"map{k}"] = mapk[i]
             metrics[f"recall{k}"] = recallk[i]
             
         # Save metrics
         vis_path = get_vis_path(dict_log)
-        with open(vis_path / "metrics.json", "w") as f:
+        with open(vis_path / "test_metrics.json", "w") as f:
             json.dump(metrics, f)
             
         # Save hparams

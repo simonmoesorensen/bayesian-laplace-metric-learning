@@ -44,6 +44,7 @@ def parse_args():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--to_visualize", default=False, action="store_true")
     parser.add_argument("--disp_freq", type=int, default=20)
+    parser.add_argument("--linear", default=False, action="store_true")
 
     # ----- data loader details
     parser.add_argument("--num_workers", type=int, default=8)

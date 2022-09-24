@@ -86,4 +86,4 @@ def run(args):
 
 
 if __name__ == "__main__":
-    dul_train = run(parse_args())
+    trainer = run(parse_args())

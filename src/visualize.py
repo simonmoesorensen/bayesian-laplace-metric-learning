@@ -46,7 +46,7 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
         plt.plot(dict_other["hessian"].cpu().numpy())
         plt.yscale("log")
         plt.savefig(vis_path / "hessian.png");
-        plt.close(); plt.cla();
+        plt.close(); plt.cla(); plt.clf();
 
     prob_model = dict_["z_sigma"] is not None and len(dict_["z_sigma"]) > 0
     if prob_model:
@@ -304,8 +304,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     plt.title(f"OOD ROC Curve for model {model_name} ({run_name}) on dataset {dataset}")
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_roc_curve.png")
-    plt.cla()
-    plt.close()
+    plt.close(); plt.cla(); plt.clf();
 
     # save data
     data = pd.DataFrame(
@@ -329,8 +328,7 @@ def plot_auc_curves(id_sigma, ood_sigma, vis_path, prefix):
     )
     plt.legend()
     fig.savefig(vis_path / f"{prefix}ood_precision_recall_curve.png")
-    plt.cla()
-    plt.close()
+    plt.close(); plt.cla(); plt.clf();
 
     metrics = {}
 
