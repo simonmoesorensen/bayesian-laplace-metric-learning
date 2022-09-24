@@ -27,6 +27,7 @@ def optimize_prior_precision(mu_q, hessian, prior_prec, n_steps=100):
         neg_log_marglik = - log_marginal_likelihood(mu_q, hessian, prior_prec)
         neg_log_marglik.backward()
         optimizer.step()
+        print(f"prior  prec = ", log_prior_prec.exp().item())
 
     prior_prec = log_prior_prec.detach().exp()
 

@@ -27,7 +27,7 @@ args = {"latent_dim": 3,
         "batch_size": 32,
         "num_workers": 8,
         "gpu_id": [0],
-        "model": "PFE",
+        "model": "Online",
         "random_seed": 42,
         "log_dir": "",
         "vis_dir": ""}
@@ -40,6 +40,9 @@ elif args["model"] == "PFE":
     module = PFELightningModule
 elif args["model"] == "Posthoc":
     args["model_path"] = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/Final_Model_Epoch_1_Time_2022-09-24T115046_checkpoint.pth"
+    module = PostHocLaplaceLightningModule
+elif args["model"] == "Online":
+    args["model_path"] = "outputs/Laplace_online/checkpoints/FashionMNIST/latent_dim_3_seed_42_mem_0_999_conv/Final_Model_Epoch_300_Time_2022-09-24T134047_checkpoint.pth"
     module = PostHocLaplaceLightningModule
 else:
     raise ValueError("Model not supported")
@@ -72,11 +75,17 @@ trainer.model = model.to("cuda:0")
 trainer.add_data_module(data_module)
 trainer.n_test_samples = 100
 
-if args.model == "Posthoc":
-    hessian_path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/hessian.pth"
-    trainer.hessian = torch.load(hessian_path).to("cuda:0")
-    trainer.scale = torch.tensor(1.0).to("cuda:0")
-    trainer.prior_prec = torch.tensor(1.0).to("cuda:0")
+if args.model in ("Posthoc", "Online"):
+    if args.model == "Posthoc":
+        path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/"
+        trainer.scale = torch.load(path + "scale.pth").to("cuda:0")
+        trainer.prior_prec = torch.load(path + "pror_prec.pth").to("cuda:0")
+    else:
+        path = "outputs/Laplace_online/checkpoints/FashionMNIST/latent_dim_3_seed_42_mem_0_999_conv/"
+        trainer.scale = torch.tensor(1.0).to("cuda:0")
+        trainer.prior_prec = torch.tensor(1.0).to("cuda:0")
+    trainer.hessian = torch.load(path + "hessian.pth").to("cuda:0")
+
 
 z_mu, z_sigma, z_samples, labels, images = trainer.compute_features(trainer.test_loader, n_samples=trainer.n_test_samples)
 ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = trainer.compute_features(trainer.ood_loader, n_samples=trainer.n_test_samples)

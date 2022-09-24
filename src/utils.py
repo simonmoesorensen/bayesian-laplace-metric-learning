@@ -43,7 +43,7 @@ class L2Norm(nn.Module):
         b, d = x.shape
 
         norm = torch.norm(x, p=2, dim=1)
-
+        
         out = torch.einsum("bi,bj->bij", x, x)
         out = torch.einsum("b,bij->bij", 1 / (norm**3 + 1e-6), out)
         out = (

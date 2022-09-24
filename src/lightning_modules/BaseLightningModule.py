@@ -391,3 +391,5 @@ class BaseLightningModule(LightningLite):
         
         if hasattr(self, "hessian"):
             torch.save(self.hessian, path.parent / "hessian.pth")
+            torch.save(self.prior_prec, path.parent / "prior_prec.pth")
+            torch.save(self.scale, path.parent / "scale.pth")

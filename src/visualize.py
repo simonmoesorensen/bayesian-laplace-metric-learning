@@ -44,7 +44,7 @@ def visualize(dict_, dict_ood, dict_other, dict_log, prefix):
 
     if "hessian" in dict_other:
         plt.plot(dict_other["hessian"].cpu().numpy())
-        plt.yscale("log")
+        #plt.yscale("log")
         plt.savefig(vis_path / "hessian.png");
         plt.close(); plt.cla(); plt.clf();
 
