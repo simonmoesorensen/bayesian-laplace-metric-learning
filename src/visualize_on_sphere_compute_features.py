@@ -39,7 +39,7 @@ elif args["model"] == "PFE":
     args["model_path"] = "outputs/PFE/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/Final_Model_Epoch_200_Time_2022-09-24T120547_checkpoint.pth"
     module = PFELightningModule
 elif args["model"] == "Posthoc":
-    args["model_path"] = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/Final_Model_Epoch_1_Time_2022-09-24T115046_checkpoint.pth"
+    args["model_path"] = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_opt_conv/Final_Model_Epoch_1_Time_2022-09-24T172320_checkpoint.pth"
     module = PostHocLaplaceLightningModule
 elif args["model"] == "Online":
     args["model_path"] = "outputs/Laplace_online/checkpoints/FashionMNIST/latent_dim_3_seed_42_mem_0_999_conv/Final_Model_Epoch_300_Time_2022-09-24T134047_checkpoint.pth"
@@ -77,11 +77,11 @@ trainer.n_test_samples = 100
 
 if args.model in ("Posthoc", "Online"):
     if args.model == "Posthoc":
-        path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_conv/"
-        #trainer.scale = torch.load(path + "scale.pth").to("cuda:0")
-        #trainer.prior_prec = torch.load(path + "pror_prec.pth").to("cuda:0")
-        trainer.scale = torch.tensor(1.0).to("cuda:0")
-        trainer.prior_prec = torch.tensor(1.0).to("cuda:0")
+        path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_42_opt_conv/"
+        trainer.scale = torch.tensor(torch.load(path + "scale.pth")).to("cuda:0")
+        trainer.prior_prec = torch.load(path + "prior_prec.pth").to("cuda:0")
+        #trainer.scale = torch.tensor(1.0).to("cuda:0")
+        #trainer.prior_prec = torch.tensor(1.0).to("cuda:0")
     else:
         path = "outputs/Laplace_online/checkpoints/FashionMNIST/latent_dim_3_seed_42_mem_0_999_conv/"
         trainer.scale = torch.tensor(1.0).to("cuda:0")
