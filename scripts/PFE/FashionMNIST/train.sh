@@ -7,10 +7,10 @@ node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1329 ./src/baselines/PFE/train.py \
     --dataset FashionMNIST \
-    --name train_script \
+    --name latent_dim_3_seed_42 \
     --batch_size 128 \
-    --embedding_size 32 \
-    --num_epoch 500 \
+    --embedding_size 3 \
+    --num_epoch 200 \
     --save_freq 20 \
     --gpu_id 0\
     --num_workers 8 \

@@ -380,7 +380,7 @@ class BaseLightningModule(LightningLite):
         path = (
             Path(self.args.model_save_folder)
             / self.args.dataset
-            / self.args.name
+            / self.name
             / name
         )
 
@@ -388,3 +388,6 @@ class BaseLightningModule(LightningLite):
 
         print(f"Saving model @ {str(path)}")
         self.save(content=self.model.module.state_dict(), filepath=str(path))
+        
+        if hasattr(self, "hessian"):
+            torch.save(self.hessian, path.parent / "hessian.pth")

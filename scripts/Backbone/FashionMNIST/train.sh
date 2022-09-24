@@ -5,11 +5,11 @@ export CUDA_VISIBLE_DEVICES=0
 
 node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1332 ./src/baselines/Backbone/train.py \
+python3 -m debugpy --listen $node_ip:13344 ./src/baselines/Backbone/train.py \
     --dataset FashionMNIST \
-    --name latent_dim_2_seed_42 \
+    --name latent_dim_3_seed_42 \
     --batch_size 512 \
-    --embedding_size 2 \
+    --embedding_size 3 \
     --num_epoch 200 \
     --save_freq 20 \
     --gpu_id 0\
