@@ -35,6 +35,9 @@ class PFELightningModule(BaseLightningModule):
         cov = torch.diag_embed(var)
         pdist = torch.distributions.MultivariateNormal(mu, cov)
         samples = pdist.rsample([n_samples])
+        
+        # project into unit sphere
+        samples = samples / samples.norm(dim=1, keepdim=True)
 
         panc, pos, _, _ = self.miner(samples, y)
         pairs = (panc, pos, [], [])
@@ -49,5 +52,8 @@ class PFELightningModule(BaseLightningModule):
         cov = torch.diag_embed(var)
         pdist = torch.distributions.MultivariateNormal(mu, cov)
         samples = pdist.rsample([n_samples])
+        
+        # project into unit sphere
+        samples = samples / samples.norm(dim=1, keepdim=True)
         
         return mu, std, samples

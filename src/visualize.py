@@ -418,7 +418,7 @@ def plot_calibration_curve(
         
         sample_i = samples[:, i, :]
         
-        neigh = NearestNeighbors(n_neighbors=2)
+        neigh = NearestNeighbors(n_neighbors=2, metric = "cosine")
         neigh.fit(sample_i)
         dist, idx = neigh.kneighbors(sample_i)
         
@@ -510,7 +510,7 @@ def plot_sparsification_curve(
     targets, z_mu, z_sigma, path, model_name, dataset_name, run_name
 ):
     
-    neigh = NearestNeighbors(n_neighbors=2)
+    neigh = NearestNeighbors(n_neighbors=2, metric = "cosine")
     neigh.fit(z_mu)
     dist, idx = neigh.kneighbors(z_mu)
     
