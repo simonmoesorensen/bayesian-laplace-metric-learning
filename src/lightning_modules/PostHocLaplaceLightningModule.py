@@ -95,6 +95,9 @@ class PostHocLaplaceLightningModule(BaseLightningModule):
 
         # put mean parameter as before
         vector_to_parameters(mu_q, self.model.linear.parameters())
+        
+        # use deterministic mean
+        z_mu = self.model.linear(x)
 
         return z_mu, z_inv_kappa, z
 
