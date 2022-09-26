@@ -1,4 +1,5 @@
 
+from cProfile import label
 from torchvision import transforms
 import torchvision.datasets as d
 
@@ -28,6 +29,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
 
 args = {"latent_dim": 3,
         "data_dir": "/work3/frwa/datasets/",
@@ -375,8 +377,10 @@ test_dataloader = data_module.test_dataloader()
 targets = []
 images = []
 tmps = []
+labels = []
 for batch in tqdm(test_dataloader):
     image = batch[0].cuda()
+    labels.append(batch[1])
     with torch.inference_mode():
         tmp = model.conv(image)
         pred = model.linear(tmp)
@@ -387,8 +391,22 @@ for batch in tqdm(test_dataloader):
 targets = torch.cat(targets, dim=0)
 images = torch.cat(images, dim=0)
 tmps = torch.cat(tmps, dim=0)
+labels = torch.cat(labels, dim=0)
 
-train_loader = DataLoader(TensorDataset(tmps, targets), batch_size=args.batch_size, pin_memory=True)
+# find a random positive point
+classes = torch.unique(labels)
+dict_ = {}
+for c in classes:
+    dict_[c.item()] = torch.where(labels == c)[0]
+    
+random_pos_idx = []
+for l in labels:
+    potential = dict_[l.item()]
+    random_pos_idx.append(potential[torch.randint(0, len(potential), (1,))])
+
+random_pos_idx = torch.cat(random_pos_idx, dim=0)
+
+train_loader = DataLoader(TensorDataset(tmps, targets[random_pos_idx]), batch_size=args.batch_size, pin_memory=True)
 
 # User-specified LA flavor
 model_stochman = nn.Sequential(Linear(288, 128), Tanh(), Linear(128, 3), L2Norm())
@@ -420,3 +438,6 @@ for X, y in tqdm(train_loader):
 import pdb; pdb.set_trace()
 
 torch.save(hessian, "hessian.pt")
+
+plt.plot(hessian.cpu().numpy())
+plt.savefig("tmp.png")

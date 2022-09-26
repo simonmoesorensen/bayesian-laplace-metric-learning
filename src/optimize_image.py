@@ -2,6 +2,7 @@ from torchvision import transforms
 import torchvision.datasets as d
 
 import os, sys
+from src.baselines.Laplace_online.utils import sample_nn
 
 sys.path.append("../")
 from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet,FashionMNISTLinearNet
@@ -21,6 +22,8 @@ from torch.optim import Adam
 from dotmap import DotMap
 import matplotlib.pyplot as plt
 import copy
+from torch.nn.utils import parameters_to_vector, vector_to_parameters
+
 
 args_all = {"latent_dim": 3,
         "data_dir": "/work3/frwa/datasets/",
@@ -64,7 +67,7 @@ for param in model.parameters():
 
 # image = torch.randn(1,1,28,28, requires_grad=True)
 
-idx = 10
+idx = 1
 test_set = data_module.test_dataloader().dataset
 original_image = test_set.data[idx:idx+1].float().unsqueeze(0) / 255.0
 image = copy.deepcopy(original_image)
@@ -126,3 +129,45 @@ z_mu, z_sigma, z_samples = trainer.forward_samples(original_image.to("cuda:0"), 
 print("original", z_sigma.sum().item())
 z_mu, z_sigma, z_samples = trainer.forward_samples(optimized_image.to("cuda:0"), 100)
 print("optimized", z_sigma.sum().item())
+
+
+####
+# symmetric experiment
+####
+
+image = copy.deepcopy(original_image)
+image = image.cuda()
+image.requires_grad = True
+optimizer = Adam([image], lr=0.01)
+
+mu_q = parameters_to_vector(model.linear.parameters())
+sigma_q = 1 / (trainer.hessian * trainer.scale + trainer.prior_prec).sqrt()
+#sigma_q = 1 / (trainer.hessian * 1 + 1).sqrt()
+
+for iter in range(100):
+    optimizer.zero_grad()
+    
+    image_01 = torch.sigmoid(image)
+    tmp = model.conv(image_01)
+    samples = sample_nn(mu_q, sigma_q, 100)
+    
+    z = []
+    for sample in samples:
+        vector_to_parameters(sample, model.linear.parameters())
+        z_i = model.linear(tmp)
+        z.append(z_i)
+        
+    z = torch.cat(z, dim=0)
+    mu = z.mean(dim=0)
+    sigma = z.std(dim=0)
+        
+    loss = sigma.sum()
+    loss.backward()
+    optimizer.step()
+
+    print(f"iter {iter} loss {loss} sigma {sigma.sum().item()}")
+    
+path = "optimize/PFE/"
+optimized_image = torch.sigmoid(image).detach()
+plt.imshow(optimized_image.cpu().numpy().squeeze(), cmap="gray")
+plt.savefig(path + f"{idx}_laml_optimized.png")
