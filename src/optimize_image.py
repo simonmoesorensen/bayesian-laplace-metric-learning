@@ -67,7 +67,7 @@ for param in model.parameters():
 
 # image = torch.randn(1,1,28,28, requires_grad=True)
 
-idx = 1
+idx = 5
 test_set = data_module.test_dataloader().dataset
 original_image = test_set.data[idx:idx+1].float().unsqueeze(0) / 255.0
 image = copy.deepcopy(original_image)
@@ -140,9 +140,14 @@ image = image.cuda()
 image.requires_grad = True
 optimizer = Adam([image], lr=0.01)
 
+for param in model.parameters():
+    param.requires_grad = False
+
 mu_q = parameters_to_vector(model.linear.parameters())
+mu_q.requires_grad = False
 sigma_q = 1 / (trainer.hessian * trainer.scale + trainer.prior_prec).sqrt()
-#sigma_q = 1 / (trainer.hessian * 1 + 1).sqrt()
+#sigma_q = 1 / (trainer.hessian * 1 + 1e2).sqrt()
+sigma_q.requires_grad = False
 
 for iter in range(100):
     optimizer.zero_grad()
