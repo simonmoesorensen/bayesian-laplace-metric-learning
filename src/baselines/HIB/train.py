@@ -1,12 +1,13 @@
 import torch.optim as optim
 from src.baselines.HIB.config import parse_args
 from src.baselines.HIB.losses import SoftContrastiveLoss
-from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB
+from src.baselines.HIB.models import CIFAR10_HIB, MNIST_HIB, Casia_HIB, CUB200ConvNet
 from src.data_modules import (
     CasiaDataModule,
     CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CUB200DataModule,
 )
 from src.lightning_modules.HIBLightningModule import HIBLightningModule
 from src.utils import separate_batchnorm_params
@@ -27,6 +28,9 @@ def run(HIB_args):
     elif HIB_args.dataset == "FashionMNIST":
         model = MNIST_HIB(embedding_size=HIB_args.embedding_size)
         data_module = FashionMNISTDataModule
+    elif args.dataset == "CUB200":
+        model = CUB200ConvNet(latent_dim=args.embedding_size)
+        data_module = CUB200DataModule
 
     data_module = data_module(
         HIB_args.data_dir,

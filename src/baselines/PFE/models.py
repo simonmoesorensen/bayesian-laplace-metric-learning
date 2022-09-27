@@ -1,7 +1,7 @@
 from turtle import back
 import torch
 import torch.nn as nn
-from src.baselines.models import CIFAR10ConvNet, FashionMNISTLinearNet, FashionMNISTConvNet
+from src.baselines.models import CIFAR10ConvNet, FashionMNISTLinearNet, FashionMNISTConvNet, CIFAR10LinearNet
 from src.utils import filter_state_dict
 
 
@@ -64,11 +64,20 @@ def MNIST_PFE(embedding_size=128, seed=42, linear=False):
         backbone.load_state_dict(
             filter_state_dict(
                 torch.load(
-                    "src/baselines/PFE/pretrained/MNIST/linaer/"
+                    "src/baselines/PFE/pretrained/MNIST/linear/"
                     f"latentdim_{embedding_size}_seed_{seed}.pth"
                 )
             )
-        )   
+        )
+        
+        # we need to move some of the layers from backbone.linear to backbone.conv
+        linear_new = backbone.linear[-4:]
+        conv_new = nn.Sequential(*[backbone.conv[0]] + list(backbone.linear[:-4]))
+        
+        backbone.linear = linear_new
+        backbone.conv = conv_new
+        
+           
     else:
         # Embedding dimension
         backbone = FashionMNISTConvNet(latent_dim=embedding_size)
@@ -97,11 +106,18 @@ def FashionMNIST_PFE(embedding_size=128, seed=42, linear=False):
         backbone.load_state_dict(
             filter_state_dict(
                 torch.load(
-                    "src/baselines/PFE/pretrained/FashionMNIST/linaer/"
+                    "src/baselines/PFE/pretrained/FashionMNIST/linear/"
                     f"latentdim_{embedding_size}_seed_{seed}.pth"
                 )
             )
         )   
+
+        # we need to move some of the layers from backbone.linear to backbone.conv
+        linear_new = backbone.linear[-4:]
+        conv_new = nn.Sequential(*[backbone.conv[0]] + list(backbone.linear[:-4]))
+        
+        backbone.linear = linear_new
+        backbone.conv = conv_new
     else:
         # Embedding dimension
         backbone = FashionMNISTConvNet(latent_dim=embedding_size)
@@ -131,7 +147,7 @@ def CIFAR10_PFE(embedding_size=128, seed=42, linear=False):
         backbone.load_state_dict(
             filter_state_dict(
                 torch.load(
-                    "src/baselines/PFE/pretrained/CIFAR10/linaer/"
+                    "src/baselines/PFE/pretrained/CIFAR10/linear/"
                     f"latentdim_{embedding_size}_seed_{seed}.pth"
                 )
             )

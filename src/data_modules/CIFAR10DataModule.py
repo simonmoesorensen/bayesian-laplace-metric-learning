@@ -64,35 +64,13 @@ class Cifar10(Dataset):
         if self.transform:
             images = [self.transform(im) for im in images]
         
-        images = torch.stack(images, dim=0).permute(0, 3, 1, 2)
+        images = torch.stack(images, dim=0).permute(0, 3, 1, 2).float()
         labels = torch.from_numpy(np.stack(labels))
         classes = torch.from_numpy(np.stack(classes))
         
         assert len(images) == len(labels)
         
         return images, labels, classes
-
-
-class CIFAR10DataModule(BaseDataModule):
-    def __init__(
-        self,
-        data_dir,
-        batch_size,
-        num_workers,
-    ):
-        super().__init__(
-            d.CIFAR10, data_dir, batch_size, num_workers
-        )
-
-        self.name = "CIFAR"
-        self.n_classes = 10
-
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-            ]
-        )
-
 
 class CIFAR10DataModule(BaseDataModule):
     def __init__(

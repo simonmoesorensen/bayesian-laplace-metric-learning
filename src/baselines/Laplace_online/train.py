@@ -7,8 +7,9 @@ from src.data_modules import (
     CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CUB200DataModule,
 )
-from src.baselines.models import CIFAR10ConvNet, FashionMNISTConvNet, FashionMNISTLinearNet
+from src.baselines.models import CIFAR10ConvNet, CIFAR10LinearNet, CUB200ConvNet, FashionMNISTConvNet, FashionMNISTLinearNet
 from src.lightning_modules.LaplaceOnlineModule import LaplaceOnlineLightningModule
 from src.laplace.hessian.layerwise import (
     ContrastiveHessianCalculator,
@@ -26,7 +27,10 @@ def run(args):
             model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = MNISTDataModule
     elif args.dataset == "CIFAR10":
-        model = CIFAR10ConvNet(latent_dim=args.embedding_size)
+        if args.linear:
+            model = CIFAR10LinearNet(latent_dim=args.embedding_size)
+        else:
+            model = CIFAR10ConvNet(latent_dim=args.embedding_size)
         data_module = CIFAR10DataModule
     elif args.dataset == "FashionMNIST":
         if args.linear:
@@ -34,7 +38,10 @@ def run(args):
         else:
             model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
-
+    elif args.dataset == "CUB200":
+        model = CUB200ConvNet(latent_dim=args.embedding_size)
+        data_module = CUB200DataModule
+        
     optimizer = optim.Adam(
         model.parameters(),
         lr=args.lr,

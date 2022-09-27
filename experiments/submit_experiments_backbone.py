@@ -11,10 +11,10 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
     batch_size = 512
 
     if config.dataset == "FashionMNIST":
-        gpu_mem = "16"
+        gpu_mem = "4"
         num_epoch = 50
     elif config.dataset == "CIFAR10":
-        gpu_mem = "32"
+        gpu_mem = "4"
         num_epoch = 150
 
     for latent_dim in config.latent_dims:

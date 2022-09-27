@@ -215,7 +215,17 @@ class BaseLightningModule(LightningLite):
         self.model.eval()
 
         z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.val_loader, n_samples=self.n_val_samples)
-        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_val_samples)
+        
+        if self.ood_loader.dataset is None:
+            dict_ood = None
+        else:
+            ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_val_samples)
+        
+            dict_ood = {"z_mu": ood_z_mu, 
+                        "z_sigma": ood_z_sigma, 
+                        "z_samples": ood_z_samples, 
+                        "labels": ood_labels, 
+                        "images": ood_images}
         
         pos_idx = compute_pidx(labels.cpu().numpy())
         rank = compute_rank(z_mu.numpy(), None, samesource=True)
@@ -228,11 +238,7 @@ class BaseLightningModule(LightningLite):
                      "z_samples": z_samples, 
                      "labels": labels, 
                      "images": images}
-            dict_ood = {"z_mu": ood_z_mu, 
-                        "z_sigma": ood_z_sigma, 
-                        "z_samples": ood_z_samples, 
-                        "labels": ood_labels, 
-                        "images": ood_images}
+
             dict_other = {}
             if hasattr(self, "hessian") :
                 dict_other["hessian"] = self.hessian
@@ -273,7 +279,15 @@ class BaseLightningModule(LightningLite):
         self.test_start()
         
         z_mu, z_sigma, z_samples, labels, images = self.compute_features(self.test_loader, n_samples=self.n_test_samples)
-        ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_test_samples)
+        if self.ood_loader.dataset is None:
+            dict_ood = None
+        else:
+            ood_z_mu, ood_z_sigma, ood_z_samples, ood_labels, ood_images  = self.compute_features(self.ood_loader, n_samples=self.n_test_samples)
+            dict_ood = {"z_mu": ood_z_mu, 
+                        "z_sigma": ood_z_sigma, 
+                        "z_samples": ood_z_samples, 
+                        "labels": ood_labels, 
+                        "images": ood_images} 
                 
         pos_idx = compute_pidx(labels.cpu().numpy())
         rank = compute_rank(z_mu.numpy(), None, samesource=True)
@@ -290,11 +304,7 @@ class BaseLightningModule(LightningLite):
                     "z_samples": z_samples, 
                     "labels": labels, 
                     "images": images}
-        dict_ood = {"z_mu": ood_z_mu, 
-                    "z_sigma": ood_z_sigma, 
-                    "z_samples": ood_z_samples, 
-                    "labels": ood_labels, 
-                    "images": ood_images}
+
         dict_other = {}
         if hasattr(self, "hessian") :
             dict_other["hessian"] = self.hessian

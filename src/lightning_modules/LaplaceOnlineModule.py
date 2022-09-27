@@ -30,7 +30,7 @@ class LaplaceOnlineLightningModule(BaseLightningModule):
         self.hessian_calculator.init_model(self.model.linear)
         
     def train_step(self, x, pairs):
-
+        
         # pass the data through the deterministic model
         x = self.model.conv(x)
 

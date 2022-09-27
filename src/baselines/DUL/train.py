@@ -1,12 +1,13 @@
 import torch.optim as optim
 from pytorch_metric_learning import distances, losses, miners
 from src.baselines.DUL.config import parse_args
-from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL
+from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL, CUB200ConvNet
 from src.data_modules import (
     CasiaDataModule,
     CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CUB200DataModule,
 )
 from src.lightning_modules.DULLightningModule import DULLightningModule
 from src.utils import separate_batchnorm_params
@@ -27,6 +28,9 @@ def run(dul_args):
     elif dul_args.dataset == "FashionMNIST":
         model = MNIST_DUL(embedding_size=dul_args.embedding_size)
         data_module = FashionMNISTDataModule
+    elif args.dataset == "CUB200":
+        model = CUB200ConvNet(latent_dim=args.embedding_size)
+        data_module = CUB200DataModule
 
     data_module = data_module(
         dul_args.data_dir, 

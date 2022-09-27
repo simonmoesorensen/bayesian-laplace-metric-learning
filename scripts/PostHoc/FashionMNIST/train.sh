@@ -7,11 +7,12 @@ export CUDA_VISIBLE_DEVICES=0
 
 python3 -m debugpy --listen $node_ip:1337 ./src/baselines/Laplace_posthoc/train.py \
     --dataset FashionMNIST \
-    --name latent_dim_3_seed_42_old \
-    --model_path src/baselines/PFE/pretrained/FashionMNIST/conv/latentdim_3_seed_42.pth \
+    --name latent_dim_32_seed_43 \
+    --model_path src/baselines/PFE/pretrained/FashionMNIST/linear/latentdim_32_seed_43.pth \
     --hessian full \
-    --embedding_size 3 \
+    --embedding_size 32 \
     --gpu_id 0 \
     --random_seed 42 \
     --batch_size 64 \
-    --to_visualize
+    --to_visualize \
+    --linear

@@ -1,12 +1,12 @@
 import subprocess
 from pathlib import Path
 
-from config import CIFAR10Config, FashionMNISTConfig, template_text
+from config import CIFAR10Config, FashionMNISTConfig, CUB200Config, template_text
 
 root = Path(__file__).parent.parent
 
 # Submit FashionMNIST experiments
-for config in [FashionMNISTConfig, CIFAR10Config]:
+for config in [CUB200Config]: #CIFAR10Config]:
     for latent_dim in config.latent_dims:
         for model in config.models:
             batch_size = 128
@@ -24,7 +24,7 @@ for config in [FashionMNISTConfig, CIFAR10Config]:
 
             for seed in config.seeds:
                 name = f"latentdim_{latent_dim}_seed_{seed}"
-                log_dir = root / "outputs" / model / "logs" / config.dataset / name
+                log_dir = root / "outputs_26_sept" / model / "logs" / config.dataset / name
                 log_dir.mkdir(parents=True, exist_ok=True)
                 additional_args_seed = additional_args + f" --random_seed {seed}"
 

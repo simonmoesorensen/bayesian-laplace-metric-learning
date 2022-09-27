@@ -1,11 +1,12 @@
 import torch.optim as optim
 from pytorch_metric_learning import losses, miners
 from src.baselines.Backbone.config import parse_args
-from src.baselines.models import FashionMNISTLinearNet, FashionMNISTConvNet, CIFAR10ConvNet
+from src.baselines.models import FashionMNISTLinearNet, FashionMNISTConvNet, CIFAR10ConvNet, CIFAR10LinearNet, CUB200ConvNet
 from src.data_modules import (
     CIFAR10DataModule,
     FashionMNISTDataModule,
     MNISTDataModule,
+    CUB200DataModule,
 )
 from src.lightning_modules.BackboneLightningModule import BackboneLightningModule
 from src.utils import separate_batchnorm_params
@@ -21,7 +22,10 @@ def run(args):
             model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = MNISTDataModule
     elif args.dataset == "CIFAR10":
-        model = CIFAR10ConvNet(embedding_size=args.embedding_size)
+        if args.linear:
+            model = CIFAR10LinearNet(latent_dim=args.embedding_size)
+        else:
+            model = CIFAR10ConvNet(latent_dim=args.embedding_size)
         data_module = CIFAR10DataModule
     elif args.dataset == "FashionMNIST":
         if args.linear:
@@ -29,9 +33,12 @@ def run(args):
         else:
             model = FashionMNISTConvNet(latent_dim=args.embedding_size)
         data_module = FashionMNISTDataModule
+    elif args.dataset == "CUB200":
+        model = CUB200ConvNet(latent_dim=args.embedding_size)
+        data_module = CUB200DataModule
     else:
         raise ValueError("Dataset not supported")
-
+    
     data_module = data_module(
         args.data_dir,
         args.batch_size,

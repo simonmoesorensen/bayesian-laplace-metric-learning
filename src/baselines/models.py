@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 from src.utils import L2Norm
-
+import torchvision
 
 class SampleNet(nn.Module):
     def pass_through(self, x):
@@ -40,14 +40,15 @@ class CIFAR10ConvNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2),
             nn.Conv2d(64, 64, 3,padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
-            nn.Conv2d(64, 64, 3,padding=1),
             nn.Dropout2d(p),
             nn.Flatten(),
         )
         self.linear = nn.Sequential(
-            nn.Linear(64 * 2 * 2, 128),
+            nn.Linear(1024, 512),
+            nn.Tanh(),
+            nn.Linear(512, 256),
+            nn.Tanh(),
+            nn.Linear(256, 128),
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
@@ -59,6 +60,34 @@ class CIFAR10ConvNet(nn.Module):
         x = self.conv(x)
         x = self.linear(x)
         return x
+    
+class CIFAR10LinearNet(nn.Module):
+    def __init__(self, latent_dim=128, p=0):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Flatten(),
+        )
+        self.linear = nn.Sequential(
+            nn.Linear(3 * 32 * 32, 512),
+            #nn.Tanh(),
+            #nn.Linear(1024, 512),
+            nn.Tanh(),
+            nn.Linear(512, 256),
+            nn.Tanh(),
+            nn.Linear(256, 128),
+            nn.Tanh(),
+            nn.Linear(128, 64),
+            nn.Tanh(),
+            nn.Linear(64, latent_dim),
+            L2Norm(),
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.linear(x)
+        return x
+    
+    
 
 
 class FashionMNISTConvNet(nn.Module):
@@ -112,3 +141,26 @@ class FashionMNISTLinearNet(nn.Module):
         x = self.linear(x)
         return x
 
+class CUB200ConvNet(nn.Module):
+    def __init__(self, latent_dim=32, p=0):
+        super().__init__()
+        
+        resnet = torchvision.models.resnet18(pretrained=True)
+        self.conv = nn.Sequential(*(list(resnet.children())[:-1] + [nn.Flatten()]))
+        self.linear = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.Tanh(),
+            nn.Linear(512, 256),
+            nn.Tanh(),
+            nn.Linear(256, 128),
+            nn.Tanh(),
+            nn.Linear(128, latent_dim),
+            L2Norm(),
+        )
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.linear(x)
+        
+        return x

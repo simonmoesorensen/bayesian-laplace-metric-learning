@@ -4,29 +4,35 @@ from typing import List
 class Config:
     latent_dims: List[int]
     dataset: str
-    models: List[str] = ["Backbone"] #["PFE", "Online"] #"DUL", "HIB", "MCDropout"]
+    models: List[str] = ["Backbone", "Laplace_online"] #["Laplace_online"] #, "Backbone"] #["PFE", "Online"] #"DUL", "HIB", "MCDropout"]
     seeds: List[int] = [43]  # [42, 43, 44, 45, 46]
-    gpu_queue: str = "gpuv100"
+    gpu_queue: str = "gpua100"
     gpu_mem: str
 
 
 class FashionMNISTConfig(Config):
-    latent_dims = [2, 16, 32]
+    latent_dims = [3, 16, 32]
     dataset = "FashionMNIST"
     num_epoch = 200
-    gpu_mem = "16"
+    gpu_mem = "4"
 
 
 class CIFAR10Config(Config):
     latent_dims = [16, 32, 64]
     dataset = "CIFAR10"
     num_epoch = 500
-    gpu_mem = "32"
+    gpu_mem = "3"
+
+class CUB200Config(Config):
+    latent_dims = [64, 128]
+    dataset = "CUB200"
+    num_epoch = 500
+    gpu_mem = "8"
 
 
 class LaplaceConfig(Config):
     hessians = ["fixed"]  # , "positives", "full"]
-    gpu_mem = "40"
+    gpu_mem = "8"
     models = ["PostHoc"]  # , "Online"]
     gpu_queue = "gpua100"
 
@@ -53,14 +59,13 @@ template_text = """
 #BSUB -n 8
 
 ### -- Select the resources: 2 gpus -- 
-#BSUB -gpu "num=2"
+#BSUB -gpu "num=1"
 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 24:00
 
 # Request GPU resources
 #BSUB -R "rusage[mem={gpu_mem}GB]"
-#BSUB -R "select[gpu{gpu_mem}gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -84,9 +89,9 @@ module load cuda/11.7
 # Load venv
 source venv/bin/activate
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
-python3 -m src.baselines.{model}.train --dataset {dataset} --name {name} --batch_size {batch_size} --embedding_size {latent_dim} --num_epoch {num_epoch} --save_freq 100000 --gpu_id 0 1 --num_workers 8 --to_visualize --shuffle {additional_args}
+python3 -m src.baselines.{model}.train --dataset {dataset} --name {name} --batch_size {batch_size} --embedding_size {latent_dim} --num_epoch {num_epoch} --save_freq 100000 --gpu_id 0 --num_workers 8 --to_visualize --shuffle {additional_args}
 """
 
 
@@ -111,7 +116,6 @@ template_text_laplace = """
 
 # Request GPU resources
 #BSUB -R "rusage[mem={gpu_mem}GB]"
-#BSUB -R "select[gpu{gpu_mem}gb]"
 
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -138,5 +142,5 @@ source venv/bin/activate
 export CUDA_VISIBLE_DEVICES=0
 
 
-python3 -m src.laplace.{train_script} --dataset {dataset} --name {name} --batch_size {batch_size} --to_visualize --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args}
+python3 -m src.laplace.{train_script} --dataset {dataset} --name {name} --batch_size {batch_size} --to_visualize --num_epoch {num_epoch} --embedding_size {latent_dim} --hessian {hessian} {additional_args} --linear
 """

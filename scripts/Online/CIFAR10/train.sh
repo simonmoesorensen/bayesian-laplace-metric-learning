@@ -6,7 +6,7 @@ export CUDA_VISIBLE_DEVICES=1
 #node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
 python3 -m debugpy --listen $node_ip:1335 ./src/baselines/Laplace_online/train.py \
-    --dataset FashionMNIST \
+    --dataset CIFAR10 \
     --name latent_dim_3_seed_42_mem_0_999 \
     --batch_size 128 \
     --embedding_size 3 \
