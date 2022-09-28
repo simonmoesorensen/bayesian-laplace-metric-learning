@@ -23,12 +23,16 @@ from dotmap import DotMap
 import matplotlib.pyplot as plt
 import copy
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
+import cv2
+import torch.nn.functional as F
 
 
-idx = 1
-optimizer = SGD
-lr = 1e-1
-steps = 10
+idx = 2
+type = "image"
+optimizer = Adam
+lr = 1
+steps = 1000
+init_noise = 0 #.3 * torch.randn(1, 2,3).cuda()
 pfe_model_path = "outputs/PFE/checkpoints/FashionMNIST/latentdim_3_seed_43_linear/"
 pfe_model_name = "Final_Model_Epoch_200_Time_2022-09-27T121813_checkpoint.pth"
 posthoc_model_path = "outputs/Laplace_posthoc/checkpoints/FashionMNIST/latent_dim_3_seed_43_linear/"
@@ -36,7 +40,7 @@ posthoc_model_name = "Final_Model_Epoch_1_Time_2022-09-27T115356_checkpoint.pth"
 online_model_path = "outputs/Laplace_online/checkpoints/FashionMNIST/latentdim_3_seed_43_linear/"
 online_model_name = "Final_Model_Epoch_200_Time_2022-09-27T104351_checkpoint.pth"
 
-save_path = "optimize/{optimizer.__name__}_{lr}/".format(optimizer=optimizer, lr=lr)
+save_path = "optimize/{optimizer.__name__}_{lr}/{type}/".format(optimizer=optimizer, lr=lr,type=type)
 os.makedirs(save_path, exist_ok=True)
 
 args_all = {"latent_dim": 3,
@@ -45,7 +49,6 @@ args_all = {"latent_dim": 3,
         "batch_size": 32,
         "num_workers": 8,
         "gpu_id": [0],
-        "model": "PFE",
         "random_seed": 43,
         "log_dir": "",
         "vis_dir": "",
@@ -63,57 +66,87 @@ data_module = data_module(
 
 if idx == "noise":
     original_image = torch.randn(1,1,28,28)
+    original_image = torch.clamp(original_image, 0, 1)
 else:
     test_set = data_module.test_dataloader().dataset
-    original_image = test_set.data[idx:idx+1].float().unsqueeze(0) / 255.0
-    
+    original_image, label = test_set.__getitem__(idx)#data[idx:idx+1].float().unsqueeze(0) / 255.0
+    original_image = original_image.unsqueeze(0)
+
 #### PFE ####    
 print("==> PFE")
+print("=> ORIGINAL IMAGE ", original_image.min(), original_image.max(), original_image.mean(), original_image.median())
 
 pfe_model = FashionMNIST_PFE(embedding_size=args.latent_dim, linear=args.linear, seed=args.random_seed)
 pfe_model.load_state_dict(torch.load(pfe_model_path + pfe_model_name))
 pfe_model.eval()
 pfe_model = pfe_model.cuda()
-    
+
 for param in pfe_model.parameters():
     param.requires_grad = False
 
 pfe_image = copy.deepcopy(original_image)
 pfe_image = pfe_image.cuda()
-pfe_image.requires_grad = True
-optim = optimizer([pfe_image], lr=lr)
+
+if type == "affine":
+    theta = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]).unsqueeze(0).cuda()
+    theta += init_noise
+    theta = torch.nn.Parameter(theta)
+    optim = optimizer([theta], lr=lr)
+else:
+    pfe_image.requires_grad = True
+    pfe_image = torch.nn.Parameter(pfe_image)
+    optim = optimizer([pfe_image], lr=lr)
 
 losses = []
 for iter in range(steps):
     optim.zero_grad()
-        
-    image_01 = torch.sigmoid(pfe_image)
+    
+    if type == "affine":
+        grid = F.affine_grid(theta, pfe_image.size())
+        image_01 = F.grid_sample(pfe_image, grid)
+    else:
+        image_01 = torch.clamp(pfe_image, 0, 1)
     mu, sigma = pfe_model(image_01)
     
     loss = sigma.sum()
     loss.backward()
+    
     optim.step()
 
     if iter % 100 == 0:
         print(f"iter {iter} loss {loss} sigma {sigma.sum().item()}")
     
     losses.append(loss.cpu().item())
-
+    
 plt.plot(losses)
 plt.savefig(save_path + f"{idx}_pfe_loss.png")
 plt.close(); plt.clf(); plt.cla()
 
+if type == "affine":
+    grid = F.affine_grid(theta, pfe_image.size())
+    optimized_pfe_image = F.grid_sample(pfe_image, grid)
+else:
+    optimized_pfe_image = torch.clamp(pfe_image, 0, 1).detach()
+print("=> OPTIMIZED IMAGE ", optimized_pfe_image.min(), optimized_pfe_image.max(), optimized_pfe_image.mean(), optimized_pfe_image.median())
+cv2.imwrite(save_path + f"{idx}_pfe_optimized.png", optimized_pfe_image.detach().cpu().numpy().squeeze() * 255)
+cv2.imwrite(save_path + f"{idx}_pfe_original.png", original_image.cpu().numpy().squeeze() * 255)
+"""
 plt.imshow(original_image.cpu().numpy().squeeze(), cmap="gray")
 plt.savefig(save_path + f"{idx}_pfe_original.png")
+plt.axis("off")
+plt.grid(None) 
 plt.close(); plt.clf(); plt.cla()
     
 optimized_pfe_image = torch.sigmoid(pfe_image).detach()
 plt.imshow(optimized_pfe_image.cpu().numpy().squeeze(), cmap="gray")
 plt.savefig(save_path + f"{idx}_pfe_optimized.png")
+plt.axis("off")
+plt.grid(None) 
 plt.close(); plt.clf(); plt.cla()
-
+"""
 #### Post-hoc Laplace ####
 print("==> Post-hoc Laplace")
+print("=> ORIGINAL IMAGE ", original_image.min(), original_image.max(), original_image.mean(), original_image.median())
 
 model_name = "Posthoc"
 if args.linear:
@@ -135,8 +168,16 @@ posthoc_trainer.model = posthoc_model.to("cuda:0")
 
 posthoc_image = copy.deepcopy(original_image)
 posthoc_image = posthoc_image.cuda()
-posthoc_image.requires_grad = True
-optim = optimizer([posthoc_image], lr=lr)
+
+if type == "affine":
+    theta = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], requires_grad=True).unsqueeze(0).cuda()
+    theta += init_noise
+    theta = torch.nn.Parameter(theta)
+    optim = optimizer([theta], lr=lr)
+else:
+    posthoc_image.requires_grad = True
+    posthoc_image = torch.nn.Parameter(posthoc_image)
+    optim = optimizer([posthoc_image], lr=lr)
 
 for param in posthoc_model.parameters():
     param.requires_grad = False
@@ -150,23 +191,13 @@ losses = []
 for iter in range(steps):
     optim.zero_grad()
     
-    image_01 = torch.sigmoid(posthoc_image)
-    tmp = posthoc_model.conv(image_01)
-    samples = sample_nn(mu_q, sigma_q, 100)
-    
-    z = []
-    for sample in samples:
-        vector_to_parameters(sample, posthoc_model.linear.parameters())
-        z_i = posthoc_model.linear(tmp)
-        z.append(z_i)
+    if type == "affine":
+        grid = F.affine_grid(theta, posthoc_image.size())
+        image_01 = F.grid_sample(posthoc_image, grid)
+    else:
+        image_01 = torch.clamp(posthoc_image, 0, 1)
         
-    z = torch.cat(z, dim=0)
-    mu = z.mean(dim=0)
-    
-    p = z.shape[-1]
-    rhat = z.mean(dim=0).norm()
-    kappa = rhat * (p - rhat**2) / (1 - rhat**2)
-    sigma = 1 / kappa
+    z_mu, sigma, z = posthoc_trainer.forward_samples(image_01, 100)
         
     loss = sigma.sum()
     loss.backward()
@@ -180,18 +211,35 @@ for iter in range(steps):
 plt.plot(losses)
 plt.savefig(save_path + f"{idx}_laml_loss.png")
 plt.close(); plt.clf(); plt.cla()
-    
-optimized_posthoc_image = torch.sigmoid(posthoc_image).detach()
+
+if type == "affine":
+    grid = F.affine_grid(theta, posthoc_image.size())
+    optimized_posthoc_image = F.grid_sample(posthoc_image, grid)
+else:
+    optimized_posthoc_image = torch.clamp(posthoc_image, 0, 1).detach()
+
+print("=> OPTIMIZED IMAGE ", optimized_posthoc_image.min(), optimized_posthoc_image.max(), optimized_posthoc_image.mean(), optimized_posthoc_image.median())
+cv2.imwrite(save_path + f"{idx}_laml_optimized.png", optimized_posthoc_image.detach().cpu().numpy().squeeze() * 255)
+cv2.imwrite(save_path + f"{idx}_laml_original.png", original_image.cpu().numpy().squeeze() * 255)
+
+"""
+
 plt.imshow(optimized_posthoc_image.cpu().numpy().squeeze(), cmap="gray")
 plt.savefig(save_path + f"{idx}_laml_optimized.png")
+plt.axis("off")
+plt.grid(None) 
 plt.close(); plt.clf(); plt.cla()
 
 plt.imshow(original_image.cpu().numpy().squeeze(), cmap="gray")
 plt.savefig(save_path + f"{idx}_laml_original.png")
+plt.axis("off")
+plt.grid(None) 
 plt.close(); plt.clf(); plt.cla()
+"""
 
 ### Online laplace ###
 print("==> Online Laplace")
+print("=> ORIGINAL IMAGE ", original_image.min(), original_image.max(), original_image.mean(), original_image.median())
 
 model_name = "Online"
 if args.linear:
@@ -213,8 +261,16 @@ online_trainer.model = online_model.to("cuda:0")
 
 online_image = copy.deepcopy(original_image)
 online_image = online_image.cuda()
-online_image.requires_grad = True
-optim = optimizer([online_image], lr=lr)
+
+if type == "affine":
+    theta = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], requires_grad=True).unsqueeze(0).cuda()
+    theta += init_noise
+    theta = torch.nn.Parameter(theta)
+    optim = optimizer([theta], lr=lr)
+else:
+    online_image.requires_grad = True
+    online_image = torch.nn.Parameter(online_image)
+    optim = optimizer([online_image], lr=lr)
 
 for param in online_model.parameters():
     param.requires_grad = False
@@ -228,24 +284,14 @@ losses = []
 for iter in range(steps):
     optim.zero_grad()
     
-    image_01 = torch.sigmoid(online_image)
-    tmp = online_model.conv(image_01)
-    samples = sample_nn(mu_q, sigma_q, 100)
+    if type == "affine":
+        grid = F.affine_grid(theta, online_image.size())
+        image_01 = F.grid_sample(online_image, grid)
+    else:
+        image_01 = torch.clamp(online_image, 0, 1)
     
-    z = []
-    for sample in samples:
-        vector_to_parameters(sample, online_model.linear.parameters())
-        z_i = online_model.linear(tmp)
-        z.append(z_i)
-        
-    z = torch.cat(z, dim=0)
-    mu = z.mean(dim=0)
+    z_mu, sigma, z = online_trainer.forward_samples(image_01, 100)
     
-    p = z.shape[-1]
-    rhat = z.mean(dim=0).norm()
-    kappa = rhat * (p - rhat**2) / (1 - rhat**2)
-    sigma = 1 / kappa
-        
     loss = sigma.sum()
     loss.backward()
     optim.step()
@@ -259,12 +305,28 @@ plt.plot(losses)
 plt.savefig(save_path + f"{idx}_olaml_loss.png")
 plt.close(); plt.clf(); plt.cla()
 
-optimized_online_image = torch.sigmoid(online_image).detach()
+
+if type == "affine":
+    grid = F.affine_grid(theta, online_image.size())
+    optimized_online_image = F.grid_sample(online_image, grid)
+else:
+    optimized_online_image = torch.clamp(online_image, 0, 1).detach()
+    
+print("=> OPTIMIZED IMAGE ", optimized_online_image.min(), optimized_online_image.max(), optimized_online_image.mean(), optimized_online_image.median())
+cv2.imwrite(save_path + f"{idx}_olaml_optimized.png", optimized_online_image.detach().cpu().numpy().squeeze() * 255)
+cv2.imwrite(save_path + f"{idx}_olaml_original.png", original_image.cpu().numpy().squeeze() * 255)
+
+"""
 plt.imshow(optimized_online_image.cpu().numpy().squeeze(), cmap="gray")
+plt.axis("off")
+plt.grid(None) 
 plt.savefig(save_path + f"{idx}_olaml_optimized.png")
 
 plt.imshow(original_image.cpu().numpy().squeeze(), cmap="gray")
+plt.axis("off")
+plt.grid(None) 
 plt.savefig(save_path + f"{idx}_olaml_original.png")
+"""
 
 ####
 print("==> Who are better? :O ")
