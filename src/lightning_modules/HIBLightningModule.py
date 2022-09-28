@@ -60,76 +60,34 @@ class HIBLightningModule(BaseLightningModule):
         self.loss_fn.apply(self.loss_fn.weight_clipper)
 
     def loss_step(self, mu, std, pairs, step, n_samples=1):
-        #TODO: I might have removed something special. Check this...
-        #TODO: not gonna work....
+        
         ap, pos, an, neg = pairs
+        
+        loss_pos = 0
+        for _ in range(n_samples):
+            z_ap = mu[ap] + std[ap] * torch.randn_like(std[ap])
+            for _ in range(n_samples):
+                z_pos = mu[pos] + std[pos] * torch.randn_like(std[pos])
+                pair_dist = torch.norm(z_ap - z_pos, dim=1)
+                loss_pos += torch.sigmoid(-self.model.A * pair_dist + self.model.B).mean()
+        
+        loss_neg = 0
+        for _ in range(n_samples):
+            z_an = mu[an] + std[an] * torch.randn_like(std[an])
+            for _ in range(n_samples):
+                z_neg = mu[neg] + std[neg] * torch.randn_like(std[neg])
+                pair_dist = torch.norm(z_an - z_neg, dim=1)
+                loss_neg += torch.sigmoid(-self.model.A * pair_dist + self.model.B).mean()
 
-        # Create sample distribution
-        cov = torch.diag_embed(std.square())
-        pdist = tdist.MultivariateNormal(mu, cov)
+        loss_kl = (- 0.5 * torch.sum(1 + torch.log(std**2) - mu.square() - std**2)).mean()
 
-        # Compare to unit gaussian r(z) ~ N(0, I)
-        zdist = tdist.MultivariateNormal(
-            torch.zeros_like(mu),
-            torch.diag_embed(torch.ones_like(std)),
-        )
-
-        # Monte Carlo K times sampling, reparameterization trick in order
-        # to do backprop
-        # [K_samples, batch_size, embedding_space]
-        samples = pdist.rsample([n_samples])
-
-        # Repeat interleave tensor so something like [[1,2],[3,4],[4,5]] becomes
-        # [[1,2],[1,2],[3,4],[3,4],[4,5],[4,5]]
-        k1_samples = samples.repeat_interleave(n_samples, dim=0)
-
-        # Repeat tensor so something like [[1,2],[3,4],[4,5]] becomes
-        # [[1,2],[3,4],[4,5],[1,2],[3,4],[4,5]]
-        k2_samples = samples.repeat(n_samples, 1, 1)
-
-        # Convert 3D to 2D, we use self.K**3 because we have K_samples, repeated K times
-        # Concatenates all K samples into one large
-        # [batch_size * K, embedding_space] tensor
-        k1_samples = k1_samples.view(
-            n_samples**2 * mu.shape[0], self.args.embedding_size
-        )
-        k2_samples = k2_samples.view(
-            n_samples**2 * mu.shape[0], self.args.embedding_size
-        )
-
-        # Repeat target to match the shape of the samples
-        # [batch_size * K, embedding_space]
-        y_k1 = y.repeat_interleave(n_samples**2, dim=0)
-        y_k2 = y.repeat(n_samples**2, 1).view(-1)
-
-        # See hib-pair-indicies.ipynb for more info
-        # Scale the indices to match the shape of the samples
-        def scale_indices(x):
-            step = self.to_device(
-                torch.arange(0, n_samples**2).repeat_interleave(x.shape[0]) * mu.shape[0]
-            )
-
-            return x.repeat(n_samples**2) + step
-
-        # Scale indices to match repeated labels
-        indices_tuple = [scale_indices(x) for x in [ap, pos, an, neg]]
-
-        loss_soft_contrastive = self.loss_fn(
-            embeddings=k1_samples,
-            labels=y_k1,
-            # something like this
-            indices_tuple=indices_tuple,
-            ref_emb=k2_samples,
-            ref_labels=y_k2,
-        )
-
-        loss_kl = tdist.kl_divergence(pdist, zdist).sum() / mu.shape[0]
-
-        loss = loss_soft_contrastive + self.args.kl_scale * loss_kl
-
+        loss = loss_pos + loss_neg + self.args.kl_scale * loss_kl
+        
+        samples = mu + std * torch.randn_like(std)
+        
         return samples, loss
 
-    def train_step(self, X, pairs):
+    def train_step(self, X, pairs, class_labels):
         # Pass images through the model
         mu, std = self.forward(X)
 

@@ -6,7 +6,7 @@ from config import CIFAR10Config, FashionMNISTConfig, CUB200Config, template_tex
 root = Path(__file__).parent.parent
 
 # Submit FashionMNIST experiments
-for config in [CUB200Config]: #CIFAR10Config]:
+for config in [FashionMNISTConfig]:#, FashionMNISTConfig, CUB200Config]: #CIFAR10Config]:
     for latent_dim in config.latent_dims:
         for model in config.models:
             batch_size = 128

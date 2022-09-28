@@ -18,43 +18,31 @@ class DULLightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
 
-        self.loss_optimizer = torch.optim.SGD(loss_fn.parameters(), lr=0.01)
-
-    def optimizer_step(self):
-        super().optimizer_step()
-        self.loss_optimizer.step()
-
-    def loss_step(self, mu, std, pairs, step, n_samples=1):
+    def loss_step(self, mu, std, class_labels):
         variance_dul = std.square()
-
-        cov = torch.diag_embed(variance_dul)
-        pdist = dist.MultivariateNormal(mu, cov)
-        samples = pdist.rsample([n_samples])
-
-        loss_backbone = self.loss_fn(samples, None, pairs)
-
-        loss_kl = (
-            ((variance_dul + mu.square() - torch.log(variance_dul) - 1) * 0.5)
-            .sum(dim=-1)
-            .mean()
-        )
-
-        loss = loss_backbone + self.args.kl_scale * loss_kl
         
-        return samples, loss
+        z = mu + std * torch.randn_like(std)
+        loglik = self.loss_fn(z, class_labels, None)
 
-    def train_step(self, X, pairs):
+        loss_kl = (- 0.5 * torch.sum(1 + torch.log(variance_dul) - mu.square() - variance_dul)).mean()
+        loss = loglik + self.args.kl_scale * loss_kl
+        
+        return loss
+
+    def train_step(self, X, pairs, class_labels):
         mu_dul, std_dul = self.forward(X)
 
-        samples, loss = self.loss_step(mu_dul, std_dul, pairs, step="train", n_samples=self.train_samples)
-
-        return samples, loss
+        loss = self.loss_step(mu_dul, std_dul, class_labels)
+        
+        return mu_dul, loss
 
     def val_step(self, X, y, n_samples=1):
         mu_dul, std_dul = self.forward(X)
 
-        pairs = self.miner(mu_dul, y)
-        samples, _ = self.loss_step(mu_dul, std_dul, pairs, step="val", n_samples=self.val_samples)
+        # Reparameterization trick
+        cov = torch.diag_embed(std_dul ** 2)
+        pdist = dist.MultivariateNormal(mu_dul, cov)
+        samples = pdist.rsample([n_samples])
 
         return mu_dul, std_dul, samples
 

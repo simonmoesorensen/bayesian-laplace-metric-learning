@@ -12,7 +12,7 @@ python3 -m debugpy --listen $node_ip:1332 ./src/baselines/DUL/train.py \
     --batch_size 256 \
     --embedding_size 16 \
     --num_epoch 1 \
-    --save_freq 15 \
+    --save_freq 1 \
     --gpu_id 0\
     --num_workers 8 \
     --shuffle \

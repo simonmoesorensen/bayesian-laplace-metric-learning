@@ -13,29 +13,29 @@ from src.lightning_modules.HIBLightningModule import HIBLightningModule
 from src.utils import separate_batchnorm_params
 
 
-def run(HIB_args):
-    HIB_args.gpu_id = [int(item) for item in HIB_args.gpu_id]
+def run(args):
+    args.gpu_id = [int(item) for item in args.gpu_id]
 
-    if HIB_args.dataset == "MNIST":
-        model = MNIST_HIB(embedding_size=HIB_args.embedding_size)
+    if args.dataset == "MNIST":
+        model = MNIST_HIB(embedding_size=args.embedding_size)
         data_module = MNISTDataModule
-    elif HIB_args.dataset == "CIFAR10":
-        model = CIFAR10_HIB(embedding_size=HIB_args.embedding_size)
+    elif args.dataset == "CIFAR10":
+        model = CIFAR10_HIB(embedding_size=args.embedding_size)
         data_module = CIFAR10DataModule
-    elif HIB_args.dataset == "Casia":
-        model = Casia_HIB(embedding_size=HIB_args.embedding_size)
+    elif args.dataset == "Casia":
+        model = Casia_HIB(embedding_size=args.embedding_size)
         data_module = CasiaDataModule
-    elif HIB_args.dataset == "FashionMNIST":
-        model = MNIST_HIB(embedding_size=HIB_args.embedding_size)
+    elif args.dataset == "FashionMNIST":
+        model = MNIST_HIB(embedding_size=args.embedding_size)
         data_module = FashionMNISTDataModule
     elif args.dataset == "CUB200":
         model = CUB200ConvNet(latent_dim=args.embedding_size)
         data_module = CUB200DataModule
 
     data_module = data_module(
-        HIB_args.data_dir,
-        HIB_args.batch_size,
-        HIB_args.num_workers,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
         npos=1,
         nneg=5,
     )
@@ -47,11 +47,11 @@ def run(HIB_args):
         [
             {
                 "params": params_no_bn,
-                "weight_decay": HIB_args.weight_decay,
+                "weight_decay": args.weight_decay,
             },
             {"params": params_w_bn},
         ],
-        lr=HIB_args.lr,
+        lr=args.lr,
     )
 
     loss = SoftContrastiveLoss()
@@ -60,16 +60,17 @@ def run(HIB_args):
     miner = None
 
     trainer = HIBLightningModule(
-        accelerator="gpu", devices=len(HIB_args.gpu_id), strategy="dp"
+        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
     )
 
     trainer.init(
-        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=HIB_args
+        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=args
     )
 
     trainer.add_data_module(data_module)
 
-    trainer.train()
+    if args.train:
+        trainer.train()
     trainer.test()
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")

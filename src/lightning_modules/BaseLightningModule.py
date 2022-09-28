@@ -12,6 +12,7 @@ from tqdm import tqdm
 from src.evaluate import compute_map_k, compute_recall_k, compute_rank, compute_pidx
 from src.visualize import visualize, get_vis_path
 from src.utils import filter_state_dict, get_pairs
+import torchvision
 
 plt.switch_backend("agg")
 logging.getLogger(__name__).setLevel(logging.INFO)
@@ -74,7 +75,7 @@ class BaseLightningModule(LightningLite):
         writer = SummaryWriter(logdir)
         return writer
 
-    def train_step(self, X, pairs):
+    def train_step(self, X, pairs, class_labels):
         raise NotImplementedError()
 
     def val_step(self, X, y, n_samples=1):
@@ -140,10 +141,11 @@ class BaseLightningModule(LightningLite):
                 
                 bs, nobs, c, h, w = image.shape
                 image = image.view(bs * nobs, c, h, w)
+                class_labels = class_labels.view(-1)
                 
                 pairs = get_pairs(target)
 
-                out, loss = self.train_step(image, pairs)
+                out, loss = self.train_step(image, pairs, class_labels)
 
                 self.backward(loss)
 
@@ -161,6 +163,18 @@ class BaseLightningModule(LightningLite):
                 self.batch += 1
 
             self.epoch_end()
+            
+            if (epoch + 1) % self.args.val_freq == 0:
+                metrics = self.validate()
+                
+                for k in metrics:
+                    self.writer.add_scalar(f"val/{k}", metrics[k], epoch)
+                    
+                for i in range(5):
+                    triplet = image[i*nobs:(i+1)*nobs]
+                    triplet = (triplet - triplet.min()) / (triplet.max() - triplet.min())
+                    grid = torchvision.utils.make_grid(triplet)
+                    self.writer.add_image(f"triplet/{i}", grid, epoch)
 
             # Validate @ frequency
             if (epoch + 1) % self.args.save_freq == 0:
@@ -199,7 +213,7 @@ class BaseLightningModule(LightningLite):
         
         if len(z_sigma) > 0:
             z_sigma = torch.cat(z_sigma, dim=0)
-
+        
         if len(z_samples) > 0:    
             z_samples = torch.cat(z_samples, dim=1).permute(1, 0, 2)
             

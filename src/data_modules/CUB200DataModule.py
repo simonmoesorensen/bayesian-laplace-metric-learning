@@ -48,8 +48,8 @@ class Cub200_train(Dataset):
         print("=> done in {:.2f}s".format(time.time() - t))
         
         self.transform = transforms.Compose([
-            transforms.Resize(73),
-            transforms.CenterCrop(64),
+            transforms.Resize(156),
+            transforms.RandomCrop(128),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
@@ -107,8 +107,8 @@ class Cub200_test(Dataset):
         self.images = self.images[idx]
         
         self.transform = transforms.Compose([
-            transforms.Resize(73),
-            transforms.CenterCrop(64),
+            transforms.Resize(156),
+            transforms.CenterCrop(128),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
@@ -141,7 +141,7 @@ class CUB200DataModule(BaseDataModule):
         )
 
         self.name = "CUB200"
-        self.n_classes = 200
+        self.n_classes = 100
         
         self.dataset_train = Cub200_train(data_dir, nneg=nneg, npos=npos)
         self.dataset_val = Cub200_test(data_dir)

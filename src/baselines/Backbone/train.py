@@ -1,3 +1,4 @@
+from gc import collect
 import torch.optim as optim
 from pytorch_metric_learning import losses, miners
 from src.baselines.Backbone.config import parse_args
@@ -64,6 +65,7 @@ def run(args):
     )
 
     loss = losses.ContrastiveLoss(
+        collect_stats=True,
         # distance=distances.LpDistance(normalize_embeddings=False, p=2, power=1),
         # neg_margin=0.2, pos_margin=0.,
     )
@@ -84,7 +86,8 @@ def run(args):
 
     trainer.add_data_module(data_module)
 
-    trainer.train()
+    if args.train:
+        trainer.train()
     trainer.test()
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")

@@ -27,10 +27,13 @@ import cv2
 import torch.nn.functional as F
 
 
-idx = 2
-type = "image"
+def softclamp(x, min=0, max=1):
+    return (torch.tanh(x) + 1)/2
+
+idx = 3
+type = "max_sigma"
 optimizer = Adam
-lr = 1
+lr = 1e-3
 steps = 1000
 init_noise = 0 #.3 * torch.randn(1, 2,3).cuda()
 pfe_model_path = "outputs/PFE/checkpoints/FashionMNIST/latentdim_3_seed_43_linear/"
@@ -66,7 +69,7 @@ data_module = data_module(
 
 if idx == "noise":
     original_image = torch.randn(1,1,28,28)
-    original_image = torch.clamp(original_image, 0, 1)
+    original_image = softclamp(original_image, 0, 1)
 else:
     test_set = data_module.test_dataloader().dataset
     original_image, label = test_set.__getitem__(idx)#data[idx:idx+1].float().unsqueeze(0) / 255.0
@@ -105,10 +108,10 @@ for iter in range(steps):
         grid = F.affine_grid(theta, pfe_image.size())
         image_01 = F.grid_sample(pfe_image, grid)
     else:
-        image_01 = torch.clamp(pfe_image, 0, 1)
+        image_01 = softclamp(pfe_image, 0, 1)
     mu, sigma = pfe_model(image_01)
     
-    loss = sigma.sum()
+    loss = -sigma.sum()
     loss.backward()
     
     optim.step()
@@ -126,7 +129,7 @@ if type == "affine":
     grid = F.affine_grid(theta, pfe_image.size())
     optimized_pfe_image = F.grid_sample(pfe_image, grid)
 else:
-    optimized_pfe_image = torch.clamp(pfe_image, 0, 1).detach()
+    optimized_pfe_image = softclamp(pfe_image, 0, 1).detach()
 print("=> OPTIMIZED IMAGE ", optimized_pfe_image.min(), optimized_pfe_image.max(), optimized_pfe_image.mean(), optimized_pfe_image.median())
 cv2.imwrite(save_path + f"{idx}_pfe_optimized.png", optimized_pfe_image.detach().cpu().numpy().squeeze() * 255)
 cv2.imwrite(save_path + f"{idx}_pfe_original.png", original_image.cpu().numpy().squeeze() * 255)
@@ -195,11 +198,11 @@ for iter in range(steps):
         grid = F.affine_grid(theta, posthoc_image.size())
         image_01 = F.grid_sample(posthoc_image, grid)
     else:
-        image_01 = torch.clamp(posthoc_image, 0, 1)
+        image_01 = softclamp(posthoc_image, 0, 1)
         
     z_mu, sigma, z = posthoc_trainer.forward_samples(image_01, 100)
         
-    loss = sigma.sum()
+    loss = -sigma.sum()
     loss.backward()
     optim.step()
     
@@ -216,7 +219,7 @@ if type == "affine":
     grid = F.affine_grid(theta, posthoc_image.size())
     optimized_posthoc_image = F.grid_sample(posthoc_image, grid)
 else:
-    optimized_posthoc_image = torch.clamp(posthoc_image, 0, 1).detach()
+    optimized_posthoc_image = softclamp(posthoc_image, 0, 1).detach()
 
 print("=> OPTIMIZED IMAGE ", optimized_posthoc_image.min(), optimized_posthoc_image.max(), optimized_posthoc_image.mean(), optimized_posthoc_image.median())
 cv2.imwrite(save_path + f"{idx}_laml_optimized.png", optimized_posthoc_image.detach().cpu().numpy().squeeze() * 255)
@@ -288,11 +291,11 @@ for iter in range(steps):
         grid = F.affine_grid(theta, online_image.size())
         image_01 = F.grid_sample(online_image, grid)
     else:
-        image_01 = torch.clamp(online_image, 0, 1)
+        image_01 = softclamp(online_image, 0, 1)
     
     z_mu, sigma, z = online_trainer.forward_samples(image_01, 100)
     
-    loss = sigma.sum()
+    loss = -sigma.sum()
     loss.backward()
     optim.step()
 
@@ -310,7 +313,7 @@ if type == "affine":
     grid = F.affine_grid(theta, online_image.size())
     optimized_online_image = F.grid_sample(online_image, grid)
 else:
-    optimized_online_image = torch.clamp(online_image, 0, 1).detach()
+    optimized_online_image = softclamp(online_image, 0, 1).detach()
     
 print("=> OPTIMIZED IMAGE ", optimized_online_image.min(), optimized_online_image.max(), optimized_online_image.mean(), optimized_online_image.median())
 cv2.imwrite(save_path + f"{idx}_olaml_optimized.png", optimized_online_image.detach().cpu().numpy().squeeze() * 255)

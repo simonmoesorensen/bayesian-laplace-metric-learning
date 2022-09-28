@@ -1,7 +1,7 @@
 import torch.optim as optim
 from pytorch_metric_learning import distances, losses, miners
 from src.baselines.DUL.config import parse_args
-from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL, CUB200ConvNet
+from src.baselines.DUL.models import CIFAR10_DUL, MNIST_DUL, Casia_DUL, Cub200_DUL
 from src.data_modules import (
     CasiaDataModule,
     CIFAR10DataModule,
@@ -13,29 +13,29 @@ from src.lightning_modules.DULLightningModule import DULLightningModule
 from src.utils import separate_batchnorm_params
 
 
-def run(dul_args):
-    dul_args.gpu_id = [int(item) for item in dul_args.gpu_id]
+def run(args):
+    args.gpu_id = [int(item) for item in args.gpu_id]
 
-    if dul_args.dataset == "MNIST":
-        model = MNIST_DUL(embedding_size=dul_args.embedding_size)
+    if args.dataset == "MNIST":
+        model = MNIST_DUL(args.embedding_size, args.linear)
         data_module = MNISTDataModule
-    elif dul_args.dataset == "CIFAR10":
-        model = CIFAR10_DUL(embedding_size=dul_args.embedding_size)
+    elif args.dataset == "CIFAR10":
+        model = CIFAR10_DUL(args.embedding_size, args.linear)
         data_module = CIFAR10DataModule
-    elif dul_args.dataset == "Casia":
-        model = Casia_DUL(embedding_size=dul_args.embedding_size)
+    elif args.dataset == "Casia":
+        model = Casia_DUL(args.embedding_size, args.linear)
         data_module = CasiaDataModule
-    elif dul_args.dataset == "FashionMNIST":
-        model = MNIST_DUL(embedding_size=dul_args.embedding_size)
+    elif args.dataset == "FashionMNIST":
+        model = MNIST_DUL(args.embedding_size, args.linear)
         data_module = FashionMNISTDataModule
     elif args.dataset == "CUB200":
-        model = CUB200ConvNet(latent_dim=args.embedding_size)
+        model = Cub200_DUL(args.embedding_size, args.linear)
         data_module = CUB200DataModule
 
     data_module = data_module(
-        dul_args.data_dir, 
-        dul_args.batch_size, 
-        dul_args.num_workers,
+        args.data_dir, 
+        args.batch_size, 
+        args.num_workers,
         npos=1,
         nneg=5,
     )
@@ -47,20 +47,19 @@ def run(dul_args):
         [
             {
                 "params": params_no_bn,
-                "weight_decay": dul_args.weight_decay,
+                "weight_decay": args.weight_decay,
             },
             {"params": params_w_bn},
         ],
-        lr=dul_args.lr,
+        lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
     )
 
-    loss = losses.ArcFaceLoss(
+    loss = losses.NormalizedSoftmaxLoss(
+        collect_stats=True,
         num_classes=data_module.n_classes,
-        scale=dul_args.arcface_scale,
-        margin=dul_args.arcface_margin,
-        embedding_size=dul_args.embedding_size,
+        embedding_size=args.embedding_size,
     )
 
     miner = miners.BatchEasyHardMiner(
@@ -70,16 +69,17 @@ def run(dul_args):
     )
 
     trainer = DULLightningModule(
-        accelerator="gpu", devices=len(dul_args.gpu_id), strategy="dp"
+        accelerator="gpu", devices=len(args.gpu_id), strategy="dp"
     )
 
     trainer.init(
-        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=dul_args
+        model=model, loss_fn=loss, miner=miner, optimizer=optimizer, args=args
     )
 
     trainer.add_data_module(data_module)
 
-    trainer.train()
+    if args.train:
+        trainer.train()
     trainer.test()
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")

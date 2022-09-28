@@ -4,16 +4,16 @@ from typing import List
 class Config:
     latent_dims: List[int]
     dataset: str
-    models: List[str] = ["Backbone", "Laplace_online"] #["Laplace_online"] #, "Backbone"] #["PFE", "Online"] #"DUL", "HIB", "MCDropout"]
-    seeds: List[int] = [43]  # [42, 43, 44, 45, 46]
-    gpu_queue: str = "gpua100"
+    models: List[str] = ["DUL"]#, "Laplace_online"] #["Laplace_online"] #, "Backbone"] #["PFE", "Online"] #"DUL", "HIB", "MCDropout"]
+    seeds: List[int] = [47]#[43, 43, 44, 45, 46]
+    gpu_queue: str = "gpuv100"
     gpu_mem: str
 
 
 class FashionMNISTConfig(Config):
-    latent_dims = [3, 16, 32]
+    latent_dims = [16, 32]
     dataset = "FashionMNIST"
-    num_epoch = 200
+    num_epoch = 400
     gpu_mem = "4"
 
 
@@ -91,7 +91,7 @@ source venv/bin/activate
 
 export CUDA_VISIBLE_DEVICES=0
 
-python3 -m src.baselines.{model}.train --dataset {dataset} --name {name} --batch_size {batch_size} --embedding_size {latent_dim} --num_epoch {num_epoch} --save_freq 100000 --gpu_id 0 --num_workers 8 --to_visualize --shuffle {additional_args}
+python3 -m src.baselines.{model}.train --dataset {dataset} --name {name} --batch_size {batch_size} --embedding_size {latent_dim} --num_epoch {num_epoch} --save_freq 100000 --val_freq 20 --gpu_id 0 --num_workers 8 --to_visualize --shuffle {additional_args} --linear
 """
 
 

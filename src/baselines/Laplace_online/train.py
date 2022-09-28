@@ -47,7 +47,7 @@ def run(args):
         lr=args.lr,
     )
 
-    loss = losses.ContrastiveLoss(neg_margin=args.margin)
+    loss = losses.ContrastiveLoss(neg_margin=args.margin, collect_stats=True,)
 
     if args.hessian == "positives":
         calculator_cls = ContrastiveHessianCalculator
@@ -90,7 +90,8 @@ def run(args):
 
     trainer.add_data_module(data_module)
 
-    trainer.train()
+    if args.train:
+        trainer.train()
     trainer.test()
     trainer.log_hyperparams()
     trainer.save_model(prefix="Final")

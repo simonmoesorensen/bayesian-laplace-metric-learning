@@ -5,11 +5,11 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 node_ip="$(ifconfig | grep "inet" | awk 'NR==1{print $2}')"
 
-python3 -m debugpy --listen $node_ip:1332 ./src/baselines/MCDropout/train.py \
+python3 -m debugpy --listen $node_ip:1329 ./src/baselines/MCDropout/train.py \
     --dataset FashionMNIST \
     --name train_script \
     --batch_size 64 \
-    --embedding_size 2 \
+    --embedding_size 3 \
     --num_epoch 1 \
     --save_freq 2 \
     --gpu_id 0\

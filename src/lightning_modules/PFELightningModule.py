@@ -17,7 +17,7 @@ class PFELightningModule(BaseLightningModule):
     def init(self, model, loss_fn, miner, optimizer, args):
         super().init(model, loss_fn, miner, optimizer, args)
         
-    def train_step(self, x, pairs):
+    def train_step(self, x, pairs, class_labels):
                 
         mu, std = self.forward(x)
         

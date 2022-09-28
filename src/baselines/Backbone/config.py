@@ -28,7 +28,8 @@ def parse_args():
     parser.add_argument("--vis_dir", type=str, default=vis_dir)
     parser.add_argument("--model_save_folder", type=str, default=save_dir)
     parser.add_argument("--log_dir", type=str, default=log_dir)
-    parser.add_argument("--save_freq", type=int, default=4)
+    parser.add_argument("--save_freq", type=int, default=20)
+    parser.add_argument("--val_freq", type=int, default=20)
 
     # ----- training env
     parser.add_argument("--multi_gpu", type=bool, default=True)
@@ -45,6 +46,7 @@ def parse_args():
     parser.add_argument("--to_visualize", default=False, action="store_true")
     parser.add_argument("--disp_freq", type=int, default=20)
     parser.add_argument("--linear", default=False, action="store_true")
+    parser.add_argument("--train", default=True, action="store_false")
 
     # ----- data loader details
     parser.add_argument("--num_workers", type=int, default=8)
